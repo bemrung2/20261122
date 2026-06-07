@@ -12,40 +12,66 @@
 </head>
 <body>
 
-<!-- ── 인트로 ───────────────────────────────────────────── -->
+<!-- ══ 인트로 ══════════════════════════════════════════════ -->
 <div id="intro" class="screen intro-screen">
-  <div class="intro-deco deco-tl">🌿</div>
-  <div class="intro-deco deco-tr">✦</div>
+  <div class="intro-deco deco-tl">✦</div>
+  <div class="intro-deco deco-tr">◇</div>
   <div class="intro-deco deco-bl">◇</div>
-  <div class="intro-deco deco-br">🌿</div>
+  <div class="intro-deco deco-br">✦</div>
 
   <div class="intro-inner">
-    <div class="intro-rule"></div>
-    <div class="intro-badge">KB국민은행 21년 8월 입사동기</div>
-    <h1 class="intro-title">우리의<br/><em>이야기</em></h1>
-    <p class="intro-sub">처음 만난 그날부터 지금까지</p>
-    <div class="intro-diamond">✦</div>
+    <!-- 상단 장식선 -->
+    <div class="intro-ornament">
+      <span class="orn-line"></span>
+      <span class="orn-diamond">◆</span>
+      <span class="orn-line"></span>
+    </div>
+
+    <p class="intro-eyebrow">2021 — 2025</p>
+    <h1 class="intro-title">우리가<br/>함께한<br/><em>시간들</em></h1>
+
+    <p class="intro-desc">
+      기억 속 어딘가에 묻어둔<br/>
+      그 순간들을 다시 꺼내볼게.
+    </p>
+
+    <div class="intro-ornament" style="margin-top:0; margin-bottom:2.4rem;">
+      <span class="orn-line"></span>
+      <span class="orn-diamond">◆</span>
+      <span class="orn-line"></span>
+    </div>
+
     <button class="start-btn" id="startBtn">
-      <span>우리 이야기 보러가기</span>
-      <span class="btn-arrow">→</span>
+      <span>우리 이야기 펼치기</span>
+      <span class="btn-arrow">↓</span>
     </button>
   </div>
 </div>
 
-<!-- ── 스토리 ───────────────────────────────────────────── -->
+<!-- ══ 스토리 ══════════════════════════════════════════════ -->
 <div id="storyApp" class="screen story-screen hidden">
+
+  <!-- 전체 챕터 진행 바 (최상단) -->
   <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
 
-  <div class="media-wrap" id="mediaWrap">
-    <img   id="sceneImg" src="" alt="" class="media-img hidden"/>
-    <video id="sceneVid" src=""  class="media-vid hidden" playsinline autoplay muted loop></video>
-    <div id="mediaPlaceholder" class="media-placeholder">
-      <span class="ph-icon">📷</span>
-      <span class="ph-text">사진 / 영상을 넣어주세요</span>
+  <!-- ── 미디어 슬라이더 영역 ── -->
+  <div class="media-section" id="mediaSection">
+
+    <!-- 슬라이더 뷰포트 -->
+    <div class="slider-viewport" id="sliderViewport">
+      <div class="slider-track" id="sliderTrack">
+        <!-- JS로 슬라이드 생성 -->
+      </div>
     </div>
+
+    <!-- 미디어 도트 (슬라이드 개수 표시) -->
+    <div class="media-dots" id="mediaDots"></div>
+
+    <!-- 미디어 하단 페이드 -->
     <div class="media-fade"></div>
   </div>
 
+  <!-- ── 텍스트 카드 ── -->
   <div class="story-card" id="storyCard">
     <div class="card-chip"  id="cardChip"></div>
     <p   class="card-date"  id="cardDate"></p>
@@ -53,14 +79,16 @@
     <p   class="card-body"  id="cardBody"></p>
   </div>
 
+  <!-- ── 챕터 네비게이션 ── -->
   <div class="nav-bar" id="navBar">
     <button class="nav-pill" id="prevBtn" onclick="prevScene()">← 이전</button>
-    <div class="dot-row" id="dotRow"></div>
+    <div class="chapter-dots" id="chapterDots"></div>
     <button class="nav-pill next-pill" id="nextBtn" onclick="nextScene()">다음 →</button>
   </div>
+
 </div>
 
-<!-- ── 프로포즈 ─────────────────────────────────────────── -->
+<!-- ══ 프로포즈 ══════════════════════════════════════════════ -->
 <div id="proposeScreen" class="screen propose-screen hidden">
   <div class="propose-bg-circles">
     <div class="bg-circle c1"></div>
@@ -68,7 +96,6 @@
     <div class="bg-circle c3"></div>
   </div>
   <div class="petals" id="petals"></div>
-
   <div class="propose-inner">
     <div class="ring-wrap">
       <div class="ring-outer"><span class="ring-inner">💍</span></div>
@@ -88,7 +115,7 @@
   </div>
 </div>
 
-<!-- ── 축하 ────────────────────────────────────────────── -->
+<!-- ══ 축하 ══════════════════════════════════════════════════ -->
 <div id="celebScreen" class="screen celeb-screen hidden">
   <div class="confetti-wrap" id="confettiWrap"></div>
   <div class="celeb-inner">
