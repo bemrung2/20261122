@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-  <title>우리의 이야기 🌸</title>
+  <title>우리의 이야기</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
@@ -14,18 +14,17 @@
 
 <!-- ── 인트로 ───────────────────────────────────────────── -->
 <div id="intro" class="screen intro-screen">
-  <div class="intro-deco deco-tl">🌸</div>
-  <div class="intro-deco deco-tr">💌</div>
-  <div class="intro-deco deco-bl">✨</div>
-  <div class="intro-deco deco-br">🌷</div>
+  <div class="intro-deco deco-tl">🌿</div>
+  <div class="intro-deco deco-tr">✦</div>
+  <div class="intro-deco deco-bl">◇</div>
+  <div class="intro-deco deco-br">🌿</div>
 
   <div class="intro-inner">
+    <div class="intro-rule"></div>
     <div class="intro-badge">KB국민은행 21년 8월 입사동기</div>
     <h1 class="intro-title">우리의<br/><em>이야기</em></h1>
-    <p class="intro-sub">처음 만난 그날부터 지금까지(작성중)</p>
-    <div class="intro-hearts">
-      <span>♡</span><span>♡</span><span>♡</span>
-    </div>
+    <p class="intro-sub">처음 만난 그날부터 지금까지</p>
+    <div class="intro-diamond">✦</div>
     <button class="start-btn" id="startBtn">
       <span>우리 이야기 보러가기</span>
       <span class="btn-arrow">→</span>
@@ -35,37 +34,30 @@
 
 <!-- ── 스토리 ───────────────────────────────────────────── -->
 <div id="storyApp" class="screen story-screen hidden">
-
-  <!-- 상단 진행 바 -->
   <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
 
-  <!-- 미디어 영역 (사진 or 영상) -->
   <div class="media-wrap" id="mediaWrap">
-    <img  id="sceneImg"   src="" alt="" class="media-img hidden"/>
-    <video id="sceneVid"  src=""  class="media-vid hidden" playsinline autoplay muted loop></video>
-    <div  id="mediaPlaceholder" class="media-placeholder">
+    <img   id="sceneImg" src="" alt="" class="media-img hidden"/>
+    <video id="sceneVid" src=""  class="media-vid hidden" playsinline autoplay muted loop></video>
+    <div id="mediaPlaceholder" class="media-placeholder">
       <span class="ph-icon">📷</span>
       <span class="ph-text">사진 / 영상을 넣어주세요</span>
     </div>
-    <!-- 하단 페이드 -->
     <div class="media-fade"></div>
   </div>
 
-  <!-- 하단 카드 -->
   <div class="story-card" id="storyCard">
-    <div class="card-chip" id="cardChip"></div>
-    <p  class="card-date"  id="cardDate"></p>
-    <h2 class="card-title" id="cardTitle"></h2>
-    <p  class="card-body"  id="cardBody"></p>
+    <div class="card-chip"  id="cardChip"></div>
+    <p   class="card-date"  id="cardDate"></p>
+    <h2  class="card-title" id="cardTitle"></h2>
+    <p   class="card-body"  id="cardBody"></p>
   </div>
 
-  <!-- 네비 (카드 아래 고정) -->
   <div class="nav-bar" id="navBar">
     <button class="nav-pill" id="prevBtn" onclick="prevScene()">← 이전</button>
     <div class="dot-row" id="dotRow"></div>
     <button class="nav-pill next-pill" id="nextBtn" onclick="nextScene()">다음 →</button>
   </div>
-
 </div>
 
 <!-- ── 프로포즈 ─────────────────────────────────────────── -->
@@ -79,13 +71,10 @@
 
   <div class="propose-inner">
     <div class="ring-wrap">
-      <div class="ring-outer">
-        <div class="ring-inner">💍</div>
-      </div>
+      <div class="ring-outer"><span class="ring-inner">💍</span></div>
     </div>
     <h2 class="propose-title">나와<br/>결혼해줄래요?</h2>
     <p class="propose-body">
-      <!-- ✏️ 프로포즈 메시지를 여기서 수정하세요 -->
       KB국민은행 입사 첫날,<br/>
       수백 명 중에 네가 눈에 들어왔어.<br/><br/>
       같은 곳에 입사한 것도 인연인데,<br/>
