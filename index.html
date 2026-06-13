@@ -12,6 +12,50 @@
 </head>
 <body>
 
+<!-- ══ 잠금 화면 ════════════════════════════════════════════ -->
+<div id="lockScreen" class="screen lock-screen">
+  <div class="lock-deco deco-tl">✦</div>
+  <div class="lock-deco deco-br">✦</div>
+
+  <div class="lock-inner">
+    <div class="lock-icon">🔒</div>
+
+    <div class="lock-ornament">
+      <span class="orn-line"></span>
+      <span class="orn-diamond">◆</span>
+      <span class="orn-line"></span>
+    </div>
+
+    <h1 class="lock-title">잠깐,<br/>당신이 맞나요?</h1>
+    <p class="lock-desc">
+      이 페이지는 오직 한 사람만을 위한 공간이에요.<br/>
+      우리만 알고 있는 날짜를 입력해주세요.
+    </p>
+
+    <div class="lock-field-wrap">
+      <label class="lock-label">우리가 사귀기 시작한 날은?</label>
+      <div class="lock-input-row">
+        <input
+          class="lock-input"
+          id="lockInput"
+          type="tel"
+          inputmode="numeric"
+          maxlength="8"
+          placeholder="YYYYMMDD"
+          autocomplete="off"
+        />
+      </div>
+      <p class="lock-hint">숫자 8자리로 입력해주세요</p>
+    </div>
+
+    <button class="lock-btn" id="lockBtn" onclick="checkPassword()">확인하기</button>
+
+    <p class="lock-error hidden" id="lockError">
+      날짜가 맞지 않아요. 다시 생각해봐요 🤍
+    </p>
+  </div>
+</div>
+
 <!-- ══ 인트로 ══════════════════════════════════════════════ -->
 <div id="intro" class="screen intro-screen">
   <div class="intro-deco deco-tl">✦</div>

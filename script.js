@@ -3,6 +3,8 @@
 
    ✏️ 커스터마이징 가이드
    ─────────────────────────────────────────────────────────
+   ANSWER: 비밀번호(사귄 날짜)를 여기서 수정하세요.
+
    각 SCENE의 medias 배열에 사진/영상을 여러 개 넣을 수 있어요.
    좌우 스와이프로 사진/영상을 넘길 수 있고,
    아래 점(dot)으로 몇 번째 미디어인지 표시됩니다.
@@ -15,6 +17,51 @@
    미디어 슬라이드는 미디어 영역 스와이프.
    ─────────────────────────────────────────────────────────
 ============================================================ */
+
+/* ════════════════════════════════════════
+   잠금 화면
+════════════════════════════════════════ */
+const ANSWER = '20221030'; // ✏️ 비밀번호 (사귄 날짜 YYYYMMDD)
+
+const lockInput = document.getElementById('lockInput');
+const lockError = document.getElementById('lockError');
+
+// 엔터키로도 확인 가능
+lockInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPassword();
+});
+
+// 8자리 입력되면 자동 확인
+lockInput.addEventListener('input', () => {
+  lockError.classList.remove('show');
+  lockInput.classList.remove('shake');
+  if (lockInput.value.length === 8) checkPassword();
+});
+
+function checkPassword() {
+  const val = lockInput.value.trim();
+  if (val === ANSWER) {
+    // 정답 — 잠금 해제
+    lockInput.blur();
+    const lock = document.getElementById('lockScreen');
+    lock.classList.add('fade-out');
+    setTimeout(() => {
+      lock.style.display = 'none';
+      document.getElementById('intro').classList.remove('hidden');
+    }, 800);
+  } else {
+    // 오답 — 흔들기 + 에러 메시지
+    lockInput.classList.remove('shake');
+    void lockInput.offsetWidth; // reflow
+    lockInput.classList.add('shake');
+    lockError.classList.add('show');
+    lockInput.value = '';
+    lockInput.focus();
+  }
+}
+
+/* 인트로는 처음에 숨김 */
+document.getElementById('intro').classList.add('hidden');
 
 const SCENES = [
   {
