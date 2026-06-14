@@ -480,7 +480,7 @@ body {
 
 .propose-inner {
   text-align:center; width:100%; position:relative; z-index:1;
-  animation: rise 1s var(--ease) forwards;
+  /* 등장 애니메이션은 JS가 opacity+scale로 제어 */
 }
 .ring-wrap { margin:0 auto 1.8rem; width:100px; height:100px; animation:float 3.2s ease-in-out infinite; }
 @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
@@ -544,4 +544,95 @@ body {
 @keyframes confetti-fall {
   0%   { transform:translateY(0) rotate(0deg); opacity:1; }
   100% { transform:translateY(110vh) rotate(720deg); opacity:0; }
+}
+
+/* ══════════════════════════════════════════
+   CARD TAGS
+══════════════════════════════════════════ */
+.card-tags {
+  font-size:0.72rem;
+  color: var(--rosegold);
+  letter-spacing:0.04em;
+  font-weight:300;
+  opacity:0; transform:translateY(8px);
+  transition: opacity 0.5s ease 0.54s, transform 0.5s ease 0.54s;
+  margin-bottom: 0.1rem;
+}
+.story-card.revealed .card-tags { opacity:1; transform:translateY(0); }
+
+/* ══════════════════════════════════════════
+   LETTER SCREEN
+══════════════════════════════════════════ */
+.letter-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(170deg, #fdf8f2 0%, #f7ede0 55%, #f2e2d5 100%);
+  z-index: 150;
+  padding: var(--sat) 2.4rem var(--sab);
+}
+.letter-screen.hidden { display: none !important; }
+
+.letter-bg {
+  position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(
+      transparent,
+      transparent 31px,
+      rgba(196,168,130,0.13) 31px,
+      rgba(196,168,130,0.13) 32px
+    );
+  pointer-events: none;
+}
+
+.letter-inner {
+  position: relative; z-index: 1;
+  width: 100%;
+  animation: rise 0.6s var(--ease) forwards;
+}
+
+.letter-paper {
+  position: relative;
+  padding: 0.5rem 0.2rem;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.letter-text {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: clamp(1.9rem, 8vw, 2.5rem);
+  line-height: 1.65;
+  color: var(--text-dark);
+  word-break: keep-all;
+  letter-spacing: -0.01em;
+  /* 인라인 흐름 — 커서가 글자 바로 뒤에 붙도록 */
+  display: inline;
+}
+
+/* letter-paper는 block 컨테이너 역할만 */
+.letter-paper {
+  position: relative;
+  padding: 0.5rem 0.2rem;
+  min-height: 220px;
+  display: block;
+}
+
+.letter-cursor {
+  display: inline;
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: clamp(1.9rem, 8vw, 2.5rem);
+  color: var(--rosegold);
+  line-height: 1.65;
+  animation: cursor-blink 0.85s step-end infinite;
+  margin-left: 1px;
+  opacity: 1;
+  transition: opacity 0.8s ease;
+}
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
 }

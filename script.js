@@ -1,37 +1,75 @@
 /* ============================================================
    script.js — 우리의 이야기 💕
-
-   ✏️ 커스터마이징 가이드
-   ─────────────────────────────────────────────────────────
-   ANSWER: 비밀번호(사귄 날짜)를 여기서 수정하세요.
-
-   각 SCENE의 medias 배열에 사진/영상을 여러 개 넣을 수 있어요.
-   좌우 스와이프로 사진/영상을 넘길 수 있고,
-   아래 점(dot)으로 몇 번째 미디어인지 표시됩니다.
-
-   mediaType: 'photo' | 'video'
-   src: 파일 경로 (예: 'images/01.jpg', 'videos/trip.mp4')
-   src를 비워두면 placeholder가 표시됩니다.
-
-   챕터 이동은 하단 "이전 / 다음" 버튼, 또는 텍스트 카드 영역 스와이프.
-   미디어 슬라이드는 미디어 영역 스와이프.
-   ─────────────────────────────────────────────────────────
+   ✏️  ANSWER: 비밀번호(사귄 날짜 YYYYMMDD)
+   ✏️  SCENES: 각 챕터 내용과 미디어 파일 경로
 ============================================================ */
+
+const ANSWER = '20221030';
+
+/* ════════════════════════════════════════
+   챕터 데이터
+════════════════════════════════════════ */
+const SCENES = [
+  {
+    chip:  "Chapter 1 · 입사",
+    date:  "2021년",
+    tags:  "#KB국민은행  #37기  #동기",
+    title: "단순히 취업의 기쁨만이\n아니었을 줄이야",
+    body:  "평생 함께할 사람까지 만날 줄은\n몰랐었지.",
+    medias: [
+      { src: "", mediaType: "photo" },
+      { src: "", mediaType: "photo" },
+    ],
+  },
+  {
+    chip:  "Chapter 2 · 발견",
+    date:  "2022년",
+    tags:  "#탑건  #방탈출  #연애",
+    title: "같은 부서의 너한테\n눈길이 갔어",
+    body:  "조용하고 착한 소영이가 자꾸 눈에 밟혔어.\n같이 여행도 다니고,\n시간을 함께 보내고 싶어졌어.",
+    medias: [
+      { src: "", mediaType: "photo" },
+      { src: "", mediaType: "photo" },
+      { src: "", mediaType: "photo" },
+    ],
+  },
+  {
+    chip:  "Chapter 3 · 함께",
+    date:  "2023년 — 2024년",
+    tags:  "#신길역  #넷플릭스  #여행",
+    title: "가장 가까이에서\n함께한 시간들",
+    body:  "3분 거리에 살면서\n같이 넷플릭스 보고, 여행도 많이 다녔던 나날들.\n그 일상이 참 좋았어.",
+    medias: [
+      { src: "", mediaType: "photo" },
+      { src: "", mediaType: "photo" },
+      { src: "", mediaType: "photo" },
+    ],
+  },
+  {
+    chip:  "Chapter 4 · 결심",
+    date:  "2025년 — 2026년",
+    tags:  "#결혼  #웨딩  #우리",
+    title: "결심하고,\n바로 움직였어",
+    body:  "결혼을 결심하고,\n지금 우리는 그 준비를 하고 있지.",
+    medias: [
+      { src: "", mediaType: "photo" },
+      { src: "", mediaType: "photo" },
+    ],
+  },
+];
+
+/* 편지 문구 */
+const LETTER_TEXT = "다음 챕터에서\n우린 어떤 페이지를\n채워나갈까?";
 
 /* ════════════════════════════════════════
    잠금 화면
 ════════════════════════════════════════ */
-const ANSWER = '20221030'; // ✏️ 비밀번호 (사귄 날짜 YYYYMMDD)
-
 const lockInput = document.getElementById('lockInput');
 const lockError = document.getElementById('lockError');
 
-// 엔터키로도 확인 가능
 lockInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') checkPassword();
 });
-
-// 8자리 입력되면 자동 확인
 lockInput.addEventListener('input', () => {
   lockError.classList.remove('show');
   lockInput.classList.remove('shake');
@@ -41,7 +79,6 @@ lockInput.addEventListener('input', () => {
 function checkPassword() {
   const val = lockInput.value.trim();
   if (val === ANSWER) {
-    // 정답 — 잠금 해제
     lockInput.blur();
     const lock = document.getElementById('lockScreen');
     lock.classList.add('fade-out');
@@ -50,9 +87,8 @@ function checkPassword() {
       document.getElementById('intro').classList.remove('hidden');
     }, 800);
   } else {
-    // 오답 — 흔들기 + 에러 메시지
     lockInput.classList.remove('shake');
-    void lockInput.offsetWidth; // reflow
+    void lockInput.offsetWidth;
     lockInput.classList.add('shake');
     lockError.classList.add('show');
     lockInput.value = '';
@@ -60,98 +96,7 @@ function checkPassword() {
   }
 }
 
-/* 인트로는 처음에 숨김 */
 document.getElementById('intro').classList.add('hidden');
-
-const SCENES = [
-  {
-    chip:  "Chapter 1 · 입사 첫날",
-    date:  "2021년 8월",
-    title: "같은 날, 같은 곳에서\n우리가 시작됐어",
-    body:  "수백 명의 신입사원 중에\n처음 눈이 마주쳤던 그 순간,\n이상하게 계속 네가 눈에 띄었어.",
-    medias: [
-      { src: "", mediaType: "photo" },  // 예) { src: "images/01.jpg", mediaType: "photo" }
-      { src: "", mediaType: "photo" },
-    ],
-  },
-  {
-    chip:  "Chapter 2 · 교육 기간",
-    date:  "2021년 9월",
-    title: "같이 공부하다\n정이 들어버렸어",
-    body:  "연수원에서 밤새 같이 공부하고,\n쉬는 시간마다 커피 마시러 갔던 거 기억나?\n그때부터 이미 좋아하고 있었던 것 같아.",
-    medias: [
-      { src: "", mediaType: "photo" },
-      { src: "", mediaType: "photo" },
-      { src: "", mediaType: "photo" },
-    ],
-  },
-  {
-    chip:  "Chapter 3 · 첫 데이트",
-    date:  "2021년 겨울",
-    title: "첫 데이트날,\n심장이 터질 것 같았어",
-    body:  "무슨 말을 했는지도 기억 안 날 만큼\n너무 떨리고 설렜던 날.\n집에 돌아와서 혼자 한참을 웃었어.",
-    medias: [
-      { src: "", mediaType: "photo" },
-      { src: "", mediaType: "photo" },
-    ],
-  },
-  {
-    chip:  "Chapter 4 · 사계절을 함께",
-    date:  "2022년",
-    title: "어느 계절이든\n네가 있으면 좋았어",
-    body:  "봄엔 벚꽃 구경, 여름엔 바다,\n가을엔 드라이브, 겨울엔 따뜻한 카페.\n뭘 해도 네가 옆에 있으니까 행복했어.",
-    medias: [
-      { src: "", mediaType: "photo" },
-      { src: "", mediaType: "photo" },
-      { src: "", mediaType: "photo" },
-      { src: "", mediaType: "photo" },
-    ],
-  },
-  {
-    chip:  "Chapter 5 · 소소한 일상",
-    date:  "2022년 — 2023년",
-    title: "아무것도 안 해도\n좋은 사람",
-    body:  "퇴근하고 같이 편의점 가던 날들,\n아무 말 없이 나란히 앉아 있던 시간들,\n그런 평범한 순간이 제일 소중해.",
-    medias: [
-      { src: "", mediaType: "photo" },
-      { src: "", mediaType: "video" },
-    ],
-  },
-  {
-    chip:  "Chapter 6 · 첫 여행",
-    date:  "2023년",
-    title: "여행지에서 더\n확신했어",
-    body:  "처음으로 함께 떠난 여행에서\n길을 잃어도, 비가 와도 웃었던 우리.\n이 사람이랑 평생 다니고 싶다 생각했어.",
-    medias: [
-      { src: "", mediaType: "photo" },
-      { src: "", mediaType: "video" },
-      { src: "", mediaType: "photo" },
-    ],
-  },
-  {
-    chip:  "Chapter 7 · 지금 이 순간",
-    date:  "2025년",
-    title: "4년이 지났고\n나는 확신해",
-    body:  "함께한 모든 순간들이\n내 인생에서 가장 빛나는 페이지야.\n이제 마지막 장을 넘길게. 💕",
-    medias: [
-      { src: "", mediaType: "photo" },
-      { src: "", mediaType: "photo" },
-    ],
-  },
-];
-
-/* ════════════════════════════════════════
-   내부 상태
-════════════════════════════════════════ */
-let sceneIdx    = 0;   // 현재 챕터
-let mediaIdx    = 0;   // 현재 챕터 내 미디어 인덱스
-let navVisible  = false;
-let isAnimating = false;
-
-// 미디어 영역 스와이프 vs 카드 영역 스와이프 구분용
-let touchStartX = 0;
-let touchStartY = 0;
-let touchTarget = null; // 'media' | 'card'
 
 /* ════════════════════════════════════════
    인트로
@@ -168,10 +113,22 @@ document.getElementById('startBtn').addEventListener('click', () => {
 });
 
 /* ════════════════════════════════════════
-   챕터 도트 (하단 네비)
+   상태
+════════════════════════════════════════ */
+let sceneIdx    = 0;
+let mediaIdx    = 0;
+let navVisible  = false;
+let isAnimating = false;
+let touchStartX = 0;
+let touchStartY = 0;
+let touchTarget = null;
+
+/* ════════════════════════════════════════
+   챕터 도트
 ════════════════════════════════════════ */
 function buildChapterDots() {
   const row = document.getElementById('chapterDots');
+  row.innerHTML = '';
   SCENES.forEach((_, i) => {
     const d = document.createElement('div');
     d.className = 'chapter-dot' + (i === 0 ? ' active' : '');
@@ -185,7 +142,7 @@ function updateChapterDots(i) {
 }
 
 /* ════════════════════════════════════════
-   씬(챕터) 표시
+   씬 표시
 ════════════════════════════════════════ */
 function showScene(i) {
   if (isAnimating) return;
@@ -197,37 +154,27 @@ function showScene(i) {
   const card   = document.getElementById('storyCard');
   const navBar = document.getElementById('navBar');
 
-  // 텍스트 카드 리셋
   card.classList.remove('revealed');
   navBar.classList.remove('visible');
   navVisible = false;
 
-  // 진행 바
   document.getElementById('progressFill').style.width =
     ((i + 1) / SCENES.length * 100) + '%';
 
-  // 텍스트 채우기
   document.getElementById('cardChip').textContent  = s.chip;
   document.getElementById('cardDate').textContent  = s.date;
+  document.getElementById('cardTags').textContent  = s.tags || '';
   document.getElementById('cardTitle').textContent = s.title;
   document.getElementById('cardBody').textContent  = s.body;
 
-  // 챕터 도트
   updateChapterDots(i);
-
-  // 다음 버튼 스타일
-  const nextBtn = document.getElementById('nextBtn');
-  if (i === SCENES.length - 1) {
-    nextBtn.textContent = '💍 마지막';
-  } else {
-    nextBtn.textContent = '다음 →';
-  }
   document.getElementById('prevBtn').disabled = (i === 0);
 
-  // 미디어 슬라이더 빌드
+  const nextBtn = document.getElementById('nextBtn');
+  nextBtn.textContent = '다음 →';
+
   buildMediaSlider(s.medias);
 
-  // 애니메이션 시퀀스
   requestAnimationFrame(() => {
     setTimeout(() => card.classList.add('revealed'), 150);
     setTimeout(() => {
@@ -242,16 +189,14 @@ function showScene(i) {
    미디어 슬라이더
 ════════════════════════════════════════ */
 function buildMediaSlider(medias) {
-  const track = document.getElementById('sliderTrack');
+  const track  = document.getElementById('sliderTrack');
   const dotsEl = document.getElementById('mediaDots');
-  track.innerHTML = '';
+  track.innerHTML  = '';
   dotsEl.innerHTML = '';
 
   medias.forEach((m, i) => {
-    // 슬라이드 생성
     const slide = document.createElement('div');
     slide.className = 'slide';
-
     if (m.src) {
       if (m.mediaType === 'video') {
         const vid = document.createElement('video');
@@ -271,7 +216,6 @@ function buildMediaSlider(medias) {
     }
     track.appendChild(slide);
 
-    // 미디어 도트 (2개 이상일 때만)
     if (medias.length > 1) {
       const dot = document.createElement('div');
       dot.className = 'media-dot' + (i === 0 ? ' active' : '');
@@ -279,7 +223,6 @@ function buildMediaSlider(medias) {
     }
   });
 
-  // 슬라이더 초기 위치
   setSliderPos(0, false);
 }
 
@@ -287,9 +230,7 @@ function setSliderPos(idx, animate = true) {
   const track = document.getElementById('sliderTrack');
   if (!animate) track.style.transition = 'none';
   track.style.transform = `translateX(${-idx * 100}%)`;
-  if (!animate) requestAnimationFrame(() => track.style.transition = '');
-
-  // 미디어 도트 갱신
+  if (!animate) requestAnimationFrame(() => { track.style.transition = ''; });
   document.querySelectorAll('.media-dot').forEach((d, j) =>
     d.classList.toggle('active', j === idx));
 }
@@ -303,19 +244,17 @@ function goMedia(dir) {
 }
 
 /* ════════════════════════════════════════
-   터치 이벤트 — 미디어 vs 카드 분리
+   터치 이벤트
 ════════════════════════════════════════ */
-const storyApp    = document.getElementById('storyApp');
+const storyApp     = document.getElementById('storyApp');
 const mediaSection = document.getElementById('mediaSection');
 
-// 미디어 영역 터치 → 미디어 슬라이드
 mediaSection.addEventListener('touchstart', e => {
   touchStartX = e.touches[0].clientX;
   touchStartY = e.touches[0].clientY;
   touchTarget = 'media';
 }, { passive: true });
 
-// 카드/앱 영역 터치 → 챕터 이동
 storyApp.addEventListener('touchstart', e => {
   if (!e.target.closest('#mediaSection')) {
     touchStartX = e.touches[0].clientX;
@@ -328,7 +267,6 @@ storyApp.addEventListener('touchend', e => {
   const dx = e.changedTouches[0].clientX - touchStartX;
   const dy = e.changedTouches[0].clientY - touchStartY;
   if (Math.abs(dx) < Math.abs(dy) || Math.abs(dx) < 42) return;
-
   if (touchTarget === 'media') {
     goMedia(dx < 0 ? 1 : -1);
   } else if (touchTarget === 'card') {
@@ -341,24 +279,144 @@ storyApp.addEventListener('touchend', e => {
 ════════════════════════════════════════ */
 function nextScene() {
   if (!navVisible || isAnimating) return;
-  if (sceneIdx < SCENES.length - 1) showScene(sceneIdx + 1);
-  else showPropose();
+  if (sceneIdx < SCENES.length - 1) {
+    showScene(sceneIdx + 1);
+  } else {
+    showLetter();
+  }
 }
+
 function prevScene() {
   if (!navVisible || isAnimating || sceneIdx === 0) return;
   showScene(sceneIdx - 1);
 }
 
 /* ════════════════════════════════════════
-   프로포즈 화면
+   편지 화면 — 타이핑 효과
 ════════════════════════════════════════ */
-function showPropose() {
-  document.getElementById('storyApp').classList.add('hidden');
-  document.getElementById('proposeScreen').classList.remove('hidden');
-  spawnPetals();
-  placeNoBtn();
+function showLetter() {
+  const story  = document.getElementById('storyApp');
+  const letter = document.getElementById('letterScreen');
+
+  story.style.transition = 'opacity 0.9s ease';
+  story.style.opacity    = '0';
+
+  setTimeout(() => {
+    story.classList.add('hidden');
+    story.style.opacity   = '';
+    story.style.transition = '';
+
+    letter.style.opacity = '0';
+    letter.classList.remove('hidden');
+
+    // 편지 화면 페이드인
+    requestAnimationFrame(() => {
+      letter.style.transition = 'opacity 1s ease';
+      letter.style.opacity    = '1';
+      setTimeout(() => {
+        letter.style.transition = '';
+        startTypewriter();
+      }, 1000);
+    });
+  }, 900);
 }
 
+function startTypewriter() {
+  const el     = document.getElementById('letterText');
+  const cursor = document.getElementById('letterCursor');
+  const chars  = [...LETTER_TEXT];
+
+  // 총 ~8초에 걸쳐 타이핑
+  const totalDuration = 8000;
+  const perChar       = totalDuration / chars.length;
+
+  // 커서만 남기고 텍스트 초기화
+  el.innerHTML = '';
+  el.appendChild(cursor);
+  cursor.style.opacity = '1';
+
+  let i = 0;
+
+  function typeNext() {
+    if (i >= chars.length) {
+      // 완성 → 1.2초 유지 후 커서 페이드아웃 → 프로포즈 전환
+      setTimeout(() => {
+        cursor.style.transition = 'opacity 0.8s ease';
+        cursor.style.opacity    = '0';
+        setTimeout(() => transitionToPropose(), 900);
+      }, 1200);
+      return;
+    }
+
+    const ch = chars[i];
+    if (ch === '\n') {
+      // 줄바꿈: br 삽입 후 커서를 다시 맨 뒤로
+      el.insertBefore(document.createElement('br'), cursor);
+    } else {
+      // 텍스트 노드를 커서 바로 앞에 삽입
+      el.insertBefore(document.createTextNode(ch), cursor);
+    }
+    i++;
+
+    // 문장 부호 뒤에 자연스러운 쉼
+    let pause = perChar;
+    if (ch === '?' || ch === '.' || ch === '!') pause = perChar * 4;
+    else if (ch === ',') pause = perChar * 2.5;
+
+    setTimeout(typeNext, pause);
+  }
+
+  // 편지 화면 페이드인 완료 후 0.5초 여유를 두고 타이핑 시작
+  setTimeout(typeNext, 500);
+}
+
+/* ════════════════════════════════════════
+   프로포즈 전환 — 서서히, 우아하게
+════════════════════════════════════════ */
+function transitionToPropose() {
+  const letter  = document.getElementById('letterScreen');
+  const propose = document.getElementById('proposeScreen');
+
+  // 1) 편지 화면 페이드아웃 (1.2s)
+  letter.style.transition = 'opacity 1.2s ease';
+  letter.style.opacity    = '0';
+
+  setTimeout(() => {
+    letter.classList.add('hidden');
+    letter.style.opacity   = '';
+    letter.style.transition = '';
+
+    // 2) 프로포즈 화면: opacity 0 으로 먼저 삽입
+    propose.style.opacity    = '0';
+    propose.style.transform  = 'scale(1.03)';
+    propose.style.transition = 'none';
+    propose.classList.remove('hidden');
+
+    // 3) 꽃잎·버튼 준비 (보이기 전에)
+    spawnPetals();
+    placeNoBtn();
+
+    // 4) 한 프레임 뒤에 페이드인 + 살짝 줌아웃 (1.6s)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        propose.style.transition = 'opacity 1.6s ease, transform 1.6s cubic-bezier(0.22,1,0.36,1)';
+        propose.style.opacity    = '1';
+        propose.style.transform  = 'scale(1)';
+      });
+    });
+
+    // 5) 전환 완료 후 transition 정리
+    setTimeout(() => {
+      propose.style.transition = '';
+      propose.style.transform  = '';
+    }, 1700);
+
+  }, 1200);
+}
+
+/* ════════════════════════════════════════
+   프로포즈 화면
+════════════════════════════════════════ */
 function placeNoBtn() {
   const btn = document.getElementById('noBtn');
   btn.style.left = (window.innerWidth  / 2 - 95) + 'px';
@@ -375,6 +433,7 @@ function escapeBtn() {
 
 function spawnPetals() {
   const c = document.getElementById('petals');
+  c.innerHTML = '';
   const items = ['🌸','🌺','🌷','✨','🍀','🤍'];
   for (let i = 0; i < 16; i++) {
     const p = document.createElement('div');
@@ -392,13 +451,36 @@ function spawnPetals() {
    축하 화면
 ════════════════════════════════════════ */
 function onYes() {
-  document.getElementById('proposeScreen').classList.add('hidden');
-  document.getElementById('celebScreen').classList.remove('hidden');
-  const hh = document.getElementById('celebHearts');
-  ['💕','💗','💖','💝','💓'].forEach(h => {
-    const s = document.createElement('span'); s.textContent = h; hh.appendChild(s);
-  });
-  spawnConfetti();
+  const propose = document.getElementById('proposeScreen');
+  const celeb   = document.getElementById('celebScreen');
+
+  propose.style.transition = 'opacity 0.8s ease';
+  propose.style.opacity    = '0';
+
+  setTimeout(() => {
+    propose.classList.add('hidden');
+    propose.style.opacity   = '';
+    propose.style.transition = '';
+
+    celeb.style.opacity    = '0';
+    celeb.style.transition = 'none';
+    celeb.classList.remove('hidden');
+
+    const hh = document.getElementById('celebHearts');
+    if (!hh.hasChildNodes()) {
+      ['💕','💗','💖','💝','💓'].forEach(h => {
+        const s = document.createElement('span'); s.textContent = h; hh.appendChild(s);
+      });
+    }
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        celeb.style.transition = 'opacity 1.2s ease';
+        celeb.style.opacity    = '1';
+        spawnConfetti();
+      });
+    });
+  }, 800);
 }
 
 function spawnConfetti() {
@@ -412,7 +494,7 @@ function spawnConfetti() {
     c.style.width             = (5 + Math.random() * 8) + 'px';
     c.style.height            = (5 + Math.random() * 8) + 'px';
     c.style.animationDuration = (2 + Math.random() * 3) + 's';
-    c.style.animationDelay    = (Math.random() * 2) + 'px';
+    c.style.animationDelay    = (Math.random() * 2) + 's';
     wrap.appendChild(c);
   }
 }

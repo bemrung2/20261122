@@ -119,6 +119,7 @@
   <div class="story-card" id="storyCard">
     <div class="card-chip"  id="cardChip"></div>
     <p   class="card-date"  id="cardDate"></p>
+    <p   class="card-tags"  id="cardTags"></p>
     <h2  class="card-title" id="cardTitle"></h2>
     <p   class="card-body"  id="cardBody"></p>
   </div>
@@ -130,6 +131,17 @@
     <button class="nav-pill next-pill" id="nextBtn" onclick="nextScene()">다음 →</button>
   </div>
 
+</div>
+
+<!-- ══ 편지 화면 ══════════════════════════════════════════════ -->
+<div id="letterScreen" class="screen letter-screen hidden">
+  <div class="letter-bg"></div>
+  <div class="letter-inner">
+    <div class="letter-paper">
+      <div class="letter-lines"></div>
+      <p class="letter-text" id="letterText"><span class="letter-cursor" id="letterCursor">|</span></p>
+    </div>
+  </div>
 </div>
 
 <!-- ══ 프로포즈 ══════════════════════════════════════════════ -->
