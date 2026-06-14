@@ -1,7 +1,8 @@
 /* ============================================================
-   script.js — 우리의 이야기 💕
-   ✏️  ANSWER: 비밀번호(사귄 날짜 YYYYMMDD)
-   ✏️  SCENES: 각 챕터 내용과 미디어 파일 경로
+   script.js — 민소커플의 이야기 💕
+   ✏️  ANSWER       : 비밀번호 (YYYYMMDD)
+   ✏️  SCENES       : 챕터별 사진/영상 및 텍스트
+   ✏️  GALLERY_MEDIA: 갤러리 사진/영상 목록
 ============================================================ */
 
 const ANSWER = '20221030';
@@ -26,7 +27,7 @@ const SCENES = [
     date:  "2022년",
     tags:  "#탑건  #방탈출  #연애",
     title: "같은 부서의 너한테\n눈길이 갔어",
-    body:  "조용하고 착한 소영이가 자꾸 눈에 밟혔어.\n같이 여행도 다니고,\n시간을 함께 보내고 싶어졌어.",
+    body:  "조용하고 착한 너에게 자꾸 눈길이 갔고,\n너와 함께 시간을 보내고 싶다는\n욕심이 생겼어.",
     medias: [
       { src: "", mediaType: "photo" },
       { src: "", mediaType: "photo" },
@@ -48,14 +49,31 @@ const SCENES = [
   {
     chip:  "Chapter 4 · 결심",
     date:  "2025년 — 2026년",
-    tags:  "#결혼  #웨딩  #우리",
-    title: "결심하고,\n바로 움직였어",
-    body:  "결혼을 결심하고,\n지금 우리는 그 준비를 하고 있지.",
+    tags:  "#결혼준비  #용산  #D-Day",
+    title: "그렇게 결혼을\n결심하게 되었어.",
+    body:  "오랜 시간 동안 연애를 하며\n너에 대한 믿음이 커져갔어.",
     medias: [
       { src: "", mediaType: "photo" },
       { src: "", mediaType: "photo" },
     ],
   },
+];
+
+/* ════════════════════════════════════════
+   갤러리 미디어
+   ✏️  src에 파일 경로를 넣어주세요
+   예) { src: 'images/gallery01.jpg', mediaType: 'photo' }
+════════════════════════════════════════ */
+const GALLERY_MEDIA = [
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
 ];
 
 /* 편지 문구 */
@@ -77,8 +95,7 @@ lockInput.addEventListener('input', () => {
 });
 
 function checkPassword() {
-  const val = lockInput.value.trim();
-  if (val === ANSWER) {
+  if (lockInput.value.trim() === ANSWER) {
     lockInput.blur();
     const lock = document.getElementById('lockScreen');
     lock.classList.add('fade-out');
@@ -95,7 +112,6 @@ function checkPassword() {
     lockInput.focus();
   }
 }
-
 document.getElementById('intro').classList.add('hidden');
 
 /* ════════════════════════════════════════
@@ -135,7 +151,6 @@ function buildChapterDots() {
     row.appendChild(d);
   });
 }
-
 function updateChapterDots(i) {
   document.querySelectorAll('.chapter-dot').forEach((d, j) =>
     d.classList.toggle('active', j === i));
@@ -147,8 +162,7 @@ function updateChapterDots(i) {
 function showScene(i) {
   if (isAnimating) return;
   isAnimating = true;
-  sceneIdx = i;
-  mediaIdx = 0;
+  sceneIdx = i; mediaIdx = 0;
 
   const s      = SCENES[i];
   const card   = document.getElementById('storyCard');
@@ -169,9 +183,7 @@ function showScene(i) {
 
   updateChapterDots(i);
   document.getElementById('prevBtn').disabled = (i === 0);
-
-  const nextBtn = document.getElementById('nextBtn');
-  nextBtn.textContent = '다음 →';
+  document.getElementById('nextBtn').textContent = '다음 →';
 
   buildMediaSlider(s.medias);
 
@@ -179,8 +191,7 @@ function showScene(i) {
     setTimeout(() => card.classList.add('revealed'), 150);
     setTimeout(() => {
       navBar.classList.add('visible');
-      navVisible  = true;
-      isAnimating = false;
+      navVisible = true; isAnimating = false;
     }, 1300);
   });
 }
@@ -191,18 +202,17 @@ function showScene(i) {
 function buildMediaSlider(medias) {
   const track  = document.getElementById('sliderTrack');
   const dotsEl = document.getElementById('mediaDots');
-  track.innerHTML  = '';
-  dotsEl.innerHTML = '';
+  track.innerHTML = ''; dotsEl.innerHTML = '';
 
   medias.forEach((m, i) => {
     const slide = document.createElement('div');
     slide.className = 'slide';
     if (m.src) {
       if (m.mediaType === 'video') {
-        const vid = document.createElement('video');
-        vid.src = m.src; vid.autoplay = true; vid.muted = true;
-        vid.loop = true; vid.playsInline = true;
-        slide.appendChild(vid);
+        const v = document.createElement('video');
+        v.src = m.src; v.autoplay = true; v.muted = true;
+        v.loop = true; v.playsInline = true;
+        slide.appendChild(v);
       } else {
         const img = document.createElement('img');
         img.src = m.src; img.alt = '';
@@ -211,18 +221,16 @@ function buildMediaSlider(medias) {
     } else {
       const ph = document.createElement('div');
       ph.className = 'slide-placeholder';
-      ph.innerHTML = `<span class="ph-icon">📷</span><span class="ph-text">사진 / 영상을 넣어주세요</span>`;
+      ph.innerHTML = '<span class="ph-icon">📷</span><span class="ph-text">사진 / 영상을 넣어주세요</span>';
       slide.appendChild(ph);
     }
     track.appendChild(slide);
-
     if (medias.length > 1) {
       const dot = document.createElement('div');
       dot.className = 'media-dot' + (i === 0 ? ' active' : '');
       dotsEl.appendChild(dot);
     }
   });
-
   setSliderPos(0, false);
 }
 
@@ -239,12 +247,11 @@ function goMedia(dir) {
   const total = SCENES[sceneIdx].medias.length;
   const next  = mediaIdx + dir;
   if (next < 0 || next >= total) return;
-  mediaIdx = next;
-  setSliderPos(mediaIdx);
+  mediaIdx = next; setSliderPos(mediaIdx);
 }
 
 /* ════════════════════════════════════════
-   터치 이벤트
+   터치
 ════════════════════════════════════════ */
 const storyApp     = document.getElementById('storyApp');
 const mediaSection = document.getElementById('mediaSection');
@@ -267,11 +274,8 @@ storyApp.addEventListener('touchend', e => {
   const dx = e.changedTouches[0].clientX - touchStartX;
   const dy = e.changedTouches[0].clientY - touchStartY;
   if (Math.abs(dx) < Math.abs(dy) || Math.abs(dx) < 42) return;
-  if (touchTarget === 'media') {
-    goMedia(dx < 0 ? 1 : -1);
-  } else if (touchTarget === 'card') {
-    if (dx < 0) nextScene(); else prevScene();
-  }
+  if (touchTarget === 'media') goMedia(dx < 0 ? 1 : -1);
+  else if (touchTarget === 'card') { if (dx < 0) nextScene(); else prevScene(); }
 }, { passive: true });
 
 /* ════════════════════════════════════════
@@ -279,37 +283,89 @@ storyApp.addEventListener('touchend', e => {
 ════════════════════════════════════════ */
 function nextScene() {
   if (!navVisible || isAnimating) return;
-  if (sceneIdx < SCENES.length - 1) {
-    showScene(sceneIdx + 1);
-  } else {
-    showLetter();
-  }
+  if (sceneIdx < SCENES.length - 1) showScene(sceneIdx + 1);
+  else showGallery();
 }
-
 function prevScene() {
   if (!navVisible || isAnimating || sceneIdx === 0) return;
   showScene(sceneIdx - 1);
 }
 
 /* ════════════════════════════════════════
-   편지 화면 — 타이핑 효과
+   갤러리 화면
 ════════════════════════════════════════ */
-function showLetter() {
-  const story  = document.getElementById('storyApp');
-  const letter = document.getElementById('letterScreen');
+function showGallery() {
+  const story   = document.getElementById('storyApp');
+  const gallery = document.getElementById('galleryScreen');
 
-  story.style.transition = 'opacity 0.9s ease';
+  story.style.transition = 'opacity 0.7s ease';
   story.style.opacity    = '0';
 
   setTimeout(() => {
     story.classList.add('hidden');
-    story.style.opacity   = '';
-    story.style.transition = '';
+    story.style.opacity = ''; story.style.transition = '';
+
+    // 그리드 빌드
+    buildGalleryGrid();
+
+    gallery.style.opacity = '0';
+    gallery.classList.remove('hidden');
+
+    requestAnimationFrame(() => {
+      gallery.style.transition = 'opacity 0.7s ease';
+      gallery.style.opacity    = '1';
+      setTimeout(() => {
+        gallery.style.transition = '';
+        gallery.classList.add('revealed');
+      }, 700);
+    });
+  }, 700);
+}
+
+function buildGalleryGrid() {
+  const grid = document.getElementById('galleryGrid');
+  grid.innerHTML = '';
+  GALLERY_MEDIA.forEach(m => {
+    const cell = document.createElement('div');
+    cell.className = 'gallery-cell';
+    if (m.src) {
+      if (m.mediaType === 'video') {
+        const v = document.createElement('video');
+        v.src = m.src; v.muted = true; v.playsInline = true;
+        v.autoplay = true; v.loop = true;
+        cell.appendChild(v);
+      } else {
+        const img = document.createElement('img');
+        img.src = m.src; img.alt = '';
+        cell.appendChild(img);
+      }
+    } else {
+      const ph = document.createElement('div');
+      ph.className = 'gallery-cell-ph';
+      ph.textContent = '📷';
+      cell.appendChild(ph);
+    }
+    grid.appendChild(cell);
+  });
+}
+
+/* ════════════════════════════════════════
+   편지 화면
+════════════════════════════════════════ */
+function showLetter() {
+  const gallery = document.getElementById('galleryScreen');
+  const letter  = document.getElementById('letterScreen');
+
+  gallery.style.transition = 'opacity 0.9s ease';
+  gallery.style.opacity    = '0';
+
+  setTimeout(() => {
+    gallery.classList.add('hidden');
+    gallery.style.opacity = ''; gallery.style.transition = '';
 
     letter.style.opacity = '0';
     letter.classList.remove('hidden');
 
-    // 편지 화면 페이드인
     requestAnimationFrame(() => {
       letter.style.transition = 'opacity 1s ease';
       letter.style.opacity    = '1';
@@ -326,20 +382,17 @@ function startTypewriter() {
   const cursor = document.getElementById('letterCursor');
   const chars  = [...LETTER_TEXT];
 
-  // 총 ~8초에 걸쳐 타이핑
-  const totalDuration = 8000;
+  // 6.5초
+  const totalDuration = 6500;
   const perChar       = totalDuration / chars.length;
 
-  // 커서만 남기고 텍스트 초기화
   el.innerHTML = '';
   el.appendChild(cursor);
   cursor.style.opacity = '1';
 
   let i = 0;
-
   function typeNext() {
     if (i >= chars.length) {
-      // 완성 → 1.2초 유지 후 커서 페이드아웃 → 프로포즈 전환
       setTimeout(() => {
         cursor.style.transition = 'opacity 0.8s ease';
         cursor.style.opacity    = '0';
@@ -347,56 +400,40 @@ function startTypewriter() {
       }, 1200);
       return;
     }
-
     const ch = chars[i];
-    if (ch === '\n') {
-      // 줄바꿈: br 삽입 후 커서를 다시 맨 뒤로
-      el.insertBefore(document.createElement('br'), cursor);
-    } else {
-      // 텍스트 노드를 커서 바로 앞에 삽입
-      el.insertBefore(document.createTextNode(ch), cursor);
-    }
+    if (ch === '\n') el.insertBefore(document.createElement('br'), cursor);
+    else el.insertBefore(document.createTextNode(ch), cursor);
     i++;
-
-    // 문장 부호 뒤에 자연스러운 쉼
     let pause = perChar;
     if (ch === '?' || ch === '.' || ch === '!') pause = perChar * 4;
     else if (ch === ',') pause = perChar * 2.5;
-
     setTimeout(typeNext, pause);
   }
-
-  // 편지 화면 페이드인 완료 후 0.5초 여유를 두고 타이핑 시작
   setTimeout(typeNext, 500);
 }
 
 /* ════════════════════════════════════════
-   프로포즈 전환 — 서서히, 우아하게
+   프로포즈 전환
 ════════════════════════════════════════ */
 function transitionToPropose() {
   const letter  = document.getElementById('letterScreen');
   const propose = document.getElementById('proposeScreen');
 
-  // 1) 편지 화면 페이드아웃 (1.2s)
   letter.style.transition = 'opacity 1.2s ease';
   letter.style.opacity    = '0';
 
   setTimeout(() => {
     letter.classList.add('hidden');
-    letter.style.opacity   = '';
-    letter.style.transition = '';
+    letter.style.opacity = ''; letter.style.transition = '';
 
-    // 2) 프로포즈 화면: opacity 0 으로 먼저 삽입
-    propose.style.opacity    = '0';
-    propose.style.transform  = 'scale(1.03)';
+    propose.style.opacity   = '0';
+    propose.style.transform = 'scale(1.03)';
     propose.style.transition = 'none';
     propose.classList.remove('hidden');
 
-    // 3) 꽃잎·버튼 준비 (보이기 전에)
     spawnPetals();
     placeNoBtn();
 
-    // 4) 한 프레임 뒤에 페이드인 + 살짝 줌아웃 (1.6s)
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         propose.style.transition = 'opacity 1.6s ease, transform 1.6s cubic-bezier(0.22,1,0.36,1)';
@@ -404,13 +441,10 @@ function transitionToPropose() {
         propose.style.transform  = 'scale(1)';
       });
     });
-
-    // 5) 전환 완료 후 transition 정리
     setTimeout(() => {
       propose.style.transition = '';
       propose.style.transform  = '';
     }, 1700);
-
   }, 1200);
 }
 
@@ -418,17 +452,34 @@ function transitionToPropose() {
    프로포즈 화면
 ════════════════════════════════════════ */
 function placeNoBtn() {
-  const btn = document.getElementById('noBtn');
-  btn.style.left = (window.innerWidth  / 2 - 95) + 'px';
-  btn.style.top  = (window.innerHeight * 0.84) + 'px';
+  const btn    = document.getElementById('noBtn');
+  const yesBtn = document.querySelector('.yes-btn');
+  const rect   = yesBtn.getBoundingClientRect();
+
+  // yes 버튼 아래 충분한 간격 (최소 60px)
+  const safeTop = rect.bottom + 60;
+  btn.style.position = 'fixed';
+  btn.style.left = (window.innerWidth / 2 - 95) + 'px';
+  btn.style.top  = safeTop + 'px';
 }
 
 function escapeBtn() {
-  const btn  = document.getElementById('noBtn');
-  const maxX = window.innerWidth  - 200;
-  const maxY = window.innerHeight - 80;
-  btn.style.left = (20 + Math.random() * maxX) + 'px';
-  btn.style.top  = (20 + Math.random() * maxY) + 'px';
+  const btn    = document.getElementById('noBtn');
+  const yesBtn = document.querySelector('.yes-btn');
+  const rect   = yesBtn.getBoundingClientRect();
+
+  let rx, ry;
+  // yes 버튼 영역과 겹치지 않게 랜덤 위치
+  do {
+    rx = 20 + Math.random() * (window.innerWidth  - 200);
+    ry = 20 + Math.random() * (window.innerHeight - 80);
+  } while (
+    rx < rect.right + 10 && rx + 190 > rect.left - 10 &&
+    ry < rect.bottom + 10 && ry + 46 > rect.top - 10
+  );
+
+  btn.style.left = rx + 'px';
+  btn.style.top  = ry + 'px';
 }
 
 function spawnPetals() {
@@ -459,8 +510,7 @@ function onYes() {
 
   setTimeout(() => {
     propose.classList.add('hidden');
-    propose.style.opacity   = '';
-    propose.style.transition = '';
+    propose.style.opacity = ''; propose.style.transition = '';
 
     celeb.style.opacity    = '0';
     celeb.style.transition = 'none';
@@ -472,7 +522,6 @@ function onYes() {
         const s = document.createElement('span'); s.textContent = h; hh.appendChild(s);
       });
     }
-
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         celeb.style.transition = 'opacity 1.2s ease';

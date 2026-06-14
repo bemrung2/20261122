@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-  <title>우리의 이야기</title>
+  <title>민소커플의 이야기</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
@@ -16,43 +16,29 @@
 <div id="lockScreen" class="screen lock-screen">
   <div class="lock-deco deco-tl">✦</div>
   <div class="lock-deco deco-br">✦</div>
-
   <div class="lock-inner">
     <div class="lock-icon">🔒</div>
-
     <div class="lock-ornament">
       <span class="orn-line"></span>
       <span class="orn-diamond">◆</span>
       <span class="orn-line"></span>
     </div>
-
     <h1 class="lock-title">잠깐,<br/>당신이 맞나요?</h1>
     <p class="lock-desc">
       이 페이지는 오직 한 사람만을 위한 공간이에요.<br/>
       우리만 알고 있는 날짜를 입력해주세요.
     </p>
-
     <div class="lock-field-wrap">
       <label class="lock-label">우리가 사귀기 시작한 날은?</label>
       <div class="lock-input-row">
-        <input
-          class="lock-input"
-          id="lockInput"
-          type="tel"
-          inputmode="numeric"
-          maxlength="8"
-          placeholder="YYYYMMDD"
-          autocomplete="off"
-        />
+        <input class="lock-input" id="lockInput" type="tel"
+          inputmode="numeric" maxlength="8"
+          placeholder="YYYYMMDD" autocomplete="off"/>
       </div>
       <p class="lock-hint">숫자 8자리로 입력해주세요</p>
     </div>
-
     <button class="lock-btn" id="lockBtn" onclick="checkPassword()">확인하기</button>
-
-    <p class="lock-error" id="lockError">
-      날짜가 맞지 않아요. 다시 생각해봐요 🤍
-    </p>
+    <p class="lock-error" id="lockError">날짜가 맞지 않아요. 다시 생각해봐요 🤍</p>
   </div>
 </div>
 
@@ -62,31 +48,21 @@
   <div class="intro-deco deco-tr">◇</div>
   <div class="intro-deco deco-bl">◇</div>
   <div class="intro-deco deco-br">✦</div>
-
   <div class="intro-inner">
-    <!-- 상단 장식선 -->
     <div class="intro-ornament">
       <span class="orn-line"></span>
       <span class="orn-diamond">◆</span>
       <span class="orn-line"></span>
     </div>
-
-    <p class="intro-eyebrow">2021 — 2025</p>
-    <h1 class="intro-title">우리가<br/>함께한<br/><em>시간들</em></h1>
-
-    <p class="intro-desc">
-      기억 속 어딘가에 묻어둔<br/>
-      그 순간들을 다시 꺼내볼게.
-    </p>
-
-    <div class="intro-ornament" style="margin-top:0; margin-bottom:2.4rem;">
+    <p class="intro-eyebrow">2021~</p>
+    <h1 class="intro-title">민소커플이<br/>함께한<br/><em>시간들</em></h1>
+    <div class="intro-ornament" style="margin-top:0.8rem; margin-bottom:2.4rem;">
       <span class="orn-line"></span>
       <span class="orn-diamond">◆</span>
       <span class="orn-line"></span>
     </div>
-
     <button class="start-btn" id="startBtn">
-      <span>우리 이야기 펼치기</span>
+      <span>민소커플의 발자취 따라가기</span>
       <span class="btn-arrow">↓</span>
     </button>
   </div>
@@ -94,28 +70,14 @@
 
 <!-- ══ 스토리 ══════════════════════════════════════════════ -->
 <div id="storyApp" class="screen story-screen hidden">
-
-  <!-- 전체 챕터 진행 바 (최상단) -->
   <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-
-  <!-- ── 미디어 슬라이더 영역 ── -->
   <div class="media-section" id="mediaSection">
-
-    <!-- 슬라이더 뷰포트 -->
     <div class="slider-viewport" id="sliderViewport">
-      <div class="slider-track" id="sliderTrack">
-        <!-- JS로 슬라이드 생성 -->
-      </div>
+      <div class="slider-track" id="sliderTrack"></div>
     </div>
-
-    <!-- 미디어 도트 (슬라이드 개수 표시) -->
     <div class="media-dots" id="mediaDots"></div>
-
-    <!-- 미디어 하단 페이드 -->
     <div class="media-fade"></div>
   </div>
-
-  <!-- ── 텍스트 카드 ── -->
   <div class="story-card" id="storyCard">
     <div class="card-chip"  id="cardChip"></div>
     <p   class="card-date"  id="cardDate"></p>
@@ -123,14 +85,28 @@
     <h2  class="card-title" id="cardTitle"></h2>
     <p   class="card-body"  id="cardBody"></p>
   </div>
-
-  <!-- ── 챕터 네비게이션 ── -->
   <div class="nav-bar" id="navBar">
     <button class="nav-pill" id="prevBtn" onclick="prevScene()">← 이전</button>
     <div class="chapter-dots" id="chapterDots"></div>
     <button class="nav-pill next-pill" id="nextBtn" onclick="nextScene()">다음 →</button>
   </div>
+</div>
 
+<!-- ══ 갤러리 화면 ══════════════════════════════════════════ -->
+<div id="galleryScreen" class="screen gallery-screen hidden">
+  <div class="gallery-header">
+    <p class="gallery-eyebrow">그 밖에도</p>
+    <h2 class="gallery-title">함께했던 순간들</h2>
+  </div>
+  <div class="gallery-grid" id="galleryGrid">
+    <!-- JS로 생성 -->
+  </div>
+  <div class="gallery-footer">
+    <button class="gallery-next-btn" onclick="showLetter()">
+      계속 보기
+      <span class="gallery-arrow">→</span>
+    </button>
+  </div>
 </div>
 
 <!-- ══ 편지 화면 ══════════════════════════════════════════════ -->
@@ -156,17 +132,15 @@
     <div class="ring-wrap">
       <div class="ring-outer"><span class="ring-inner">💍</span></div>
     </div>
-    <h2 class="propose-title">나와<br/>결혼해줄래요?</h2>
+    <h2 class="propose-title">결혼해줄래?</h2>
     <p class="propose-body">
-      KB국민은행 입사 첫날,<br/>
-      수백 명 중에 네가 눈에 들어왔어.<br/><br/>
-      같은 곳에 입사한 것도 인연인데,<br/>
-      이제 같은 곳에서 평생을 시작하고 싶어.<br/><br/>
-      나랑 결혼해줄래? 💕
+      오래 걸렸지만,<br/>
+      너라는 확신이 생겼어.<br/><br/>
+      앞으로도 네 옆에 있고 싶어.
     </p>
     <div class="propose-btns">
-      <button class="yes-btn" onclick="onYes()">응, 할게요 💕</button>
-      <button class="no-btn" id="noBtn" ontouchstart="escapeBtn()">조금만 더 생각해볼게…</button>
+      <button class="yes-btn" onclick="onYes()">응, 할게 💕</button>
+      <button class="no-btn" id="noBtn" ontouchstart="escapeBtn()">조금만 더 생각해볼게</button>
     </div>
   </div>
 </div>
@@ -176,8 +150,8 @@
   <div class="confetti-wrap" id="confettiWrap"></div>
   <div class="celeb-inner">
     <div class="celeb-emoji">🎊</div>
-    <h2 class="celeb-title">사랑해요 💕</h2>
-    <p class="celeb-body">이제 우리의 가장 빛나는<br/>챕터가 시작됩니다.</p>
+    <h2 class="celeb-title">고마워 💕</h2>
+    <p class="celeb-body">우리의 다음 챕터가<br/>이제 시작이야.</p>
     <div class="celeb-hearts" id="celebHearts"></div>
   </div>
 </div>
