@@ -64,7 +64,17 @@ const SCENES = [
    ✏️  src에 파일 경로를 넣어주세요
    예) { src: 'images/gallery01.jpg', mediaType: 'photo' }
 ════════════════════════════════════════ */
+// ✏️  사진/영상 경로를 채워주세요. src가 비어있으면 샘플 색상 placeholder가 표시됩니다.
 const GALLERY_MEDIA = [
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
+  { src: "", mediaType: "photo" },
   { src: "", mediaType: "photo" },
   { src: "", mediaType: "photo" },
   { src: "", mediaType: "photo" },
@@ -76,8 +86,16 @@ const GALLERY_MEDIA = [
   { src: "", mediaType: "photo" },
 ];
 
+// placeholder 색상 (src 없을 때 인스타 느낌으로)
+const SAMPLE_COLORS = [
+  '#e8d5c0','#d4c4b0','#c8b8a8','#ddd0c0','#e0cfc0',
+  '#ccc0b0','#d8cabb','#e4d4c4','#d0c0b0','#dccdbf',
+  '#c4b8ac','#d8cec4','#e0d4c8','#ccbfb4','#d4c8bc',
+  '#e8ddd2','#c8bdb2','#dcd2c8'
+];
+
 /* 편지 문구 */
-const LETTER_TEXT = "다음 챕터에서\n우린 어떤 페이지를\n채워나갈까?";
+const LETTER_TEXT = "우린 앞으로 또\n많은 이야기를 써나가겠지?\n\n집도 사고, 차도 사고,\n아이를 낳고 키우고...\n\n이 모든 걸\n소영이와 함께하고 싶어.";
 
 /* ════════════════════════════════════════
    잠금 화면
@@ -325,28 +343,77 @@ function showGallery() {
 function buildGalleryGrid() {
   const grid = document.getElementById('galleryGrid');
   grid.innerHTML = '';
-  GALLERY_MEDIA.forEach(m => {
+
+  GALLERY_MEDIA.forEach((m, i) => {
     const cell = document.createElement('div');
     cell.className = 'gallery-cell';
+
     if (m.src) {
       if (m.mediaType === 'video') {
         const v = document.createElement('video');
         v.src = m.src; v.muted = true; v.playsInline = true;
         v.autoplay = true; v.loop = true;
         cell.appendChild(v);
+        cell.addEventListener('click', () => openLightbox(m.src, 'video'));
       } else {
         const img = document.createElement('img');
         img.src = m.src; img.alt = '';
         cell.appendChild(img);
+        cell.addEventListener('click', () => openLightbox(m.src, 'photo'));
       }
     } else {
+      // 샘플 placeholder — 색상 블록
       const ph = document.createElement('div');
       ph.className = 'gallery-cell-ph';
-      ph.textContent = '📷';
+      ph.style.background = SAMPLE_COLORS[i % SAMPLE_COLORS.length];
+      ph.style.opacity = '1';
       cell.appendChild(ph);
     }
     grid.appendChild(cell);
   });
+
+  // 사진 수 표시
+  const el = document.getElementById('galleryCount');
+  if (el) el.textContent = GALLERY_MEDIA.length + '장';
+}
+
+/* ════════════════════════════════════════
+   라이트박스
+════════════════════════════════════════ */
+function openLightbox(src, type) {
+  const lb  = document.getElementById('lightbox');
+  const img = document.getElementById('lightboxImg');
+  const vid = document.getElementById('lightboxVid');
+
+  img.style.display = 'none';
+  vid.style.display = 'none';
+
+  if (type === 'video') {
+    vid.src = src;
+    vid.style.display = 'block';
+  } else {
+    img.src = src;
+    img.style.display = 'block';
+  }
+
+  // open 클래스 추가로 CSS transition 발동
+  requestAnimationFrame(() => {
+    lb.classList.add('open');
+    // 스크롤 막기
+    document.body.style.overflow = 'hidden';
+  });
+}
+
+function closeLightbox() {
+  const lb  = document.getElementById('lightbox');
+  const vid = document.getElementById('lightboxVid');
+  lb.classList.remove('open');
+  document.body.style.overflow = '';
+  // transition 끝난 뒤 src 초기화
+  setTimeout(() => {
+    vid.src = '';
+    document.getElementById('lightboxImg').src = '';
+  }, 300);
 }
 
 /* ════════════════════════════════════════
@@ -382,8 +449,8 @@ function startTypewriter() {
   const cursor = document.getElementById('letterCursor');
   const chars  = [...LETTER_TEXT];
 
-  // 6.5초
-  const totalDuration = 6500;
+  // 8초
+  const totalDuration = 8000;
   const perChar       = totalDuration / chars.length;
 
   el.innerHTML = '';

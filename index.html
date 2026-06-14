@@ -102,9 +102,9 @@
     <!-- JS로 생성 -->
   </div>
   <div class="gallery-footer">
+    <span class="gallery-count" id="galleryCount"></span>
     <button class="gallery-next-btn" onclick="showLetter()">
-      계속 보기
-      <span class="gallery-arrow">→</span>
+      계속 보기 <span class="gallery-arrow">→</span>
     </button>
   </div>
 </div>
@@ -154,6 +154,13 @@
     <p class="celeb-body">우리의 다음 챕터가<br/>이제 시작이야.</p>
     <div class="celeb-hearts" id="celebHearts"></div>
   </div>
+</div>
+
+<!-- ══ 라이트박스 ════════════════════════════════════════════ -->
+<div id="lightbox" class="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" class="lightbox-media" src="" alt="" style="display:none"/>
+  <video id="lightboxVid" class="lightbox-media" style="display:none" muted autoplay loop playsinline></video>
 </div>
 
 <script src="script.js"></script>
