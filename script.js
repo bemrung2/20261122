@@ -16,10 +16,11 @@ const SCENES = [
     date:  "2021년",
     tags:  "#KB국민은행  #37기  #동기",
     title: "단순히 취업의 기쁨만이\n아니었을 줄이야",
-    body:  "평생 함께할 사람까지 만날 줄은\n몰랐었지.",
+    body:  "평생 함께할 사람을 직장에서 만날 줄은 몰랐어.",
     medias: [
-      { src: "", mediaType: "photo" },
-      { src: "", mediaType: "photo" },
+      { src: "images/IMG_7502.png",  mediaType: "photo" },
+      { src: "images/IMG_1596.jpeg", mediaType: "photo" },
+      { src: "videos/vllo.mov",      mediaType: "video" },
     ],
   },
   {
@@ -29,9 +30,15 @@ const SCENES = [
     title: "같은 부서의 너한테\n눈길이 갔어",
     body:  "조용하고 착한 너에게 자꾸 눈길이 갔고,\n너와 함께 시간을 보내고 싶다는\n욕심이 생겼어.",
     medias: [
-      { src: "", mediaType: "photo" },
-      { src: "", mediaType: "photo" },
-      { src: "", mediaType: "photo" },
+      { src: "images/IMG_6151.jpeg", mediaType: "photo" },
+      { src: "images/IMG_6751.jpeg", mediaType: "photo" },
+      { src: "images/IMG_8152.jpeg", mediaType: "photo" },
+      { src: "images/IMG_8343.jpeg", mediaType: "photo" },
+      { src: "images/IMG_9246.jpeg", mediaType: "photo" },
+      { src: "images/IMG_9650.jpeg", mediaType: "photo" },
+      { src: "images/IMG_9673.jpeg", mediaType: "photo" },
+      { src: "images/IMG_9680.jpeg", mediaType: "photo" },
+      { src: "videos/IMG_9125.mov",  mediaType: "video" },
     ],
   },
   {
@@ -39,7 +46,7 @@ const SCENES = [
     date:  "2023년 — 2024년",
     tags:  "#신길역  #넷플릭스  #여행",
     title: "가장 가까이에서\n함께한 시간들",
-    body:  "3분 거리에 살면서\n같이 넷플릭스 보고, 여행도 많이 다녔던 나날들.\n그 일상이 참 좋았어.",
+    body:  "같이 넷플릭스 보고, 여행도 많이 다녔던 나날들.\n그 일상이 참 좋았어.",
     medias: [
       { src: "", mediaType: "photo" },
       { src: "", mediaType: "photo" },
@@ -50,7 +57,7 @@ const SCENES = [
     chip:  "Chapter 4 · 결심",
     date:  "2025년 — 2026년",
     tags:  "#결혼준비  #용산  #D-Day",
-    title: "그렇게 결혼을\n결심하게 되었어.",
+    title: "자연스럽게 결혼까지\n결심하게 되었어",
     body:  "오랜 시간 동안 연애를 하며\n너에 대한 믿음이 커져갔어.",
     medias: [
       { src: "", mediaType: "photo" },
