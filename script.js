@@ -21,6 +21,7 @@ const SCENES = [
       { src: "images/IMG_7502.png",  mediaType: "photo" },
       { src: "images/IMG_1596.jpeg", mediaType: "photo" },
       { src: "videos/vllo.mov",      mediaType: "video" },
+      { src: "videos/vllo.mov",      mediaType: "video" },
     ],
   },
   {
@@ -102,7 +103,7 @@ const SAMPLE_COLORS = [
 ];
 
 /* 편지 문구 */
-const LETTER_TEXT = "우린 앞으로 또\n많은 이야기를 써나가겠지?\n\n집도 사고, 차도 사고,\n아이를 낳고 키우고...\n\n이 모든 걸\n소영이와 함께하고 싶어.";
+const LETTER_TEXT = "앞으로도 너와 함께\n수많은 추억을 만들어 가겠지?\n\n기쁜 순간에는 행복이 두 배가 되고,\n힘든 순간에는 서로의 무게를 나누며,\n\n세상 누구보다 멋진 가정을\n너와 함께 이루고 싶어.\n\n평범한 하루도,\n특별한 순간도,\n\n모든 시간을\n너와 함께하고 싶어.";
 
 /* ════════════════════════════════════════
    잠금 화면
@@ -225,22 +226,39 @@ function showScene(i) {
    미디어 슬라이더
 ════════════════════════════════════════ */
 function buildMediaSlider(medias) {
-  const track  = document.getElementById('sliderTrack');
-  const dotsEl = document.getElementById('mediaDots');
+  const track   = document.getElementById('sliderTrack');
+  const dotsEl  = document.getElementById('mediaDots');
+  const section = document.getElementById('mediaSection');
   track.innerHTML = ''; dotsEl.innerHTML = '';
+
+  // 섹션 높이 초기화 (첫 미디어 로드 전)
+  section.style.height = '';
 
   medias.forEach((m, i) => {
     const slide = document.createElement('div');
     slide.className = 'slide';
+
     if (m.src) {
       if (m.mediaType === 'video') {
         const v = document.createElement('video');
-        v.src = m.src; v.autoplay = true; v.muted = true;
-        v.loop = true; v.playsInline = true;
+        v.src = m.src; v.muted = true; v.playsInline = true;
+        v.autoplay = true; v.loop = true;
+        // 비디오 메타 로드 후 비율 계산
+        v.addEventListener('loadedmetadata', () => {
+          if (i === 0) applyMediaHeight(v.videoWidth, v.videoHeight);
+        }, { once: true });
         slide.appendChild(v);
       } else {
         const img = document.createElement('img');
         img.src = m.src; img.alt = '';
+        // 이미지 로드 후 비율 계산 (첫 번째 슬라이드만 높이 결정)
+        img.addEventListener('load', () => {
+          if (i === 0) applyMediaHeight(img.naturalWidth, img.naturalHeight);
+        }, { once: true });
+        // 이미 캐시된 경우
+        if (img.complete && img.naturalWidth) {
+          if (i === 0) applyMediaHeight(img.naturalWidth, img.naturalHeight);
+        }
         slide.appendChild(img);
       }
     } else {
@@ -248,15 +266,37 @@ function buildMediaSlider(medias) {
       ph.className = 'slide-placeholder';
       ph.innerHTML = '<span class="ph-icon">📷</span><span class="ph-text">사진 / 영상을 넣어주세요</span>';
       slide.appendChild(ph);
+      if (i === 0) section.style.height = '56vw'; // placeholder 기본 높이
     }
+
     track.appendChild(slide);
+
     if (medias.length > 1) {
       const dot = document.createElement('div');
       dot.className = 'media-dot' + (i === 0 ? ' active' : '');
       dotsEl.appendChild(dot);
     }
   });
+
   setSliderPos(0, false);
+}
+
+/* 첫 미디어의 실제 비율로 섹션 높이 설정 */
+function applyMediaHeight(w, h) {
+  if (!w || !h) return;
+  const section   = document.getElementById('mediaSection');
+  const vw        = window.innerWidth;
+  const maxHeight = window.innerHeight * 0.72; // 최대 72vh
+  const minHeight = 160;
+
+  let targetH = (vw * h) / w;
+  targetH = Math.min(targetH, maxHeight);
+  targetH = Math.max(targetH, minHeight);
+
+  section.style.height = targetH + 'px';
+  // slider-track, slide 높이 동기화
+  document.getElementById('sliderTrack').style.height = targetH + 'px';
+  document.querySelectorAll('.slide').forEach(s => s.style.height = targetH + 'px');
 }
 
 function setSliderPos(idx, animate = true) {
@@ -456,8 +496,8 @@ function startTypewriter() {
   const cursor = document.getElementById('letterCursor');
   const chars  = [...LETTER_TEXT];
 
-  // 8초
-  const totalDuration = 8000;
+  // 11초 (글자 수 증가에 맞게 조정)
+  const totalDuration = 11000;
   const perChar       = totalDuration / chars.length;
 
   el.innerHTML = '';
@@ -475,12 +515,30 @@ function startTypewriter() {
       return;
     }
     const ch = chars[i];
-    if (ch === '\n') el.insertBefore(document.createElement('br'), cursor);
-    else el.insertBefore(document.createTextNode(ch), cursor);
+    const prevCh = i > 0 ? chars[i - 1] : '';
+
+    if (ch === '\n') {
+      // 연속 줄바꿈(
+
+)이면 단락 구분 — br 하나만 (앞의 br과 합쳐져 공백단락)
+      el.insertBefore(document.createElement('br'), cursor);
+    } else {
+      el.insertBefore(document.createTextNode(ch), cursor);
+    }
     i++;
+
     let pause = perChar;
-    if (ch === '?' || ch === '.' || ch === '!') pause = perChar * 4;
-    else if (ch === ',') pause = perChar * 2.5;
+    if (ch === '\n' && prevCh === '\n') {
+      // 단락 사이 — 가장 길게 쉬기 (600ms 고정)
+      pause = 620;
+    } else if (ch === '\n') {
+      // 줄바꿈 — 살짝 쉬기
+      pause = perChar * 2.2;
+    } else if (ch === '?' || ch === '.' || ch === '!') {
+      pause = perChar * 3.8;
+    } else if (ch === ',') {
+      pause = perChar * 2;
+    }
     setTimeout(typeNext, pause);
   }
   setTimeout(typeNext, 500);

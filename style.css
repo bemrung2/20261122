@@ -282,10 +282,16 @@ body {
    STORY
 ══════════════════════════════════════════ */
 .story-screen {
-  display:flex; flex-direction:column;
+  display: flex;
+  flex-direction: column;
   background: var(--bg);
-  z-index:50;
+  z-index: 50;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.story-screen::-webkit-scrollbar { display: none; }
 
 /* 챕터 진행 바 */
 .progress-track {
@@ -299,78 +305,95 @@ body {
   width:0%; border-radius:0 2px 2px 0;
 }
 
-/* ── 미디어 섹션 ── */
+/* ── 미디어 섹션 ── 높이를 콘텐츠에 맞게 자동 조정 */
 .media-section {
-  position:absolute; top:0; left:0; right:0;
-  height:62%;
-  overflow:hidden;
+  /* position:absolute 대신 flow 참여 — 높이를 사진 비율이 결정 */
+  position: relative;
+  width: 100%;
   background: var(--bg2);
+  /* 최소/최대 높이 제한 */
+  min-height: 200px;
+  max-height: 72vh;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 /* 슬라이더 */
 .slider-viewport {
-  width:100%; height:100%;
-  overflow:hidden;
-  position:relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
 }
 .slider-track {
-  display:flex;
-  height:100%;
+  display: flex;
+  height: 100%;
   transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
 }
 .slide {
   flex: 0 0 100%;
-  width:100%; height:100%;
-  position:relative;
+  width: 100%;
+  /* 높이는 JS가 각 미디어 비율에 맞게 설정 */
+  position: relative;
+  background: var(--bg2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+/* 실제 이미지/비디오 — 원본 비율 유지, 잘리지 않게 */
+.slide img, .slide video {
+  width: 100%;
+  height: 100%;
+  /* contain: 왜곡·크롭 없이 전체 표시 */
+  object-fit: contain;
+  display: block;
   background: var(--bg2);
 }
-.slide img, .slide video {
-  width:100%; height:100%;
-  object-fit:cover; display:block;
-}
 .slide-placeholder {
-  position:absolute; inset:0;
-  display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:0.7rem;
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 0.7rem;
   background: linear-gradient(160deg, #f5e8d5, #eeddd0);
 }
-.ph-icon { font-size:2.4rem; opacity:0.3; }
-.ph-text  { font-size:0.78rem; color:var(--text-soft); letter-spacing:0.08em; }
+.ph-icon { font-size: 2.4rem; opacity: 0.3; }
+.ph-text  { font-size: 0.78rem; color: var(--text-soft); letter-spacing: 0.08em; }
 
-/* 미디어 도트 (슬라이드 위치 표시) */
+/* 미디어 도트 */
 .media-dots {
-  position:absolute;
-  bottom: 72px; /* media-fade 위 */
-  left:0; right:0;
-  display:flex; justify-content:center; gap:5px;
-  z-index:10;
+  position: absolute;
+  bottom: 10px;
+  left: 0; right: 0;
+  display: flex; justify-content: center; gap: 5px;
+  z-index: 10;
 }
 .media-dot {
-  width:4px; height:4px; border-radius:50%;
-  background: rgba(255,255,255,0.45);
+  width: 4px; height: 4px; border-radius: 50%;
+  background: rgba(255,255,255,0.5);
   transition: all 0.28s ease;
 }
 .media-dot.active {
-  background: rgba(255,255,255,0.92);
+  background: rgba(255,255,255,0.95);
   transform: scale(1.4);
 }
 
 /* 미디어 하단 페이드 */
 .media-fade {
-  position:absolute; bottom:0; left:0; right:0; height:110px;
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 48px;
   background: linear-gradient(to bottom, transparent, var(--bg));
-  pointer-events:none; z-index:5;
+  pointer-events: none; z-index: 5;
 }
 
 /* ── 텍스트 카드 ── */
 .story-card {
-  position:absolute;
-  top:57%;
-  left:0; right:0;
-  padding: 0 1.6rem;
-  display:flex; flex-direction:column; gap:0.28rem;
-  z-index:10;
+  position: relative;
+  left: 0; right: 0;
+  padding: 1rem 1.6rem 0;
+  display: flex; flex-direction: column; gap: 0.28rem;
+  z-index: 10;
+  background: var(--bg);
 }
 .card-chip {
   display:inline-block;
@@ -412,11 +435,14 @@ body {
 
 /* ── 챕터 네비 바 ── */
 .nav-bar {
-  position:absolute; bottom:0; left:0; right:0;
+  position: sticky;
+  bottom: 0;
+  left: 0; right: 0;
   padding: 0.7rem 1.4rem calc(0.8rem + var(--sab));
-  display:flex; align-items:center; justify-content:space-between;
-  background: linear-gradient(to top, var(--bg) 60%, transparent);
-  opacity:0; transition:opacity 0.5s ease; z-index:20;
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(to top, var(--bg) 75%, transparent);
+  opacity: 0; transition: opacity 0.5s ease; z-index: 20;
+  margin-top: auto;
 }
 .nav-bar.visible { opacity:1; }
 
@@ -564,71 +590,86 @@ body {
    LETTER SCREEN
 ══════════════════════════════════════════ */
 .letter-screen {
+  position: fixed; inset: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: center;
   background: linear-gradient(170deg, #fdf8f2 0%, #f7ede0 55%, #f2e2d5 100%);
   z-index: 150;
-  padding: var(--sat) 2.4rem var(--sab);
+  padding: var(--sat) 2.6rem var(--sab) 2.6rem;
+  overflow: hidden;
 }
 .letter-screen.hidden { display: none !important; }
 
+/* 배경 가로줄 — 원고지 느낌 */
 .letter-bg {
   position: absolute; inset: 0;
-  background:
-    repeating-linear-gradient(
-      transparent,
-      transparent 31px,
-      rgba(196,168,130,0.13) 31px,
-      rgba(196,168,130,0.13) 32px
-    );
+  background: repeating-linear-gradient(
+    transparent,
+    transparent 40px,
+    rgba(196,168,130,0.1) 40px,
+    rgba(196,168,130,0.1) 41px
+  );
   pointer-events: none;
+}
+
+/* 왼쪽 붉은 세로줄 (편지지 감성) */
+.letter-bg::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 2rem;
+  width: 1px;
+  background: rgba(200,160,168,0.2);
 }
 
 .letter-inner {
   position: relative; z-index: 1;
   width: 100%;
-  animation: rise 0.6s var(--ease) forwards;
 }
 
-.letter-paper {
-  position: relative;
-  padding: 0.5rem 0.2rem;
-  min-height: 220px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.letter-text {
+/* 날짜/발신 라벨 */
+.letter-from {
   font-family: 'DM Serif Display', serif;
   font-style: italic;
-  font-size: clamp(1.9rem, 8vw, 2.5rem);
-  line-height: 1.65;
-  color: var(--text-dark);
-  word-break: keep-all;
-  letter-spacing: -0.01em;
-  /* 인라인 흐름 — 커서가 글자 바로 뒤에 붙도록 */
-  display: inline;
+  font-size: 0.72rem;
+  color: var(--text-soft);
+  letter-spacing: 0.18em;
+  margin-bottom: 2rem;
+  opacity: 0;
+  animation: rise 0.8s var(--ease) 0.3s forwards;
 }
 
-/* letter-paper는 block 컨테이너 역할만 */
+/* 본문 컨테이너 */
 .letter-paper {
-  position: relative;
-  padding: 0.5rem 0.2rem;
-  min-height: 220px;
   display: block;
+  width: 100%;
 }
 
+/* 타이핑되는 텍스트 */
+.letter-text {
+  display: inline;
+  font-family: 'Noto Serif KR', serif;
+  font-weight: 300;
+  font-size: 1.35rem;
+  line-height: 2.2;
+  color: var(--text-dark);
+  letter-spacing: 0.01em;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 커서 */
 .letter-cursor {
   display: inline;
-  font-family: 'DM Serif Display', serif;
-  font-style: italic;
-  font-size: clamp(1.9rem, 8vw, 2.5rem);
+  font-family: 'Noto Serif KR', serif;
+  font-size: 1.35rem;
+  line-height: 2.2;
   color: var(--rosegold);
-  line-height: 1.65;
-  animation: cursor-blink 0.85s step-end infinite;
-  margin-left: 1px;
+  font-weight: 300;
+  animation: cursor-blink 0.9s step-end infinite;
+  margin-left: 0px;
   opacity: 1;
   transition: opacity 0.8s ease;
 }
