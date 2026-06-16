@@ -123,12 +123,35 @@ lockInput.addEventListener('input', () => {
 function checkPassword() {
   if (lockInput.value.trim() === ANSWER) {
     lockInput.blur();
-    const lock = document.getElementById('lockScreen');
-    lock.classList.add('fade-out');
+    const lock  = document.getElementById('lockScreen');
+    const intro = document.getElementById('intro');
+
+    // 1) 인트로 미리 hidden 제거 + opacity 0 으로 준비
+    intro.classList.remove('hidden');
+    intro.style.opacity    = '0';
+    intro.style.transition = 'none';
+
+    // 2) 잠금화면 페이드아웃
+    lock.style.transition = 'opacity 0.8s ease';
+    lock.style.opacity    = '0';
+
     setTimeout(() => {
-      lock.style.display = 'none';
-      document.getElementById('intro').classList.remove('hidden');
+      // 3) 잠금화면 완전히 숨김
+      lock.classList.add('hidden');
+      lock.style.opacity    = '';
+      lock.style.transition = '';
+
+      // 4) 인트로 페이드인
+      requestAnimationFrame(() => {
+        intro.style.transition = 'opacity 0.6s ease';
+        intro.style.opacity    = '1';
+        setTimeout(() => {
+          intro.style.transition = '';
+          intro.style.opacity    = '';
+        }, 600);
+      });
     }, 800);
+
   } else {
     lockInput.classList.remove('shake');
     void lockInput.offsetWidth;
@@ -138,6 +161,7 @@ function checkPassword() {
     lockInput.focus();
   }
 }
+/* 인트로는 처음에 숨김 — hidden 클래스로 */
 document.getElementById('intro').classList.add('hidden');
 
 /* ════════════════════════════════════════
