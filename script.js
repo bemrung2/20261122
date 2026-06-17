@@ -1,3 +1,5 @@
+document.addEventListener('DOMContentLoaded', function() {
+
 /* ============================================================
    script.js — 민소커플의 이야기 💕
    ✏️  ANSWER       : 비밀번호 (YYYYMMDD)
@@ -111,46 +113,34 @@ const LETTER_TEXT = "앞으로도 너와 함께\n수많은 추억을 만들어 �
 const lockInput = document.getElementById('lockInput');
 const lockError = document.getElementById('lockError');
 
+document.getElementById('lockBtn').addEventListener('click', checkPassword);
+
 lockInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') checkPassword();
 });
 lockInput.addEventListener('input', () => {
   lockError.classList.remove('show');
   lockInput.classList.remove('shake');
-  if (lockInput.value.length === 8) checkPassword();
+  if (lockInput.value.length === 8) {
+    setTimeout(checkPassword, 50); // input 반영 후 실행
+  }
 });
 
 function checkPassword() {
   if (lockInput.value.trim() === ANSWER) {
     lockInput.blur();
-    const lock  = document.getElementById('lockScreen');
-    const intro = document.getElementById('intro');
+    const lock = document.getElementById('lockScreen');
 
-    // 1) 인트로 미리 hidden 제거 + opacity 0 으로 준비
-    intro.classList.remove('hidden');
-    intro.style.opacity    = '0';
-    intro.style.transition = 'none';
-
-    // 2) 잠금화면 페이드아웃
-    lock.style.transition = 'opacity 0.8s ease';
-    lock.style.opacity    = '0';
+    // 잠금화면 페이드아웃
+    lock.classList.add('fade-out');
 
     setTimeout(() => {
-      // 3) 잠금화면 완전히 숨김
-      lock.classList.add('hidden');
-      lock.style.opacity    = '';
-      lock.style.transition = '';
-
-      // 4) 인트로 페이드인
-      requestAnimationFrame(() => {
-        intro.style.transition = 'opacity 0.6s ease';
-        intro.style.opacity    = '1';
-        setTimeout(() => {
-          intro.style.transition = '';
-          intro.style.opacity    = '';
-        }, 600);
-      });
-    }, 800);
+      // 잠금화면 완전히 제거
+      lock.style.display = 'none';
+      // 인트로 표시
+      const intro = document.getElementById('intro');
+      intro.style.display = 'flex';
+    }, 850);
 
   } else {
     lockInput.classList.remove('shake');
@@ -161,8 +151,11 @@ function checkPassword() {
     lockInput.focus();
   }
 }
-/* 인트로는 처음에 숨김 — hidden 클래스로 */
-document.getElementById('intro').classList.add('hidden');
+
+/* 인트로는 처음에 숨김 */
+document.getElementById('intro').style.display = 'none';
+/* 스토리앱도 처음엔 숨김 */
+document.getElementById('storyApp').style.display = 'none';
 
 /* ════════════════════════════════════════
    인트로
@@ -172,7 +165,8 @@ document.getElementById('startBtn').addEventListener('click', () => {
   intro.classList.add('fade-out');
   setTimeout(() => {
     intro.style.display = 'none';
-    document.getElementById('storyApp').classList.remove('hidden');
+    const story = document.getElementById('storyApp');
+    story.style.display = 'flex';
     buildChapterDots();
     showScene(0);
   }, 900);
@@ -703,3 +697,15 @@ function spawnConfetti() {
     wrap.appendChild(c);
   }
 }
+
+
+  // inline onclick에서 접근할 수 있도록 전역 노출
+  window.checkPassword = checkPassword;
+  window.nextScene     = nextScene;
+  window.prevScene     = prevScene;
+  window.onYes         = onYes;
+  window.escapeBtn     = escapeBtn;
+  window.showLetter    = showLetter;
+  window.closeLightbox = closeLightbox;
+
+}); // DOMContentLoaded

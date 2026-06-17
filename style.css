@@ -282,7 +282,7 @@ body {
    STORY
 ══════════════════════════════════════════ */
 .story-screen {
-  display: flex;
+  display: none;
   flex-direction: column;
   background: var(--bg);
   z-index: 50;
