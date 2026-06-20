@@ -580,10 +580,6 @@ html, body {
 
   <!-- Carousel overview -->
   <div id="ov-wrap">
-    <div class="ov-header">
-      <span class="ov-header-label">우리의 추억</span>
-      <span class="ov-header-tap">탭해서 시작하기</span>
-    </div>
     <div class="carousel-stage" id="carousel-stage">
       <!-- cards injected by JS -->
     </div>
@@ -1081,7 +1077,7 @@ async function enterChapter(idx) {
   veil.classList.add('show');
   await sleep(100);
   vtitle.classList.add('in');    // title zooms in
-  await sleep(900);              // let user read the title
+  await sleep(2200);             // let user read the title
   vtitle.classList.add('up');    // title drifts up
 
   // Prepare detail
@@ -1316,15 +1312,16 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   // caption
   $('pv-cap').textContent = photo.cap;
 
-  // progress bars
+  // progress bars — always visible while viewer is open
   const barsEl = $('pv-bars');
   barsEl.innerHTML = '';
   ch.photos.forEach((_, i) => {
     const bar  = document.createElement('div'); bar.className = 'pv-bar';
     const fill = document.createElement('div'); fill.className = 'pv-bar-fill';
-    if (isAuto && i < pIdx) fill.classList.add('done');
+    if (i < pIdx) fill.classList.add('done');
     bar.appendChild(fill); barsEl.appendChild(bar);
   });
+  barsEl.classList.add('visible');
 
   // reset photo to initial state (will animate in via CSS)
   pvImg.style.transition = 'none';
@@ -1505,18 +1502,14 @@ window.addEventListener('DOMContentLoaded', () => {
   let barsAutoHide = null;
 
   function showBars() {
-    const bars = $('pv-bars');
-    bars.classList.add('visible');
-    if (barsAutoHide) clearTimeout(barsAutoHide);
-    barsAutoHide = setTimeout(() => {
-      bars.classList.remove('visible');
-      barsAutoHide = null;
-    }, 3000);
+    $('pv-bars').classList.add('visible');
+    if (barsAutoHide) { clearTimeout(barsAutoHide); barsAutoHide = null; }
   }
 
   $('photo-viewer').addEventListener('touchstart', (e) => {
     pvStartX = e.touches[0].clientX;
     pvStartT = Date.now();
+    showBars();
     pauseHold();
   }, { passive: true });
 
