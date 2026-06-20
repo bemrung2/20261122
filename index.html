@@ -52,7 +52,7 @@ html, body {
 #curtain {
   position: fixed; inset: 0; background: var(--dark);
   z-index: 900; opacity: 0; pointer-events: none;
-  transition: opacity 0.48s ease;
+  transition: opacity 0.72s ease;
 }
 #curtain.on { opacity: 1; pointer-events: all; }
 
@@ -643,13 +643,31 @@ html, body {
   <div class="proposal-inner">
     <div class="ring-wrap">
       <svg viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="44" cy="55" r="26" stroke="#81D8D0" stroke-width="5"/>
-        <circle cx="44" cy="55" r="26" stroke="#81D8D0" stroke-width="10" opacity="0.08"/>
-        <path d="M30 33 L35 19 L40 27 L44 15 L48 27 L53 19 L58 33"
-              stroke="#81D8D0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <ellipse cx="44" cy="15.5" rx="5.5" ry="3.5" fill="rgba(178,237,233,0.4)"/>
-        <circle cx="44" cy="15.5" r="4" fill="#81D8D0"/>
-        <circle cx="44" cy="15.5" r="2" fill="white" opacity="0.7"/>
+        <!-- Band back arc (darker = depth) -->
+        <path d="M18 58 A26 11 0 0 0 70 58" stroke="#4AADA5" stroke-width="9" stroke-linecap="round"/>
+        <!-- Band front arc (brighter) -->
+        <path d="M18 58 A26 11 0 0 1 70 58" stroke="#81D8D0" stroke-width="9" stroke-linecap="round"/>
+        <!-- Band inner highlight -->
+        <path d="M23 58 A21 7 0 0 1 65 58" stroke="rgba(255,255,255,0.22)" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Prongs -->
+        <line x1="37" y1="46" x2="34" y2="40" stroke="#81D8D0" stroke-width="2" stroke-linecap="round"/>
+        <line x1="51" y1="46" x2="54" y2="40" stroke="#81D8D0" stroke-width="2" stroke-linecap="round"/>
+        <!-- Diamond body -->
+        <path d="M44 13 L57 27 L44 41 L31 27 Z" fill="#81D8D0"/>
+        <!-- Crown left (bright highlight) -->
+        <path d="M44 13 L57 27 L44 21 Z" fill="rgba(255,255,255,0.46)"/>
+        <!-- Crown right -->
+        <path d="M44 13 L31 27 L44 21 Z" fill="rgba(255,255,255,0.22)"/>
+        <!-- Pavilion right (shadow) -->
+        <path d="M44 21 L57 27 L44 41 Z" fill="rgba(0,0,0,0.09)"/>
+        <!-- Pavilion left (deeper shadow) -->
+        <path d="M44 21 L31 27 L44 41 Z" fill="rgba(0,0,0,0.15)"/>
+        <!-- Table facet -->
+        <path d="M44 21 L51 27 L44 33 L37 27 Z" fill="rgba(178,237,233,0.18)"/>
+        <!-- Girdle line -->
+        <line x1="31" y1="27" x2="57" y2="27" stroke="rgba(255,255,255,0.5)" stroke-width="0.8"/>
+        <!-- Tip sparkle -->
+        <circle cx="44" cy="13" r="1.8" fill="rgba(255,255,255,0.85)"/>
       </svg>
     </div>
     <div class="proposal-tag">P R O P O S E</div>
@@ -666,13 +684,19 @@ html, body {
   <div class="accept-inner">
     <div class="accept-icon">
       <svg viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="44" cy="55" r="26" stroke="#81D8D0" stroke-width="5"/>
-        <circle cx="44" cy="55" r="26" stroke="#81D8D0" stroke-width="10" opacity="0.08"/>
-        <path d="M30 33 L35 19 L40 27 L44 15 L48 27 L53 19 L58 33"
-              stroke="#81D8D0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <ellipse cx="44" cy="15.5" rx="5.5" ry="3.5" fill="rgba(178,237,233,0.4)"/>
-        <circle cx="44" cy="15.5" r="4" fill="#81D8D0"/>
-        <circle cx="44" cy="15.5" r="2" fill="white" opacity="0.7"/>
+        <path d="M18 58 A26 11 0 0 0 70 58" stroke="#4AADA5" stroke-width="9" stroke-linecap="round"/>
+        <path d="M18 58 A26 11 0 0 1 70 58" stroke="#81D8D0" stroke-width="9" stroke-linecap="round"/>
+        <path d="M23 58 A21 7 0 0 1 65 58" stroke="rgba(255,255,255,0.22)" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="37" y1="46" x2="34" y2="40" stroke="#81D8D0" stroke-width="2" stroke-linecap="round"/>
+        <line x1="51" y1="46" x2="54" y2="40" stroke="#81D8D0" stroke-width="2" stroke-linecap="round"/>
+        <path d="M44 13 L57 27 L44 41 L31 27 Z" fill="#81D8D0"/>
+        <path d="M44 13 L57 27 L44 21 Z" fill="rgba(255,255,255,0.46)"/>
+        <path d="M44 13 L31 27 L44 21 Z" fill="rgba(255,255,255,0.22)"/>
+        <path d="M44 21 L57 27 L44 41 Z" fill="rgba(0,0,0,0.09)"/>
+        <path d="M44 21 L31 27 L44 41 Z" fill="rgba(0,0,0,0.15)"/>
+        <path d="M44 21 L51 27 L44 33 L37 27 Z" fill="rgba(178,237,233,0.18)"/>
+        <line x1="31" y1="27" x2="57" y2="27" stroke="rgba(255,255,255,0.5)" stroke-width="0.8"/>
+        <circle cx="44" cy="13" r="1.8" fill="rgba(255,255,255,0.85)"/>
       </svg>
     </div>
     <div class="accept-title" id="accept-title">고마워, 소영아</div>
@@ -776,10 +800,10 @@ function showPage(id) {
 async function fadeTo(id, cb) {
   const c = $('curtain');
   c.classList.add('on');
-  await sleep(500);
+  await sleep(800);
   if (cb) cb();
   showPage(id);
-  await sleep(60);
+  await sleep(80);
   c.classList.remove('on');
 }
 
@@ -1398,7 +1422,7 @@ async function onChapterNext() {
     // 마지막 사진 → 에피소드 전환 (뷰어 닫고 fall-through)
     stopAutoPlay();
     await closePhotoViewer(false);
-    await sleep(160);
+    await sleep(800);
   }
 
   // ── 에피소드 레벨 네비게이션 ──
@@ -1419,9 +1443,9 @@ async function onChapterNext() {
   } else {
     await exitChapter();
     const next = currentCh + 1;
-    await sleep(200);
+    await sleep(300);
     positionCards(next, true);
-    await sleep(1100);
+    await sleep(1600);
     busy = false;
     enterChapter(next);
   }
@@ -1540,8 +1564,10 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   function pvHideBars() {
     if (pvBarsHideTimer) { clearTimeout(pvBarsHideTimer); pvBarsHideTimer = null; }
-    $('pv-bars').classList.remove('visible');
     pvBarsVisible = false;
+    // rAF로 다음 프레임에 실행 — resumeHold의 animationPlayState 변경과
+    // 같은 프레임에서 처리되지 않도록 분리해서 opacity transition을 깨끗하게 시작
+    requestAnimationFrame(() => { $('pv-bars').classList.remove('visible'); });
   }
   function pvToggleBars() {
     if (pvBarsVisible) {
