@@ -80,7 +80,7 @@ html, body {
 .lock-card {
   position: relative; z-index: 1;
   background: var(--paper); border-radius: 20px;
-  padding: 32px 24px 28px; width: min(370px, 92vw);
+  padding: 24px; width: min(370px, 92vw);
   box-shadow: 0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.07);
   animation: cardUp 0.85s cubic-bezier(0.16,1,0.3,1) both;
 }
@@ -132,8 +132,8 @@ html, body {
   touch-action: manipulation;
 }
 .key:active { background: var(--gold-l); transform: scale(0.92); }
-.key-del    { background: transparent; font-size: 18px; color: var(--ink2); }
-.key-del:active { background: rgba(0,0,0,0.05); }
+.key-del    { background: var(--ink); color: white; font-size: 18px; font-weight: 500; }
+.key-del:active { background: #1a0f0a; }
 .key-ok     { background: var(--ink); color: white; font-size: 14.5px; font-weight: 500; }
 .key-ok:active { background: #1a0f0a; }
 .key-blank  { background: transparent; pointer-events: none; }
@@ -438,7 +438,7 @@ html, body {
 
 /* caption */
 #pv-cap {
-  margin-top: 22px;
+  margin-top: 22px; min-height: 58px;
   font-size: 14.5px; line-height: 1.95;
   color: rgba(255,255,255,0.82);
   text-align: center; white-space: pre-line;
@@ -1266,11 +1266,13 @@ function startHoldTimer(ms) {
       return;
     }
 
-    // 다음 사진으로
+    // 다음 사진으로 — tap 애니메이션 없이 바로 전환
     await closePhotoViewer(false);
-    await sleep(420);
+    await sleep(300);
     if (!apRunning || apChIdx !== chIdx) return;
-    runAutoStep(chIdx, pIdx + 1);
+    apPIdx = pIdx + 1;
+    await openPhotoViewer(chIdx, pIdx + 1, true);
+    startHoldTimer(4000);
   }, ms);
 }
 
@@ -1315,11 +1317,9 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   // caption
   $('pv-cap').textContent = photo.cap;
 
-  // progress bars — hidden by default, center tap reveals
+  // progress bars — visible by default, center tap toggles
   const barsEl = $('pv-bars');
   barsEl.innerHTML = '';
-  barsEl.classList.remove('visible');
-  pvBarsVisible = false;
   if (pvBarsHideTimer) { clearTimeout(pvBarsHideTimer); pvBarsHideTimer = null; }
   ch.photos.forEach((_, i) => {
     const bar  = document.createElement('div'); bar.className = 'pv-bar';
@@ -1327,6 +1327,8 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
     if (i < pIdx) fill.classList.add('done');
     bar.appendChild(fill); barsEl.appendChild(bar);
   });
+  barsEl.classList.add('visible');
+  pvBarsVisible = true;
 
   // reset photo to initial state (will animate in via CSS)
   pvImg.style.transition = 'none';
@@ -1573,9 +1575,8 @@ window.addEventListener('DOMContentLoaded', () => {
     pvStartX = t.clientX; pvStartY = t.clientY;
     pvStartT = Date.now();
     pvMoveX  = 0; pvMoveY = 0;
-    pauseHold();
-    // 300ms 유지 시 → 멈춤 피드백 (바 표시)
-    pvLongTimer = setTimeout(pvShowBars, 300);
+    // 300ms 유지 시에만 일시정지 (빠른 탭에서 버벅임 방지)
+    pvLongTimer = setTimeout(() => { pauseHold(); pvShowBars(); }, 300);
   }, { passive: true });
 
   pvEl.addEventListener('touchmove', (e) => {
