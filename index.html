@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>민소커플</title>
@@ -22,6 +22,9 @@
   --ink2:  #6b5744;
   --ink3:  #a89078;
   --dark:  #100e08;
+  --tiffany:  #81D8D0;
+  --tiffany-d:#4AADA5;
+  --tiffany-l:#B2EDE9;
 }
 *, *::before, *::after {
   margin: 0; padding: 0; box-sizing: border-box;
@@ -103,15 +106,15 @@ html, body {
 }
 
 /* PIN dots */
-.pin-dots { display: flex; justify-content: center; gap: 9px; margin-bottom: 26px; }
+.pin-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 26px; }
 .pd {
-  width: 30px; height: 30px; border-radius: 50%;
+  width: 20px; height: 20px; border-radius: 50%;
   border: 1.5px solid #ddd5c5; background: transparent;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.14s ease;
 }
 .pd.on { background: var(--ink); border-color: var(--ink); }
-.pd.on::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: white; }
+.pd.on::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: white; }
 .pd.err { background: #cc3333; border-color: #cc3333; animation: pdShake 0.32s ease; }
 @keyframes pdShake {
   20% { transform: translateX(-4px); } 40% { transform: translateX(4px); }
@@ -126,6 +129,7 @@ html, body {
   font-size: 22px; font-weight: 400; font-family: inherit;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   transition: background 0.11s, transform 0.1s;
+  touch-action: manipulation;
 }
 .key:active { background: var(--gold-l); transform: scale(0.92); }
 .key-del    { background: transparent; font-size: 18px; color: var(--ink2); }
@@ -397,22 +401,25 @@ html, body {
   display: flex; flex-direction: column; align-items: center; gap: 0;
 }
 
-/* progress bars (Stories-style) */
+/* progress bars (Stories-style) — 기본 숨김, 가운데 탭 시 표시 */
 .pv-bars {
   display: flex; gap: 3px; width: 100%; padding: 0 0 14px;
+  opacity: 0; transition: opacity 0.35s ease;
+  pointer-events: none;
 }
+.pv-bars.visible { opacity: 1; }
 .pv-bar {
   flex: 1; height: 2px; border-radius: 1px;
-  background: rgba(255,255,255,0.18); overflow: hidden;
+  background: rgba(255,255,255,0.22); overflow: hidden;
 }
 .pv-bar-fill {
   height: 100%; width: 0%;
-  background: rgba(255,255,255,0.82);
+  background: rgba(255,255,255,0.88);
   border-radius: 1px;
 }
 .pv-bar-fill.done   { width: 100%; }
 @keyframes barFill  { to { width: 100%; } }
-.pv-bar-fill.active { animation: barFill 3s linear forwards; }
+.pv-bar-fill.active { animation: barFill 4s linear forwards; }
 
 /* photo */
 #pv-img {
@@ -470,17 +477,17 @@ html, body {
 }
 .ring-wrap { width: 88px; height: 88px; margin-bottom: 34px; animation: ringFloat 3.5s ease-in-out infinite; }
 @keyframes ringFloat { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-13px) rotate(2deg)} }
-.proposal-tag { font-size: 10px; letter-spacing: 4.5px; color: var(--gold); font-weight: 300; margin-bottom: 18px; }
+.proposal-tag { font-size: 10px; letter-spacing: 4.5px; color: var(--tiffany); font-weight: 300; margin-bottom: 18px; }
 .proposal-q   { font-size: 27px; color: white; font-weight: 400; line-height: 1.45; margin-bottom: 14px; letter-spacing: -0.3px; }
 .proposal-sub { font-size: 14px; color: rgba(255,255,255,0.4); line-height: 1.9; font-weight: 300; margin-bottom: 50px; }
 .btn-yes {
   width: 260px; height: 56px; border-radius: 18px; border: none;
-  background: linear-gradient(135deg, var(--gold), var(--gold-d));
+  background: linear-gradient(135deg, var(--tiffany), var(--tiffany-d));
   color: white; font-family: inherit; font-size: 16px; font-weight: 500; cursor: pointer;
-  box-shadow: 0 10px 36px rgba(200,169,110,0.38);
+  box-shadow: 0 10px 36px rgba(129,216,208,0.38);
   transition: transform 0.15s, box-shadow 0.15s; letter-spacing: 0.3px;
 }
-.btn-yes:active { transform: scale(0.96); box-shadow: 0 5px 18px rgba(200,169,110,0.22); }
+.btn-yes:active { transform: scale(0.96); box-shadow: 0 5px 18px rgba(129,216,208,0.22); }
 .btn-no {
   position: fixed; width: 210px; height: 46px; border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.1); background: transparent;
@@ -497,7 +504,7 @@ html, body {
   display: flex; flex-direction: column; align-items: center; text-align: center;
   padding: calc(var(--sat) + 40px) 36px calc(var(--sab) + 40px); width: 100%;
 }
-.accept-icon { font-size: 54px; margin-bottom: 28px; animation: ringFloat 2.5s ease-in-out infinite; }
+.accept-icon { width: 88px; height: 88px; margin-bottom: 28px; animation: ringFloat 2.5s ease-in-out infinite; }
 .accept-title {
   font-size: 30px; color: white; font-weight: 400; margin-bottom: 14px; letter-spacing: -0.3px;
   opacity: 0; transform: translateY(18px);
@@ -512,8 +519,8 @@ html, body {
 .accept-sub.in { opacity: 1; transform: translateY(0); }
 .accept-badge {
   margin-top: 42px; padding: 14px 32px;
-  border: 1px solid rgba(200,169,110,0.22); border-radius: 30px;
-  font-size: 12.5px; color: var(--gold); letter-spacing: 1.5px;
+  border: 1px solid rgba(129,216,208,0.28); border-radius: 30px;
+  font-size: 12.5px; color: var(--tiffany); letter-spacing: 1.5px;
   opacity: 0; transition: opacity 0.8s ease 0.95s;
 }
 .accept-badge.in { opacity: 1; }
@@ -638,11 +645,13 @@ html, body {
   <div class="proposal-inner">
     <div class="ring-wrap">
       <svg viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="44" cy="55" r="26" stroke="#c8a96e" stroke-width="5"/>
+        <circle cx="44" cy="55" r="26" stroke="#81D8D0" stroke-width="5"/>
+        <circle cx="44" cy="55" r="26" stroke="#81D8D0" stroke-width="10" opacity="0.08"/>
         <path d="M30 33 L35 19 L40 27 L44 15 L48 27 L53 19 L58 33"
-              stroke="#c8a96e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <ellipse cx="44" cy="15.5" rx="5" ry="3" fill="#e8d5a8" opacity="0.6"/>
-        <circle cx="44" cy="15.5" r="3.5" fill="#c8a96e" opacity="0.9"/>
+              stroke="#81D8D0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <ellipse cx="44" cy="15.5" rx="5.5" ry="3.5" fill="rgba(178,237,233,0.4)"/>
+        <circle cx="44" cy="15.5" r="4" fill="#81D8D0"/>
+        <circle cx="44" cy="15.5" r="2" fill="white" opacity="0.7"/>
       </svg>
     </div>
     <div class="proposal-tag">P R O P O S E</div>
@@ -657,7 +666,17 @@ html, body {
 <div class="pg" id="pg-accept">
   <div class="bokeh-wrap" id="bk2"></div>
   <div class="accept-inner">
-    <div class="accept-icon">💍</div>
+    <div class="accept-icon">
+      <svg viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="44" cy="55" r="26" stroke="#81D8D0" stroke-width="5"/>
+        <circle cx="44" cy="55" r="26" stroke="#81D8D0" stroke-width="10" opacity="0.08"/>
+        <path d="M30 33 L35 19 L40 27 L44 15 L48 27 L53 19 L58 33"
+              stroke="#81D8D0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <ellipse cx="44" cy="15.5" rx="5.5" ry="3.5" fill="rgba(178,237,233,0.4)"/>
+        <circle cx="44" cy="15.5" r="4" fill="#81D8D0"/>
+        <circle cx="44" cy="15.5" r="2" fill="white" opacity="0.7"/>
+      </svg>
+    </div>
     <div class="accept-title" id="accept-title">고마워, 소영아</div>
     <div class="accept-sub"   id="accept-sub">이 순간부터<br>우리의 새로운 이야기가 시작이야.<br><br>앞으로 잘 부탁해 ♡</div>
     <div class="accept-badge" id="accept-badge">2026 · 11 · 22</div>
@@ -763,9 +782,9 @@ async function fadeTo(id, cb) {
   c.classList.remove('on');
 }
 
-function spawnBokeh(id, n = 14) {
+function spawnBokeh(id, n = 14, customCols) {
   const el = $(id); if (!el) return;
-  const cols = ['rgba(200,169,110,0.38)','rgba(230,205,165,0.2)',
+  const cols = customCols || ['rgba(200,169,110,0.38)','rgba(230,205,165,0.2)',
                 'rgba(255,255,255,0.1)','rgba(172,136,84,0.2)'];
   for (let i = 0; i < n; i++) {
     const b = document.createElement('div');
@@ -1177,7 +1196,7 @@ function loadDetail(idx) {
       apChIdx   = idx;
       apPIdx    = i;
       apRunning = true;
-      openPhotoViewer(idx, i, true).then(() => startHoldTimer(3000));
+      openPhotoViewer(idx, i, true).then(() => startHoldTimer(4000));
     });
 
     grid.appendChild(cell);
@@ -1191,7 +1210,7 @@ let apChIdx      = -1;   // autoplay: current chapter
 let apPIdx       = 0;    // autoplay: current photo index
 let apRunning    = false;
 let apTimer      = null;
-let apRemaining  = 3000; // ms remaining when paused
+let apRemaining  = 4000; // ms remaining when paused
 let apTimerStart = 0;    // timestamp when current timer started
 let apHolding    = false;
 
@@ -1227,7 +1246,7 @@ async function runAutoStep(chIdx, pIdx) {
   if (!apRunning || apChIdx !== chIdx) return;
 
   await openPhotoViewer(chIdx, pIdx, true);
-  startHoldTimer(3000);
+  startHoldTimer(4000);
 }
 
 /* ── 홀드 타이머 (일시정지 지원) ── */
@@ -1390,9 +1409,11 @@ async function onChapterNext() {
 /* ════════════════════════════════════
    PROPOSAL
 ════════════════════════════════════ */
+const TIFFANY_BOKEH = ['rgba(129,216,208,0.35)','rgba(178,237,233,0.2)',
+                       'rgba(255,255,255,0.12)','rgba(74,173,165,0.22)'];
 async function goToProposal() {
   await fadeTo('pg-proposal', () => {
-    spawnBokeh('bk1', 12);
+    spawnBokeh('bk1', 12, TIFFANY_BOKEH);
     placeNo();
   });
 }
@@ -1422,7 +1443,7 @@ function dodgeNo(e) {
    ACCEPT
 ════════════════════════════════════ */
 async function onYes() {
-  await fadeTo('pg-accept', () => spawnBokeh('bk2', 18));
+  await fadeTo('pg-accept', () => spawnBokeh('bk2', 18, TIFFANY_BOKEH));
   await sleep(100);
   $('accept-title').classList.add('in');
   await sleep(320);
@@ -1438,7 +1459,7 @@ function runConfetti() {
   canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
   const ctx  = canvas.getContext('2d');
-  const cols = ['#c8a96e','#e8d5a8','#fffef8','#f0dcc8','#9a7a48','#ffecd2'];
+  const cols = ['#81D8D0','#B2EDE9','#ffffff','#4AADA5','#E8FAFA','#0ABAB5'];
   const pieces = Array.from({length: 90}, () => ({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height - canvas.height,
@@ -1479,30 +1500,76 @@ window.addEventListener('DOMContentLoaded', () => {
   $('btn-no').addEventListener('touchstart', dodgeNo, { passive: false });
   $('btn-no').addEventListener('click', dodgeNo);
 
-  // 뷰어 터치: 홀드 = 일시정지, 빠른 탭(<500ms) = 닫기
-  let pvTapStart  = 0;
-  let pvDidPause  = false; // pauseHold()가 실제로 동작했는지 추적
-  $('photo-viewer').addEventListener('touchstart', () => {
-    pvTapStart = Date.now();
-    pvDidPause = false;
-    if (apRunning && !apHolding && apTimer) {
-      pauseHold();
-      pvDidPause = true;
-    }
+  // 뷰어 터치: 존 기반 (좌=이전, 우=다음, 가운데=바 표시, 홀드=일시정지)
+  let pvStartX = 0, pvStartT = 0;
+  let barsAutoHide = null;
+
+  function showBars() {
+    const bars = $('pv-bars');
+    bars.classList.add('visible');
+    if (barsAutoHide) clearTimeout(barsAutoHide);
+    barsAutoHide = setTimeout(() => {
+      bars.classList.remove('visible');
+      barsAutoHide = null;
+    }, 3000);
+  }
+
+  $('photo-viewer').addEventListener('touchstart', (e) => {
+    pvStartX = e.touches[0].clientX;
+    pvStartT = Date.now();
+    pauseHold();
   }, { passive: true });
-  $('photo-viewer').addEventListener('touchend', () => {
-    if (pvDidPause) {
-      // 홀드였음 → 무조건 재개, 닫지 않음
+
+  $('photo-viewer').addEventListener('touchend', (e) => {
+    const x    = e.changedTouches[0].clientX;
+    const held = Date.now() - pvStartT;
+    const dx   = Math.abs(x - pvStartX);
+
+    // 홀드(≥450ms) 또는 스와이프(dx>15) → 재개만
+    if (dx > 15 || held >= 450) {
       resumeHold();
       return;
     }
-    // 탭이었음 (autoplay 없거나 타이머 없음) → 닫기
-    stopAutoPlay();
-    closePhotoViewer(false);
+
+    // 짧은 탭 → 존 판별
+    const zone = x / window.innerWidth;
+    const ch   = CHAPTERS[apChIdx] || CHAPTERS[currentCh];
+
+    if (zone < 0.33) {
+      // 왼쪽: 이전 사진
+      if (apPIdx > 0) {
+        const prev = apPIdx - 1;
+        const cIdx = apChIdx >= 0 ? apChIdx : currentCh;
+        stopAutoPlay();
+        apChIdx = cIdx; apPIdx = prev; apRunning = true;
+        openPhotoViewer(cIdx, prev, true).then(() => startHoldTimer(4000));
+      } else {
+        resumeHold();
+      }
+    } else if (zone > 0.67) {
+      // 오른쪽: 다음 사진
+      const cIdx = apChIdx >= 0 ? apChIdx : currentCh;
+      const photos = CHAPTERS[cIdx].photos;
+      if (apPIdx < photos.length - 1) {
+        const next = apPIdx + 1;
+        stopAutoPlay();
+        apChIdx = cIdx; apPIdx = next; apRunning = true;
+        openPhotoViewer(cIdx, next, true).then(() => startHoldTimer(4000));
+      } else {
+        stopAutoPlay();
+        onChapterNext();
+      }
+    } else {
+      // 가운데: 프로그레스 바 표시 후 재개
+      showBars();
+      resumeHold();
+    }
   });
+
   $('photo-viewer').addEventListener('touchcancel', () => {
-    if (pvDidPause) resumeHold();
+    resumeHold();
   });
+
   // 데스크톱 클릭 fallback
   $('photo-viewer').addEventListener('click', (e) => {
     if (e.pointerType === 'touch') return;
