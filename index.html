@@ -758,6 +758,9 @@ let currentCh  = 0;
 let activeCard = 0;
 let busy = false;
 
+let pvBarsVisible   = false;
+let pvBarsHideTimer = null;
+
 /* ════════════════════════════════════
    UTILS
 ════════════════════════════════════ */
@@ -1312,16 +1315,18 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   // caption
   $('pv-cap').textContent = photo.cap;
 
-  // progress bars — always visible while viewer is open
+  // progress bars — hidden by default, center tap reveals
   const barsEl = $('pv-bars');
   barsEl.innerHTML = '';
+  barsEl.classList.remove('visible');
+  pvBarsVisible = false;
+  if (pvBarsHideTimer) { clearTimeout(pvBarsHideTimer); pvBarsHideTimer = null; }
   ch.photos.forEach((_, i) => {
     const bar  = document.createElement('div'); bar.className = 'pv-bar';
     const fill = document.createElement('div'); fill.className = 'pv-bar-fill';
     if (i < pIdx) fill.classList.add('done');
     bar.appendChild(fill); barsEl.appendChild(bar);
   });
-  barsEl.classList.add('visible');
 
   // reset photo to initial state (will animate in via CSS)
   pvImg.style.transition = 'none';
@@ -1497,78 +1502,152 @@ window.addEventListener('DOMContentLoaded', () => {
   $('btn-no').addEventListener('touchstart', dodgeNo, { passive: false });
   $('btn-no').addEventListener('click', dodgeNo);
 
-  // 뷰어 터치: 존 기반 (좌=이전, 우=다음, 가운데=바 표시, 홀드=일시정지)
-  let pvStartX = 0, pvStartT = 0;
-  let barsAutoHide = null;
+  // ─── Photo Viewer Touch ───────────────────────────────────
+  // ① 좌/우 탭 or 스와이프 → 이전/다음
+  // ② 가운데 탭          → 프로그레스바 토글 (2.5s 후 자동 숨김)
+  // ③ 길게 누름          → 멈춤 (바 표시 + 타이머 정지)
+  // ④ 아래 스와이프      → 뷰어 닫기 (슬라이드 다운)
+  let pvStartX = 0, pvStartY = 0, pvStartT = 0;
+  let pvMoveX  = 0, pvMoveY  = 0;
+  let pvLongTimer = null;
 
-  function showBars() {
+  const pvEl   = $('photo-viewer');
+  const pvBody = $('pv-body');
+
+  function pvShowBars() {
+    if (pvBarsHideTimer) { clearTimeout(pvBarsHideTimer); pvBarsHideTimer = null; }
     $('pv-bars').classList.add('visible');
-    if (barsAutoHide) { clearTimeout(barsAutoHide); barsAutoHide = null; }
+    pvBarsVisible = true;
+  }
+  function pvHideBars() {
+    if (pvBarsHideTimer) { clearTimeout(pvBarsHideTimer); pvBarsHideTimer = null; }
+    $('pv-bars').classList.remove('visible');
+    pvBarsVisible = false;
+  }
+  function pvToggleBars() {
+    if (pvBarsVisible) {
+      pvHideBars();
+    } else {
+      pvShowBars();
+      pvBarsHideTimer = setTimeout(pvHideBars, 2500);
+    }
   }
 
-  $('photo-viewer').addEventListener('touchstart', (e) => {
-    pvStartX = e.touches[0].clientX;
+  function pvGoNext() {
+    const cIdx   = apChIdx >= 0 ? apChIdx : currentCh;
+    const photos = CHAPTERS[cIdx].photos;
+    if (apPIdx < photos.length - 1) {
+      const next = apPIdx + 1;
+      stopAutoPlay();
+      apChIdx = cIdx; apPIdx = next; apRunning = true;
+      openPhotoViewer(cIdx, next, true).then(() => startHoldTimer(4000));
+    } else { stopAutoPlay(); onChapterNext(); }
+  }
+  function pvGoPrev() {
+    if (apPIdx > 0) {
+      const prev = apPIdx - 1;
+      const cIdx = apChIdx >= 0 ? apChIdx : currentCh;
+      stopAutoPlay();
+      apChIdx = cIdx; apPIdx = prev; apRunning = true;
+      openPhotoViewer(cIdx, prev, true).then(() => startHoldTimer(4000));
+    } else { resumeHold(); }
+  }
+
+  function pvBodyReset(animate) {
+    if (animate) {
+      pvBody.style.transition = 'transform 0.42s cubic-bezier(0.16,1,0.3,1), opacity 0.32s ease';
+      requestAnimationFrame(() => {
+        pvBody.style.transform = '';
+        pvBody.style.opacity   = '';
+      });
+      setTimeout(() => { pvBody.style.transition = ''; }, 500);
+    } else {
+      pvBody.style.transition = '';
+      pvBody.style.transform  = '';
+      pvBody.style.opacity    = '';
+    }
+  }
+
+  pvEl.addEventListener('touchstart', (e) => {
+    const t  = e.touches[0];
+    pvStartX = t.clientX; pvStartY = t.clientY;
     pvStartT = Date.now();
-    showBars();
+    pvMoveX  = 0; pvMoveY = 0;
     pauseHold();
+    // 300ms 유지 시 → 멈춤 피드백 (바 표시)
+    pvLongTimer = setTimeout(pvShowBars, 300);
   }, { passive: true });
 
-  $('photo-viewer').addEventListener('touchend', (e) => {
-    const x    = e.changedTouches[0].clientX;
-    const held = Date.now() - pvStartT;
-    const dx   = Math.abs(x - pvStartX);
+  pvEl.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    pvMoveX = t.clientX - pvStartX;
+    pvMoveY = t.clientY - pvStartY;
+    // 아래 드래그: 바디가 손가락 따라 내려옴
+    if (pvMoveY > 0 && pvMoveY > Math.abs(pvMoveX) * 0.7) {
+      if (pvLongTimer) { clearTimeout(pvLongTimer); pvLongTimer = null; }
+      const damped = pvMoveY * 0.55;
+      const sc     = Math.max(0.88, 1 - pvMoveY / 1800);
+      const al     = Math.max(0.25, 1 - pvMoveY / 260);
+      pvBody.style.transition = 'none';
+      pvBody.style.transform  = `translateY(${damped}px) scale(${sc})`;
+      pvBody.style.opacity    = al;
+    } else if (Math.abs(pvMoveX) > 8) {
+      if (pvLongTimer) { clearTimeout(pvLongTimer); pvLongTimer = null; }
+    }
+  }, { passive: true });
 
-    // 홀드(≥450ms) 또는 스와이프(dx>15) → 재개만
-    if (dx > 15 || held >= 450) {
+  pvEl.addEventListener('touchend', (e) => {
+    if (pvLongTimer) { clearTimeout(pvLongTimer); pvLongTimer = null; }
+    const t    = e.changedTouches[0];
+    const dx   = t.clientX - pvStartX;
+    const dy   = t.clientY - pvStartY;
+    const adx  = Math.abs(dx);
+    const ady  = Math.abs(dy);
+    const held = Date.now() - pvStartT;
+
+    // ④ 아래 스와이프 → 슬라이드 다운 닫기
+    if (dy > 60 && ady > adx * 0.8) {
+      pvHideBars();
+      stopAutoPlay();
+      pvBody.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.6,1), opacity 0.28s ease';
+      pvBody.style.transform  = `translateY(${pvMoveY * 0.55 + window.innerHeight * 0.22}px) scale(0.84)`;
+      pvBody.style.opacity    = '0';
+      pvEl.classList.remove('show'); // CSS transition 으로 fade-out
+      setTimeout(() => { pvBodyReset(false); }, 380);
+      return;
+    }
+
+    pvBodyReset(true);
+
+    // ③ 길게 누름 → 재개 + 바 잠시 유지 후 숨김
+    if (held >= 450 && adx < 18 && ady < 18) {
+      pvBarsHideTimer = setTimeout(pvHideBars, 1000);
       resumeHold();
       return;
     }
 
-    // 짧은 탭 → 존 판별
-    const zone = x / window.innerWidth;
-    const ch   = CHAPTERS[apChIdx] || CHAPTERS[currentCh];
-
-    if (zone < 0.33) {
-      // 왼쪽: 이전 사진
-      if (apPIdx > 0) {
-        const prev = apPIdx - 1;
-        const cIdx = apChIdx >= 0 ? apChIdx : currentCh;
-        stopAutoPlay();
-        apChIdx = cIdx; apPIdx = prev; apRunning = true;
-        openPhotoViewer(cIdx, prev, true).then(() => startHoldTimer(4000));
-      } else {
-        resumeHold();
-      }
-    } else if (zone > 0.67) {
-      // 오른쪽: 다음 사진
-      const cIdx = apChIdx >= 0 ? apChIdx : currentCh;
-      const photos = CHAPTERS[cIdx].photos;
-      if (apPIdx < photos.length - 1) {
-        const next = apPIdx + 1;
-        stopAutoPlay();
-        apChIdx = cIdx; apPIdx = next; apRunning = true;
-        openPhotoViewer(cIdx, next, true).then(() => startHoldTimer(4000));
-      } else {
-        stopAutoPlay();
-        onChapterNext();
-      }
-    } else {
-      // 가운데: 프로그레스 바 표시 후 재개
-      showBars();
-      resumeHold();
+    // ① 가로 스와이프 → 이전/다음
+    if (adx > 36 && adx > ady * 1.2) {
+      dx < 0 ? pvGoNext() : pvGoPrev();
+      return;
     }
-  });
 
-  $('photo-viewer').addEventListener('touchcancel', () => {
+    // 탭 (움직임 없음) → 존 기반
+    if (adx <= 22 && ady <= 22) {
+      const zone = t.clientX / window.innerWidth;
+      if      (zone < 0.33) { pvGoPrev(); return; }
+      else if (zone > 0.67) { pvGoNext(); return; }
+      else                  { pvToggleBars(); resumeHold(); return; }
+    }
+
     resumeHold();
   });
 
-  // 데스크톱 클릭 fallback
-  $('photo-viewer').addEventListener('click', (e) => {
-    if (e.pointerType === 'touch') return;
-    if (!$('photo-viewer').classList.contains('show')) return;
-    stopAutoPlay();
-    closePhotoViewer(false);
+  pvEl.addEventListener('touchcancel', () => {
+    if (pvLongTimer) { clearTimeout(pvLongTimer); pvLongTimer = null; }
+    pvBodyReset(true);
+    pvHideBars();
+    resumeHold();
   });
 });
 </script>
