@@ -1172,9 +1172,12 @@ function loadDetail(idx) {
     }
 
     cell.addEventListener('click', () => {
+      // 해당 사진부터 autoplay 재시작 (타이머 + 프로그레스 바 포함)
       stopAutoPlay();
-      apPIdx = i;
-      openPhotoViewer(idx, i, false);
+      apChIdx   = idx;
+      apPIdx    = i;
+      apRunning = true;
+      openPhotoViewer(idx, i, true).then(() => startHoldTimer(3000));
     });
 
     grid.appendChild(cell);
@@ -1468,25 +1471,33 @@ window.addEventListener('DOMContentLoaded', () => {
   $('btn-no').addEventListener('touchstart', dodgeNo, { passive: false });
   $('btn-no').addEventListener('click', dodgeNo);
 
-  // 뷰어 터치: 홀드 = 일시정지, 빠른 탭(<300ms) = 닫기
-  let pvTapStart = 0;
+  // 뷰어 터치: 홀드 = 일시정지, 빠른 탭(<500ms) = 닫기
+  let pvTapStart  = 0;
+  let pvDidPause  = false; // pauseHold()가 실제로 동작했는지 추적
   $('photo-viewer').addEventListener('touchstart', () => {
     pvTapStart = Date.now();
-    pauseHold();
+    pvDidPause = false;
+    if (apRunning && !apHolding && apTimer) {
+      pauseHold();
+      pvDidPause = true;
+    }
   }, { passive: true });
   $('photo-viewer').addEventListener('touchend', () => {
-    resumeHold();
-    if (Date.now() - pvTapStart < 300) {
-      stopAutoPlay();
-      closePhotoViewer(false);
+    if (pvDidPause) {
+      // 홀드였음 → 무조건 재개, 닫지 않음
+      resumeHold();
+      return;
     }
+    // 탭이었음 (autoplay 없거나 타이머 없음) → 닫기
+    stopAutoPlay();
+    closePhotoViewer(false);
   });
   $('photo-viewer').addEventListener('touchcancel', () => {
-    resumeHold();
+    if (pvDidPause) resumeHold();
   });
   // 데스크톱 클릭 fallback
   $('photo-viewer').addEventListener('click', (e) => {
-    if (e.pointerType === 'touch') return; // touchend 이미 처리
+    if (e.pointerType === 'touch') return;
     if (!$('photo-viewer').classList.contains('show')) return;
     stopAutoPlay();
     closePhotoViewer(false);
