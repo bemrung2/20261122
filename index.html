@@ -85,6 +85,7 @@ html, body {
   display: flex; flex-direction: column; justify-content: space-evenly;
   box-shadow: 0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.07);
   animation: cardUp 0.85s cubic-bezier(0.16,1,0.3,1) both;
+  touch-action: manipulation;
 }
 @keyframes cardUp {
   from { opacity: 0; transform: translateY(28px) scale(0.97); }
@@ -97,6 +98,7 @@ html, body {
   margin: 0 auto;
   font-size: 19px; font-weight: 500; color: white; letter-spacing: -1px;
   box-shadow: 0 8px 28px rgba(200,169,110,0.45);
+  touch-action: manipulation; /* prevent double-tap zoom */
 }
 .lock-q { text-align: center; }
 .lock-q .lq-hint {
@@ -1617,10 +1619,77 @@ function runConfetti() {
 }
 
 /* ════════════════════════════════════
+   GRID SWIPE-DOWN → 에피소드 카드로 복귀
+════════════════════════════════════ */
+function initGridDismiss() {
+  const scroll  = $('ch-scroll');
+  const detail  = $('ch-detail');
+  let startY = 0, startScrollTop = 0;
+  let dismissing = false, dragY = 0;
+
+  scroll.addEventListener('touchstart', e => {
+    startY = e.touches[0].clientY;
+    startScrollTop = scroll.scrollTop;
+    dismissing = false; dragY = 0;
+  }, { passive: true });
+
+  scroll.addEventListener('touchmove', e => {
+    const dy = e.touches[0].clientY - startY;
+    if (!dismissing) {
+      // Only enter dismiss mode when already at top AND clearly dragging down
+      if (startScrollTop <= 0 && dy > 8) dismissing = true;
+      else return;
+    }
+    e.preventDefault(); // block native scroll while in dismiss mode
+    dragY = dy;
+    const damped = dragY * 0.52;
+    const sc     = Math.max(0.88, 1 - dragY / 2200);
+    const al     = Math.max(0.2,  1 - dragY / 340);
+    detail.style.transition = 'none';
+    detail.style.transform  = `translateY(${damped}px) scale(${sc})`;
+    detail.style.opacity    = String(al);
+  }, { passive: false });
+
+  function springBack() {
+    detail.style.transition = 'transform 0.42s cubic-bezier(0.16,1,0.3,1), opacity 0.32s ease';
+    detail.style.transform  = '';
+    detail.style.opacity    = '';
+    setTimeout(() => { detail.style.transition = ''; }, 500);
+  }
+
+  scroll.addEventListener('touchend', async () => {
+    if (!dismissing) return;
+    dismissing = false;
+    if (dragY > 90 && !busy) {
+      // Slide out then run the standard exitChapter animation
+      detail.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.6,1), opacity 0.24s ease';
+      detail.style.transform  = `translateY(${window.innerHeight * 0.28}px) scale(0.84)`;
+      detail.style.opacity    = '0';
+      await sleep(310);
+      detail.style.transition = '';
+      detail.style.transform  = '';
+      detail.style.opacity    = '';
+      busy = true;
+      await exitChapter();
+      busy = false;
+    } else {
+      springBack();
+    }
+  }, { passive: true });
+
+  scroll.addEventListener('touchcancel', () => {
+    if (!dismissing) return;
+    dismissing = false;
+    springBack();
+  }, { passive: true });
+}
+
+/* ════════════════════════════════════
    BOOT
 ════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
   initLock();
+  initGridDismiss();
   $('btn-ch-next').addEventListener('click', onChapterNext);
   $('btn-yes').addEventListener('click', onYes);
   $('btn-no').addEventListener('touchstart', dodgeNo, { passive: false });
@@ -1677,7 +1746,15 @@ window.addEventListener('DOMContentLoaded', () => {
       stopAutoPlay();
       apChIdx = cIdx; apPIdx = next; apRunning = true;
       openPhotoViewer(cIdx, next, true).then(() => startHoldTimer(5000));
-    } else { stopAutoPlay(); onChapterNext(); }
+    } else {
+      stopAutoPlay();
+      if (isManualMode) {
+        // manual mode: last photo → close viewer, stay in grid
+        closePhotoViewer(false);
+      } else {
+        onChapterNext();
+      }
+    }
   }
   function pvGoPrev() {
     if (apPIdx > 0) {
