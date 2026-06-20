@@ -75,12 +75,14 @@ html, body {
 /* ═══════════════════════════════════════
    LOCK SCREEN
 ═══════════════════════════════════════ */
-#pg-lock { background: var(--dark); }
+#pg-lock { background: var(--dark); padding: var(--sat) 4vw var(--sab); }
 
 .lock-card {
   position: relative; z-index: 1;
   background: var(--paper); border-radius: 20px;
   padding: 24px; width: min(370px, 92vw);
+  flex: 1;
+  display: flex; flex-direction: column; justify-content: space-evenly;
   box-shadow: 0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.07);
   animation: cardUp 0.85s cubic-bezier(0.16,1,0.3,1) both;
 }
@@ -92,11 +94,11 @@ html, body {
   display: flex; align-items: center; justify-content: center;
   width: 58px; height: 58px; border-radius: 50%;
   background: linear-gradient(140deg, var(--gold), var(--gold-d));
-  margin: 0 auto 22px;
+  margin: 0 auto;
   font-size: 19px; font-weight: 500; color: white; letter-spacing: -1px;
   box-shadow: 0 8px 28px rgba(200,169,110,0.45);
 }
-.lock-q { text-align: center; margin-bottom: 26px; }
+.lock-q { text-align: center; }
 .lock-q .lq-hint {
   display: block; font-size: 12px; font-weight: 300;
   color: var(--ink3); letter-spacing: 0.3px; margin-bottom: 8px;
@@ -106,7 +108,7 @@ html, body {
 }
 
 /* PIN dots */
-.pin-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 26px; }
+.pin-dots { display: flex; justify-content: center; gap: 7px; }
 .pd {
   width: 20px; height: 20px; border-radius: 50%;
   border: 1.5px solid #ddd5c5; background: transparent;
@@ -132,14 +134,14 @@ html, body {
   touch-action: manipulation;
 }
 .key:active { background: var(--gold-l); transform: scale(0.92); }
-.key-del    { background: var(--ink); color: white; font-size: 18px; font-weight: 500; }
+.key-del    { background: var(--ink); color: white; }
 .key-del:active { background: #1a0f0a; }
 .key-ok     { background: var(--ink); color: white; font-size: 14.5px; font-weight: 500; }
 .key-ok:active { background: #1a0f0a; }
 .key-blank  { background: transparent; pointer-events: none; }
 .lock-err {
   text-align: center; font-size: 12px; color: #cc3333;
-  margin-top: 13px; height: 16px;
+  height: 16px;
   opacity: 0; transition: opacity 0.2s;
 }
 .lock-err.show { opacity: 1; }
@@ -556,7 +558,7 @@ html, body {
       <button class="key" data-k="7">7</button>
       <button class="key" data-k="8">8</button>
       <button class="key" data-k="9">9</button>
-      <button class="key key-del" data-k="del">⌫</button>
+      <button class="key key-del" data-k="del"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="16" viewBox="0 0 22 16" fill="none"><path d="M8 1H21V15H8L1.5 8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M13 5.5L17.5 10.5M17.5 5.5L13 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
       <button class="key" data-k="0">0</button>
       <button class="key key-ok" data-k="ok">확인</button>
     </div>
