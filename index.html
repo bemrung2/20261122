@@ -80,12 +80,19 @@ html, body {
 .lock-card {
   position: relative; z-index: 1;
   background: var(--paper); border-radius: 20px;
-  padding: 24px; width: min(370px, 92vw);
+  padding: 28px 24px; width: min(370px, 92vw);
   flex: 1;
-  display: flex; flex-direction: column; justify-content: space-evenly;
+  display: flex; flex-direction: column; justify-content: flex-start;
   box-shadow: 0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.07);
   animation: cardUp 0.85s cubic-bezier(0.16,1,0.3,1) both;
   touch-action: manipulation;
+}
+.lock-top {
+  display: flex; flex-direction: column; align-items: center; gap: 22px;
+}
+.lock-bottom {
+  margin-top: auto;
+  display: flex; flex-direction: column; align-items: stretch; gap: 10px;
 }
 @keyframes cardUp {
   from { opacity: 0; transform: translateY(28px) scale(0.97); }
@@ -149,10 +156,10 @@ html, body {
 .lock-err.show { opacity: 1; }
 .mode-toggle {
   display: flex; align-items: center; justify-content: center; gap: 10px;
-  height: 0; overflow: hidden;
-  opacity: 0; transition: opacity 0.3s ease, height 0.3s ease;
+  max-height: 0; overflow: hidden;
+  opacity: 0; transition: opacity 0.3s ease, max-height 0.3s ease;
 }
-.mode-toggle.show { height: 30px; opacity: 1; }
+.mode-toggle.show { max-height: 36px; opacity: 1; }
 .mode-label { font-size: 11.5px; color: var(--ink3); letter-spacing: 0.2px; }
 .mode-switch {
   width: 40px; height: 22px; border-radius: 11px;
@@ -176,6 +183,7 @@ html, body {
 .pg-letter {
   background: #e8dece;
   padding: var(--sat) 22px var(--sab);
+  transition: opacity 1.4s ease; /* slow reveal as curtain lifts */
 }
 
 .letter-sheet {
@@ -269,15 +277,15 @@ html, body {
 /* carousel stage */
 .carousel-stage {
   position: relative;
-  width: 100%; height: 322px;
+  width: 100%; height: 378px;
   /* overflow:visible so side cards peek; clipped by #pg-chapters */
 }
 
 /* each card */
 .cc {
   position: absolute;
-  width: 232px; height: 316px;
-  border-radius: 22px; overflow: hidden;
+  width: 274px; height: 372px;
+  border-radius: 24px; overflow: hidden;
   left: 50%; top: 0;
   margin-left: -116px;
   cursor: pointer;
@@ -582,30 +590,34 @@ html, body {
 <div class="pg active" id="pg-lock">
   <div class="bokeh-wrap" id="bk0"></div>
   <div class="lock-card">
-    <div class="lock-mono">민소</div>
-    <div class="lock-q">
-      <span class="lq-hint">이 페이지는 한 사람만을 위한 공간이에요</span>
-      <span class="lq-main">우리가 사귀기 시작한 날은?</span>
+    <div class="lock-top">
+      <div class="mode-toggle" id="mode-toggle">
+        <span class="mode-label" id="mode-label">자동 모드</span>
+        <div class="mode-switch" id="mode-switch"></div>
+      </div>
+      <div class="lock-mono" id="lock-mono">민소</div>
+      <div class="lock-q">
+        <span class="lq-hint">이 페이지는 한 사람만을 위한 공간이에요</span>
+        <span class="lq-main">우리가 사귀기 시작한 날은?</span>
+      </div>
+      <div class="pin-dots" id="pin-dots"></div>
     </div>
-    <div class="pin-dots" id="pin-dots"></div>
-    <div class="keypad">
-      <button class="key" data-k="1">1</button>
-      <button class="key" data-k="2">2</button>
-      <button class="key" data-k="3">3</button>
-      <button class="key" data-k="4">4</button>
-      <button class="key" data-k="5">5</button>
-      <button class="key" data-k="6">6</button>
-      <button class="key" data-k="7">7</button>
-      <button class="key" data-k="8">8</button>
-      <button class="key" data-k="9">9</button>
-      <button class="key key-del" data-k="del"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="16" viewBox="0 0 22 16" fill="none"><path d="M8 1H21V15H8L1.5 8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M13 5.5L17.5 10.5M17.5 5.5L13 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-      <button class="key" data-k="0">0</button>
-      <button class="key key-ok" data-k="ok">확인</button>
-    </div>
-    <div class="lock-err" id="lock-err">날짜가 맞지 않아요</div>
-    <div class="mode-toggle" id="mode-toggle">
-      <span class="mode-label" id="mode-label">자동 모드</span>
-      <div class="mode-switch" id="mode-switch"></div>
+    <div class="lock-bottom">
+      <div class="keypad">
+        <button class="key" data-k="1">1</button>
+        <button class="key" data-k="2">2</button>
+        <button class="key" data-k="3">3</button>
+        <button class="key" data-k="4">4</button>
+        <button class="key" data-k="5">5</button>
+        <button class="key" data-k="6">6</button>
+        <button class="key" data-k="7">7</button>
+        <button class="key" data-k="8">8</button>
+        <button class="key" data-k="9">9</button>
+        <button class="key key-del" data-k="del"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="16" viewBox="0 0 22 16" fill="none"><path d="M8 1H21V15H8L1.5 8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M13 5.5L17.5 10.5M17.5 5.5L13 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+        <button class="key" data-k="0">0</button>
+        <button class="key key-ok" data-k="ok">확인</button>
+      </div>
+      <div class="lock-err" id="lock-err">날짜가 맞지 않아요</div>
     </div>
   </div>
 </div>
@@ -893,17 +905,17 @@ function initLock() {
     }
   });
 
-  // Secret triple-tap on 민소 circle → reveal mode toggle
-  let monoTaps = 0, monoTimer = null;
-  document.querySelector('.lock-mono').addEventListener('click', () => {
-    monoTaps++;
-    if (monoTimer) clearTimeout(monoTimer);
-    monoTimer = setTimeout(() => { monoTaps = 0; }, 1400);
-    if (monoTaps >= 3) {
-      monoTaps = 0; clearTimeout(monoTimer); monoTimer = null;
+  // Secret 3-second hold on 민소 circle → reveal mode toggle
+  let monoHoldTimer = null;
+  const mono = $('lock-mono');
+  mono.addEventListener('touchstart', () => {
+    monoHoldTimer = setTimeout(() => {
+      monoHoldTimer = null;
       $('mode-toggle').classList.toggle('show');
-    }
-  });
+    }, 3000);
+  }, { passive: true });
+  mono.addEventListener('touchend',   () => { if (monoHoldTimer) { clearTimeout(monoHoldTimer); monoHoldTimer = null; } }, { passive: true });
+  mono.addEventListener('touchcancel',() => { if (monoHoldTimer) { clearTimeout(monoHoldTimer); monoHoldTimer = null; } }, { passive: true });
 
   $('mode-switch').addEventListener('click', () => {
     isManualMode = !isManualMode;
@@ -971,7 +983,7 @@ function startLetter(bodyId, innerId, dateId, text, speed, onDone, pinTop) {
 /* ════════════════════════════════════
    CAROUSEL BUILD
 ════════════════════════════════════ */
-const CARD_STEP = 258; // px between card centers
+const CARD_STEP = 305; // px between card centers
 
 function buildCarousel() {
   const stage = $('carousel-stage');
@@ -1415,7 +1427,7 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
     if (i < pIdx) fill.classList.add('done');
     bar.appendChild(fill); barsEl.appendChild(bar);
   });
-  barsEl.style.transition = 'none';
+  barsEl.style.transition = 'opacity 0.35s ease';
   barsEl.style.opacity = '1';
   pvBarsVisible = true;
 
@@ -1492,6 +1504,13 @@ async function onChapterNext() {
   // ── 에피소드 레벨 네비게이션 ──
   if (busy) return;
   busy = true;
+
+  // Manual mode: next button returns to carousel instead of advancing
+  if (isManualMode) {
+    await exitChapter();
+    busy = false;
+    return;
+  }
 
   const isLastEp = currentCh === CHAPTERS.length - 1;
 
@@ -1642,11 +1661,10 @@ function initGridDismiss() {
     }
     e.preventDefault(); // block native scroll while in dismiss mode
     dragY = dy;
-    const damped = dragY * 0.52;
-    const sc     = Math.max(0.88, 1 - dragY / 2200);
-    const al     = Math.max(0.2,  1 - dragY / 340);
+    const damped = dragY * 0.38;
+    const al     = Math.max(0.4,  1 - dragY / 260);
     detail.style.transition = 'none';
-    detail.style.transform  = `translateY(${damped}px) scale(${sc})`;
+    detail.style.transform  = `translateY(${damped}px)`;
     detail.style.opacity    = String(al);
   }, { passive: false });
 
@@ -1661,11 +1679,7 @@ function initGridDismiss() {
     if (!dismissing) return;
     dismissing = false;
     if (dragY > 90 && !busy) {
-      // Slide out then run the standard exitChapter animation
-      detail.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.6,1), opacity 0.24s ease';
-      detail.style.transform  = `translateY(${window.innerHeight * 0.28}px) scale(0.84)`;
-      detail.style.opacity    = '0';
-      await sleep(310);
+      // Reset inline styles then let exitChapter handle the full animation
       detail.style.transition = '';
       detail.style.transform  = '';
       detail.style.opacity    = '';
@@ -1718,16 +1732,10 @@ window.addEventListener('DOMContentLoaded', () => {
     if (pvBarsHideTimer) { clearTimeout(pvBarsHideTimer); pvBarsHideTimer = null; }
     pvBarsVisible = false;
     const bars = $('pv-bars');
-    // Pin to opacity:1 with no transition (sync, no reflow),
-    // then wait two frames so the browser commits that state before starting the fade.
-    bars.style.transition = 'none';
-    bars.style.opacity = '1';
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        bars.style.transition = 'opacity 0.35s ease';
-        bars.style.opacity = '0';
-      });
-    });
+    // Exact mirror of pvShowBars — set transition then target opacity.
+    // Same technique that already works for show; no rAF tricks needed.
+    bars.style.transition = 'opacity 0.35s ease';
+    bars.style.opacity = '0';
   }
   function pvToggleBars() {
     if (pvBarsVisible) {
