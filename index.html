@@ -145,6 +145,28 @@ html, body {
   opacity: 0; transition: opacity 0.2s;
 }
 .lock-err.show { opacity: 1; }
+.mode-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  height: 0; overflow: hidden;
+  opacity: 0; transition: opacity 0.3s ease, height 0.3s ease;
+}
+.mode-toggle.show { height: 30px; opacity: 1; }
+.mode-label { font-size: 11.5px; color: var(--ink3); letter-spacing: 0.2px; }
+.mode-switch {
+  width: 40px; height: 22px; border-radius: 11px;
+  background: #ddd5c5; position: relative; cursor: pointer;
+  transition: background 0.22s;
+  flex-shrink: 0;
+}
+.mode-switch::after {
+  content: ''; position: absolute;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: white; top: 2px; left: 2px;
+  transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+}
+.mode-switch.on { background: var(--gold); }
+.mode-switch.on::after { transform: translateX(18px); }
 
 /* ═══════════════════════════════════════
    LETTER — fixed paper, text scrolls inside
@@ -579,6 +601,10 @@ html, body {
       <button class="key key-ok" data-k="ok">확인</button>
     </div>
     <div class="lock-err" id="lock-err">날짜가 맞지 않아요</div>
+    <div class="mode-toggle" id="mode-toggle">
+      <span class="mode-label" id="mode-label">자동 모드</span>
+      <div class="mode-switch" id="mode-switch"></div>
+    </div>
   </div>
 </div>
 
@@ -864,6 +890,24 @@ function initLock() {
       if (pin.length === PIN_LEN) setTimeout(checkPin, 250);
     }
   });
+
+  // Secret triple-tap on 민소 circle → reveal mode toggle
+  let monoTaps = 0, monoTimer = null;
+  document.querySelector('.lock-mono').addEventListener('click', () => {
+    monoTaps++;
+    if (monoTimer) clearTimeout(monoTimer);
+    monoTimer = setTimeout(() => { monoTaps = 0; }, 1400);
+    if (monoTaps >= 3) {
+      monoTaps = 0; clearTimeout(monoTimer); monoTimer = null;
+      $('mode-toggle').classList.toggle('show');
+    }
+  });
+
+  $('mode-switch').addEventListener('click', () => {
+    isManualMode = !isManualMode;
+    $('mode-switch').classList.toggle('on', isManualMode);
+    $('mode-label').textContent = isManualMode ? '수동 모드' : '자동 모드';
+  });
 }
 
 function syncDots(err = false) {
@@ -890,11 +934,12 @@ async function checkPin() {
 /* ════════════════════════════════════
    TYPEWRITER — text scrolls inside fixed paper
 ════════════════════════════════════ */
-function startLetter(bodyId, innerId, dateId, text, speed, onDone) {
+function startLetter(bodyId, innerId, dateId, text, speed, onDone, pinTop) {
   $(dateId).textContent = '26.07.04 (금)';
   const el  = $(bodyId);
   const box = $(innerId);
   el.innerHTML = '';
+  box.scrollTop = 0;
   const cur = document.createElement('span');
   cur.className = 'letter-cursor'; el.appendChild(cur);
 
@@ -911,12 +956,11 @@ function startLetter(bodyId, innerId, dateId, text, speed, onDone) {
     if (ch === '\n') el.insertBefore(document.createElement('br'), cur);
     else el.insertBefore(document.createTextNode(ch), cur);
     i++;
-    // auto-scroll so cursor stays visible
-    box.scrollTop = box.scrollHeight;
+    if (!pinTop) box.scrollTop = box.scrollHeight; // follow cursor down
     let delay = speed;
     if (ch === '\n') delay = speed * 6;
     else if ('.,!?ㅎ'.includes(ch)) delay = speed * 3.5;
-    else if (Math.random() < 0.08) delay = speed * 2.2; // 가끔 주춤하는 느낌
+    else if (Math.random() < 0.08) delay = speed * 2.2;
     setTimeout(tick, delay);
   }
   setTimeout(tick, 900);
@@ -1082,7 +1126,7 @@ async function goToChapters() {
 
   // pause so user sees carousel, then auto-enter ch0
   await sleep(2400);
-  if (!busy) enterChapter(0);
+  if (!busy && !isManualMode) enterChapter(0);
 }
 
 async function enterChapter(idx) {
@@ -1092,7 +1136,7 @@ async function enterChapter(idx) {
 
   // Focus the card smoothly
   if (activeCard !== idx) positionCards(idx, true);
-  await sleep(500);
+  await sleep(400);
 
   // Dim non-active cards
   CHAPTERS.forEach((_, i) => {
@@ -1106,7 +1150,7 @@ async function enterChapter(idx) {
       c.style.transform  = 'translateX(0) scale(1.04)';
     }
   });
-  await sleep(550);
+  await sleep(450);
 
   // Show title veil
   const veil    = $('ch-veil');
@@ -1121,7 +1165,7 @@ async function enterChapter(idx) {
   veil.classList.add('show');
   await sleep(100);
   vtitle.classList.add('in');    // title zooms in
-  await sleep(2200);             // let user read the title
+  await sleep(1700);             // let user read the title
   vtitle.classList.add('up');    // title drifts up
 
   // Prepare detail
@@ -1135,7 +1179,7 @@ async function enterChapter(idx) {
   foot.classList.remove('show');
   detail.classList.add('show');
 
-  await sleep(300);
+  await sleep(250);
 
   // Cross-fade: veil out, header slides in
   veil.classList.remove('show');
@@ -1145,8 +1189,8 @@ async function enterChapter(idx) {
   foot.classList.add('show');
 
   // 그리드가 보인 직후 자동 재생 시작
-  await sleep(2200);
-  startAutoPlay(idx);
+  await sleep(1700);
+  if (!isManualMode) startAutoPlay(idx);
 
   busy = false;
 }
@@ -1246,6 +1290,7 @@ function loadDetail(idx) {
 /* ════════════════════════════════════
    PHOTO VIEWER & AUTO-PLAY
 ════════════════════════════════════ */
+let isManualMode = false; // set via secret triple-tap on 민소 circle
 let apChIdx      = -1;   // autoplay: current chapter
 let apPIdx       = 0;    // autoplay: current photo index
 let apRunning    = false;
@@ -1271,7 +1316,7 @@ function stopAutoPlay() {
 }
 
 async function runAutoStep(chIdx, pIdx) {
-  if (!apRunning || apChIdx !== chIdx) return;
+  if (!apRunning || apChIdx !== chIdx || isManualMode) return;
   apPIdx = pIdx;
 
   // tap animation on grid cell
@@ -1291,6 +1336,7 @@ async function runAutoStep(chIdx, pIdx) {
 
 /* ── 홀드 타이머 (일시정지 지원) ── */
 function startHoldTimer(ms) {
+  if (isManualMode) return; // manual mode: no auto-advance
   if (apTimer) { clearTimeout(apTimer); apTimer = null; }
   apRemaining  = ms;
   apTimerStart = Date.now();
@@ -1455,7 +1501,7 @@ async function onChapterNext() {
       $('ch-foot').classList.remove('show');
     });
     busy = false;
-    startLetter('l2-body', 'l2-inner', 'l2-date', LETTER2, 90, goToProposal);
+    startLetter('l2-body', 'l2-inner', 'l2-date', LETTER2, 90, goToProposal, true);
   } else {
     await exitChapter();
     const next = currentCh + 1;
@@ -1603,12 +1649,16 @@ window.addEventListener('DOMContentLoaded', () => {
     if (pvBarsHideTimer) { clearTimeout(pvBarsHideTimer); pvBarsHideTimer = null; }
     pvBarsVisible = false;
     const bars = $('pv-bars');
-    // Lock current computed opacity so transition always starts from the real value
+    // Pin to opacity:1 with no transition (sync, no reflow),
+    // then wait two frames so the browser commits that state before starting the fade.
     bars.style.transition = 'none';
-    bars.style.opacity = getComputedStyle(bars).opacity;
-    void bars.offsetWidth; // force layout flush before changing transition
-    bars.style.transition = 'opacity 0.35s ease';
-    bars.style.opacity = '0';
+    bars.style.opacity = '1';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        bars.style.transition = 'opacity 0.35s ease';
+        bars.style.opacity = '0';
+      });
+    });
   }
   function pvToggleBars() {
     if (pvBarsVisible) {
