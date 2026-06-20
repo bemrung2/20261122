@@ -79,8 +79,8 @@ html, body {
 
 .lock-card {
   position: relative; z-index: 1;
-  background: var(--paper); border-radius: 28px;
-  padding: 40px 26px 34px; width: min(336px, 88vw);
+  background: var(--paper); border-radius: 20px;
+  padding: 32px 24px 28px; width: min(370px, 92vw);
   box-shadow: 0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.07);
   animation: cardUp 0.85s cubic-bezier(0.16,1,0.3,1) both;
 }
@@ -614,7 +614,7 @@ html, body {
     <!-- ── Photo viewer overlay ── -->
     <div id="photo-viewer">
       <div class="pv-backdrop"></div>
-      <div class="pv-body">
+      <div class="pv-body" id="pv-body">
         <div id="pv-bars" class="pv-bars"></div>
         <div id="pv-img"></div>
         <div id="pv-cap"></div>
@@ -1104,7 +1104,7 @@ async function enterChapter(idx) {
   foot.classList.add('show');
 
   // 그리드가 보인 직후 자동 재생 시작
-  await sleep(520);
+  await sleep(1400);
   startAutoPlay(idx);
 
   busy = false;
@@ -1241,7 +1241,7 @@ async function runAutoStep(chIdx, pIdx) {
     void cell.offsetWidth;
     cell.classList.add('tapping');
   }
-  await sleep(400);
+  await sleep(680);
   if (!apRunning || apChIdx !== chIdx) return;
 
   await openPhotoViewer(chIdx, pIdx, true);
