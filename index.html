@@ -1241,10 +1241,18 @@ function startHoldTimer(ms) {
     const chIdx = apChIdx;
     const pIdx  = apPIdx;
     const ch    = CHAPTERS[chIdx];
+
+    if (pIdx >= ch.photos.length - 1) {
+      // 마지막 사진 → 다음 에피소드로 자동 전환
+      onChapterNext();
+      return;
+    }
+
+    // 다음 사진으로
     await closePhotoViewer(false);
     await sleep(420);
     if (!apRunning || apChIdx !== chIdx) return;
-    runAutoStep(chIdx, (pIdx + 1) % ch.photos.length);
+    runAutoStep(chIdx, pIdx + 1);
   }, ms);
 }
 
