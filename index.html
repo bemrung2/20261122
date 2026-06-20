@@ -406,10 +406,9 @@ html, body {
 /* progress bars (Stories-style) — 기본 숨김, 가운데 탭 시 표시 */
 .pv-bars {
   display: flex; gap: 3px; width: 100%; padding: 0 0 14px;
-  opacity: 0; transition: opacity 0.35s ease;
+  opacity: 0;
   pointer-events: none;
 }
-.pv-bars.visible { opacity: 1; }
 .pv-bar {
   flex: 1; height: 2px; border-radius: 1px;
   background: rgba(255,255,255,0.22); overflow: hidden;
@@ -479,8 +478,25 @@ html, body {
 }
 .ring-wrap { width: 88px; height: 88px; margin-bottom: 34px; animation: ringFloat 3.5s ease-in-out infinite; }
 @keyframes ringFloat { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-13px) rotate(2deg)} }
-.proposal-tag { font-size: 10px; letter-spacing: 4.5px; color: var(--tiffany); font-weight: 300; margin-bottom: 18px; }
-.proposal-q   { font-size: 27px; color: white; font-weight: 400; line-height: 1.45; margin-bottom: 14px; letter-spacing: -0.3px; }
+@keyframes ringAccept {
+  0%   { transform: scale(1) rotate(-2deg); filter: drop-shadow(0 0 0px rgba(129,216,208,0)); }
+  25%  { transform: scale(1.18) rotate(6deg); filter: drop-shadow(0 0 14px rgba(129,216,208,0.9)); }
+  50%  { transform: scale(0.92) rotate(-4deg); filter: drop-shadow(0 0 22px rgba(178,237,233,1)); }
+  75%  { transform: scale(1.38) rotate(8deg); filter: drop-shadow(0 0 32px rgba(129,216,208,0.85)); }
+  100% { transform: scale(1.45) rotate(5deg); filter: drop-shadow(0 0 48px rgba(129,216,208,0.6)); }
+}
+.ring-wrap.accept { animation: ringAccept 0.72s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+@keyframes ringRipple {
+  0%   { transform: translate(-50%,-50%) scale(1); opacity: 0.7; }
+  100% { transform: translate(-50%,-50%) scale(22); opacity: 0; }
+}
+.ring-ripple {
+  position: fixed; width: 10px; height: 10px;
+  border: 1.5px solid var(--tiffany); border-radius: 50%;
+  pointer-events: none; z-index: 999;
+  animation: ringRipple 0.85s ease-out forwards;
+}
+.proposal-q   { font-size: 36px; color: var(--tiffany); font-weight: 300; line-height: 1.3; margin-bottom: 16px; letter-spacing: 0.5px; text-shadow: 0 0 32px rgba(129,216,208,0.45); }
 .proposal-sub { font-size: 14px; color: rgba(255,255,255,0.4); line-height: 1.9; font-weight: 300; margin-bottom: 50px; }
 .btn-yes {
   width: 260px; height: 56px; border-radius: 18px; border: none;
@@ -670,10 +686,9 @@ html, body {
         <circle cx="44" cy="13" r="1.8" fill="rgba(255,255,255,0.85)"/>
       </svg>
     </div>
-    <div class="proposal-tag">P R O P O S E</div>
-    <div class="proposal-q">김소영,<br>나와 결혼해줄래?</div>
+    <div class="proposal-q">Will You<br>Marry Me?</div>
     <div class="proposal-sub">앞으로의 모든 시간을<br>함께하고 싶어</div>
-    <button class="btn-yes" id="btn-yes">응, 할게 💍</button>
+    <button class="btn-yes" id="btn-yes">Yes!</button>
   </div>
   <button class="btn-no" id="btn-no">...글쎄</button>
 </div>
@@ -1352,7 +1367,8 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
     if (i < pIdx) fill.classList.add('done');
     bar.appendChild(fill); barsEl.appendChild(bar);
   });
-  barsEl.classList.add('visible');
+  barsEl.style.transition = 'none';
+  barsEl.style.opacity = '1';
   pvBarsVisible = true;
 
   if (alreadyOpen) {
@@ -1488,6 +1504,25 @@ function dodgeNo(e) {
    ACCEPT
 ════════════════════════════════════ */
 async function onYes() {
+  const ring = document.querySelector('.ring-wrap');
+  ring.classList.add('accept');
+
+  // Three expanding glow rings, staggered
+  const ringRect = ring.getBoundingClientRect();
+  const cx = ringRect.left + ringRect.width / 2;
+  const cy = ringRect.top  + ringRect.height / 2;
+  [0, 200, 400].forEach(delay => {
+    setTimeout(() => {
+      const ripple = document.createElement('div');
+      ripple.className = 'ring-ripple';
+      ripple.style.left = cx + 'px';
+      ripple.style.top  = cy + 'px';
+      document.body.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 900);
+    }, delay);
+  });
+
+  await sleep(820);
   await fadeTo('pg-accept', () => spawnBokeh('bk2', 18, TIFFANY_BOKEH));
   await sleep(100);
   $('accept-title').classList.add('in');
@@ -1559,15 +1594,21 @@ window.addEventListener('DOMContentLoaded', () => {
 
   function pvShowBars() {
     if (pvBarsHideTimer) { clearTimeout(pvBarsHideTimer); pvBarsHideTimer = null; }
-    $('pv-bars').classList.add('visible');
     pvBarsVisible = true;
+    const bars = $('pv-bars');
+    bars.style.transition = 'opacity 0.35s ease';
+    bars.style.opacity = '1';
   }
   function pvHideBars() {
     if (pvBarsHideTimer) { clearTimeout(pvBarsHideTimer); pvBarsHideTimer = null; }
     pvBarsVisible = false;
-    // rAF로 다음 프레임에 실행 — resumeHold의 animationPlayState 변경과
-    // 같은 프레임에서 처리되지 않도록 분리해서 opacity transition을 깨끗하게 시작
-    requestAnimationFrame(() => { $('pv-bars').classList.remove('visible'); });
+    const bars = $('pv-bars');
+    // Lock current computed opacity so transition always starts from the real value
+    bars.style.transition = 'none';
+    bars.style.opacity = getComputedStyle(bars).opacity;
+    void bars.offsetWidth; // force layout flush before changing transition
+    bars.style.transition = 'opacity 0.35s ease';
+    bars.style.opacity = '0';
   }
   function pvToggleBars() {
     if (pvBarsVisible) {
