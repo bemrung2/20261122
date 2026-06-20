@@ -387,7 +387,7 @@ html, body {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.38s ease;
+  transition: opacity 0.55s ease;
 }
 #photo-viewer.show { opacity: 1; pointer-events: all; }
 
@@ -421,7 +421,7 @@ html, body {
 }
 .pv-bar-fill.done   { width: 100%; }
 @keyframes barFill  { to { width: 100%; } }
-.pv-bar-fill.active { animation: barFill 4s linear forwards; }
+.pv-bar-fill.active { animation: barFill 5s linear forwards; }
 
 /* photo */
 #pv-img {
@@ -431,7 +431,7 @@ html, body {
   background: #2a2520 center/cover no-repeat;
   transform: scale(0.72) translateY(20px);
   opacity: 0;
-  transition: transform 0.55s cubic-bezier(0.16,1,0.3,1), opacity 0.42s ease;
+  transition: transform 0.7s cubic-bezier(0.16,1,0.3,1), opacity 0.55s ease;
 }
 #photo-viewer.show #pv-img {
   transform: scale(1) translateY(0);
@@ -1042,7 +1042,7 @@ async function goToChapters() {
   stage.style.opacity    = '1';
 
   // pause so user sees carousel, then auto-enter ch0
-  await sleep(1800);
+  await sleep(2400);
   if (!busy) enterChapter(0);
 }
 
@@ -1106,7 +1106,7 @@ async function enterChapter(idx) {
   foot.classList.add('show');
 
   // 그리드가 보인 직후 자동 재생 시작
-  await sleep(1400);
+  await sleep(2200);
   startAutoPlay(idx);
 
   busy = false;
@@ -1197,7 +1197,7 @@ function loadDetail(idx) {
       apChIdx   = idx;
       apPIdx    = i;
       apRunning = true;
-      openPhotoViewer(idx, i, true).then(() => startHoldTimer(4000));
+      openPhotoViewer(idx, i, true).then(() => startHoldTimer(5000));
     });
 
     grid.appendChild(cell);
@@ -1243,11 +1243,11 @@ async function runAutoStep(chIdx, pIdx) {
     void cell.offsetWidth;
     cell.classList.add('tapping');
   }
-  await sleep(680);
+  await sleep(1200);
   if (!apRunning || apChIdx !== chIdx) return;
 
   await openPhotoViewer(chIdx, pIdx, true);
-  startHoldTimer(4000);
+  startHoldTimer(5000);
 }
 
 /* ── 홀드 타이머 (일시정지 지원) ── */
@@ -1268,13 +1268,11 @@ function startHoldTimer(ms) {
       return;
     }
 
-    // 다음 사진으로 — tap 애니메이션 없이 바로 전환
-    await closePhotoViewer(false);
-    await sleep(300);
+    // 다음 사진으로 — 뷰어 유지, 사진만 교체
     if (!apRunning || apChIdx !== chIdx) return;
     apPIdx = pIdx + 1;
     await openPhotoViewer(chIdx, pIdx + 1, true);
-    startHoldTimer(4000);
+    startHoldTimer(5000);
   }, ms);
 }
 
@@ -1300,6 +1298,7 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   const photo = ch.photos[pIdx];
   const pv    = $('photo-viewer');
   const pvImg = $('pv-img');
+  const alreadyOpen = pv.classList.contains('show');
 
   // photo content
   pvImg.innerHTML = '';
@@ -1331,6 +1330,22 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   });
   barsEl.classList.add('visible');
   pvBarsVisible = true;
+
+  if (alreadyOpen) {
+    // 뷰어 유지, 사진만 교체 — in-place 페이드인 (자동 넘김 / 수동 탭 공통)
+    pvImg.style.transition = 'none';
+    pvImg.style.opacity    = '0';
+    pvImg.style.transform  = '';
+    await sleep(30);
+    pvImg.style.transition = 'opacity 0.55s ease';
+    pvImg.style.opacity    = '1';
+    if (isAuto) {
+      await sleep(60);
+      const fills = barsEl.querySelectorAll('.pv-bar-fill');
+      if (fills[pIdx]) fills[pIdx].classList.add('active');
+    }
+    return;
+  }
 
   // reset photo to initial state (will animate in via CSS)
   pvImg.style.transition = 'none';
@@ -1544,7 +1559,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const next = apPIdx + 1;
       stopAutoPlay();
       apChIdx = cIdx; apPIdx = next; apRunning = true;
-      openPhotoViewer(cIdx, next, true).then(() => startHoldTimer(4000));
+      openPhotoViewer(cIdx, next, true).then(() => startHoldTimer(5000));
     } else { stopAutoPlay(); onChapterNext(); }
   }
   function pvGoPrev() {
@@ -1553,7 +1568,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const cIdx = apChIdx >= 0 ? apChIdx : currentCh;
       stopAutoPlay();
       apChIdx = cIdx; apPIdx = prev; apRunning = true;
-      openPhotoViewer(cIdx, prev, true).then(() => startHoldTimer(4000));
+      openPhotoViewer(cIdx, prev, true).then(() => startHoldTimer(5000));
     } else { resumeHold(); }
   }
 
@@ -1620,10 +1635,9 @@ window.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    pvBodyReset(true);
-
     // ③ 길게 누름 → 재개 + 바 잠시 유지 후 숨김
     if (held >= 450 && adx < 18 && ady < 18) {
+      pvBodyReset(true);
       pvBarsHideTimer = setTimeout(pvHideBars, 1000);
       resumeHold();
       return;
@@ -1631,18 +1645,21 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // ① 가로 스와이프 → 이전/다음
     if (adx > 36 && adx > ady * 1.2) {
+      pvBodyReset(true);
       dx < 0 ? pvGoNext() : pvGoPrev();
       return;
     }
 
     // 탭 (움직임 없음) → 존 기반
     if (adx <= 22 && ady <= 22) {
+      pvBodyReset(false);   // 즉시 리셋 — rAF 없이 bars transition과 충돌 방지
       const zone = t.clientX / window.innerWidth;
       if      (zone < 0.33) { pvGoPrev(); return; }
       else if (zone > 0.67) { pvGoNext(); return; }
       else                  { pvToggleBars(); resumeHold(); return; }
     }
 
+    pvBodyReset(true);
     resumeHold();
   });
 
