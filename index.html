@@ -232,6 +232,7 @@ html, body {
   z-index: 2;
 }
 .letter-inner::-webkit-scrollbar { display: none; }
+#l2-inner { top: 42px; }
 
 .letter-body {
   font-size: 15.5px; line-height: 2.38; color: #362818;
@@ -962,11 +963,6 @@ function startLetter(bodyId, innerId, dateId, text, speed, onDone, pinTop) {
     if (i >= text.length) {
       setTimeout(() => {
         cur.style.display = 'none';
-        // Center text vertically on the paper with equal top/bottom whitespace
-        const pad = Math.max(16, Math.floor((box.clientHeight - el.offsetHeight) / 2));
-        box.style.paddingTop = pad + 'px';
-        box.style.paddingBottom = pad + 'px';
-        box.scrollTop = 0;
         if (onDone) setTimeout(onDone, 2500);
       }, 1000);
       return;
