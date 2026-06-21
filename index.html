@@ -287,7 +287,7 @@ html, body {
   width: 274px; height: 372px;
   border-radius: 24px; overflow: hidden;
   left: 50%; top: 0;
-  margin-left: -116px;
+  margin-left: -137px;
   cursor: pointer;
   will-change: transform, opacity;
   box-shadow: 0 24px 64px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06);
@@ -912,7 +912,7 @@ function initLock() {
     monoHoldTimer = setTimeout(() => {
       monoHoldTimer = null;
       $('mode-toggle').classList.toggle('show');
-    }, 3000);
+    }, 2000);
   }, { passive: true });
   mono.addEventListener('touchend',   () => { if (monoHoldTimer) { clearTimeout(monoHoldTimer); monoHoldTimer = null; } }, { passive: true });
   mono.addEventListener('touchcancel',() => { if (monoHoldTimer) { clearTimeout(monoHoldTimer); monoHoldTimer = null; } }, { passive: true });
@@ -1655,46 +1655,27 @@ function initGridDismiss() {
   scroll.addEventListener('touchmove', e => {
     const dy = e.touches[0].clientY - startY;
     if (!dismissing) {
-      // Only enter dismiss mode when already at top AND clearly dragging down
       if (startScrollTop <= 0 && dy > 8) dismissing = true;
       else return;
     }
-    e.preventDefault(); // block native scroll while in dismiss mode
+    e.preventDefault();
     dragY = dy;
-    const damped = dragY * 0.38;
-    const al     = Math.max(0.4,  1 - dragY / 260);
-    detail.style.transition = 'none';
-    detail.style.transform  = `translateY(${damped}px)`;
-    detail.style.opacity    = String(al);
   }, { passive: false });
-
-  function springBack() {
-    detail.style.transition = 'transform 0.42s cubic-bezier(0.16,1,0.3,1), opacity 0.32s ease';
-    detail.style.transform  = '';
-    detail.style.opacity    = '';
-    setTimeout(() => { detail.style.transition = ''; }, 500);
-  }
 
   scroll.addEventListener('touchend', async () => {
     if (!dismissing) return;
     dismissing = false;
     if (dragY > 90 && !busy) {
-      // Reset inline styles then let exitChapter handle the full animation
-      detail.style.transition = '';
-      detail.style.transform  = '';
-      detail.style.opacity    = '';
       busy = true;
       await exitChapter();
       busy = false;
-    } else {
-      springBack();
     }
+    dragY = 0;
   }, { passive: true });
 
   scroll.addEventListener('touchcancel', () => {
-    if (!dismissing) return;
     dismissing = false;
-    springBack();
+    dragY = 0;
   }, { passive: true });
 }
 
@@ -1732,9 +1713,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (pvBarsHideTimer) { clearTimeout(pvBarsHideTimer); pvBarsHideTimer = null; }
     pvBarsVisible = false;
     const bars = $('pv-bars');
-    // Exact mirror of pvShowBars — set transition then target opacity.
-    // Same technique that already works for show; no rAF tricks needed.
-    bars.style.transition = 'opacity 0.35s ease';
+    bars.style.transition = 'none';
     bars.style.opacity = '0';
   }
   function pvToggleBars() {
