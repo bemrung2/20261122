@@ -962,6 +962,11 @@ function startLetter(bodyId, innerId, dateId, text, speed, onDone, pinTop) {
     if (i >= text.length) {
       setTimeout(() => {
         cur.style.display = 'none';
+        // Center text vertically on the paper with equal top/bottom whitespace
+        const pad = Math.max(16, Math.floor((box.clientHeight - el.offsetHeight) / 2));
+        box.style.paddingTop = pad + 'px';
+        box.style.paddingBottom = pad + 'px';
+        box.scrollTop = 0;
         if (onDone) setTimeout(onDone, 2500);
       }, 1000);
       return;
@@ -1505,8 +1510,8 @@ async function onChapterNext() {
   if (busy) return;
   busy = true;
 
-  // Manual mode: next button returns to carousel instead of advancing
-  if (isManualMode) {
+  // Manual mode: return to carousel unless it's the last episode (→ letter 2)
+  if (isManualMode && currentCh !== CHAPTERS.length - 1) {
     await exitChapter();
     busy = false;
     return;
