@@ -178,6 +178,97 @@ html, body {
 .mode-switch.on::after { transform: translateX(18px); }
 
 /* ═══════════════════════════════════════
+   FUTURE PAGE
+═══════════════════════════════════════ */
+#pg-future {
+  background: linear-gradient(160deg, #0c0b1d 0%, #161228 55%, #0c0b1d 100%);
+  overflow: hidden;
+}
+
+/* ── Ambient floating words ── */
+#ft-bg {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+}
+.ft-ambient {
+  position: absolute;
+  font-size: var(--fs, 13px);
+  color: rgba(255,255,255,0.09);
+  white-space: nowrap;
+  animation: ftDrift var(--dur, 9s) var(--delay, 0s) ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+@keyframes ftDrift {
+  from { transform: translate(0,0); opacity: var(--op1, 0.05); }
+  to   { transform: translate(var(--dx, 18px), var(--dy, -14px)); opacity: var(--op2, 0.15); }
+}
+
+/* ── Main stage ── */
+#ft-stage {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 32px;
+  width: 100%;
+}
+
+/* ── Keyword card ── */
+#ft-card {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  width: min(84vw, 340px);
+  min-height: 112px;
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 22px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06),
+              inset 0 1px 0 rgba(255,255,255,0.12);
+  padding: 28px 32px;
+  will-change: transform, opacity;
+}
+#ft-kw {
+  font-size: clamp(1.9rem, 8.5vw, 2.9rem);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 60px rgba(200,180,255,0.5), 0 2px 16px rgba(0,0,0,0.6);
+  text-align: center;
+}
+
+/* ── Dot progress ── */
+#ft-progress {
+  display: flex; gap: 8px; align-items: center;
+}
+.ft-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.22);
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+.ft-dot.active {
+  background: rgba(255,255,255,0.85);
+  transform: scale(1.3);
+}
+.ft-dot.done {
+  background: rgba(255,255,255,0.4);
+}
+
+/* ── Closing message ── */
+#ft-end {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 20px;
+  pointer-events: none;
+  opacity: 0;
+}
+#ft-end-dots {
+  font-size: 2.8rem; font-weight: 300; color: rgba(255,255,255,0.7);
+  letter-spacing: 0.25em;
+}
+#ft-end-msg {
+  font-size: 1.25rem; font-weight: 400; color: rgba(255,255,255,0.85);
+  line-height: 1.9; text-align: center;
+  text-shadow: 0 0 40px rgba(200,180,255,0.4);
+}
+
+/* ═══════════════════════════════════════
    LETTER — fixed paper, text scrolls inside
 ═══════════════════════════════════════ */
 .pg-letter {
@@ -683,6 +774,19 @@ html, body {
 
 </div>
 
+<!-- ══════════════════ FUTURE ══════════════════ -->
+<div class="pg" id="pg-future">
+  <div id="ft-bg"></div>
+  <div id="ft-stage">
+    <div id="ft-card"><span id="ft-kw"></span></div>
+    <div id="ft-progress"></div>
+  </div>
+  <div id="ft-end">
+    <div id="ft-end-dots">···</div>
+    <div id="ft-end-msg">그리고,<br>수많은 순간들이<br>우리를 기다리고 있어.</div>
+  </div>
+</div>
+
 <!-- ══════════════════ LETTER 2 ══════════════════ -->
 <div class="pg pg-letter" id="pg-letter2">
   <div class="letter-sheet">
@@ -806,6 +910,13 @@ const CHAPTERS = [
       { src: '', cap: '민소커플, 앞으로도 쭉.' },
     ]
   },
+  {
+    num: 'EP. 05', name: '앞으로의 순간들', sub: '우리가 함께 쓸 이야기',
+    deco: 'V',
+    bg: 'linear-gradient(145deg, #2a1f4e 0%, #1a1232 40%, #0e0a1e 100%)',
+    future: true,
+    photos: []
+  }
 ];
 
 const LETTER1 = `안녕!
@@ -1183,6 +1294,16 @@ async function enterChapter(idx) {
   await sleep(1700);             // let user read the title
   vtitle.classList.add('up');    // title drifts up
 
+  // If future episode → special page, no detail grid
+  if (ch.future) {
+    await sleep(300);
+    veil.classList.remove('show');
+    await sleep(300);
+    busy = false;
+    openFuturePage();
+    return;
+  }
+
   // Prepare detail
   loadDetail(idx);
   const detail = $('ch-detail');
@@ -1533,6 +1654,127 @@ async function onChapterNext() {
     busy = false;
     enterChapter(next);
   }
+}
+
+/* ════════════════════════════════════
+   FUTURE PAGE
+════════════════════════════════════ */
+const FUTURE_KEYWORDS = [
+  '결혼식', '신혼여행', '아파트 이사', '신혼생활',
+  '해외여행', '출산', '육아', '승진'
+];
+const FUTURE_AMBIENT = [
+  '첫집 구경','강아지 입양','부모님 여행','친구 결혼식',
+  '첫 기념일','크리스마스','새해 첫날','드라이브','캠핑',
+  '첫눈','생일','설날','추석','가족사진','주말 아침',
+  '화해','웃음','눈물','성장','좋은 하루','바다','여름밤',
+  '공원 산책','카페 데이트','요리','집들이','부부싸움',
+  '여행 계획','소소한 행복','함께하는 매 순간'
+];
+
+function buildFutureBg() {
+  const bg = $('ft-bg');
+  bg.innerHTML = '';
+  const words = [...FUTURE_AMBIENT];
+  // Shuffle
+  for (let i = words.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [words[i], words[j]] = [words[j], words[i]];
+  }
+  words.forEach((w, i) => {
+    const el = document.createElement('span');
+    el.className = 'ft-ambient';
+    el.textContent = w;
+    const x = 4 + Math.random() * 88;
+    const y = 4 + Math.random() * 88;
+    const fs = 10 + Math.random() * 10;
+    const dur = 7 + Math.random() * 10;
+    const delay = -(Math.random() * dur);
+    const dx = (Math.random() - 0.5) * 40;
+    const dy = (Math.random() - 0.5) * 30;
+    const op1 = 0.04 + Math.random() * 0.06;
+    const op2 = 0.10 + Math.random() * 0.14;
+    el.style.cssText = `left:${x}%;top:${y}%;--fs:${fs}px;--dur:${dur}s;--delay:${delay}s;--dx:${dx}px;--dy:${dy}px;--op1:${op1};--op2:${op2};`;
+    bg.appendChild(el);
+  });
+}
+
+async function runFutureKeywords() {
+  const card  = $('ft-card');
+  const kwEl  = $('ft-kw');
+  const prog  = $('ft-progress');
+  const total = FUTURE_KEYWORDS.length;
+
+  // Build dots
+  prog.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'ft-dot'; d.id = `ftdot${i}`;
+    prog.appendChild(d);
+  }
+
+  for (let i = 0; i < total; i++) {
+    kwEl.textContent = FUTURE_KEYWORDS[i];
+
+    // Update dots
+    for (let j = 0; j < total; j++) {
+      const d = $(`ftdot${j}`);
+      d.className = 'ft-dot' + (j < i ? ' done' : j === i ? ' active' : '');
+    }
+
+    // Glow pulse on card per keyword (unique color accent)
+    const hue = 210 + (i / total) * 120;
+    card.style.boxShadow = `0 8px 40px rgba(0,0,0,0.45), 0 0 60px rgba(${hue > 300 ? '255,180,200' : '180,160,255'},0.18), inset 0 1px 0 rgba(255,255,255,0.12)`;
+
+    // Animate in: from right
+    await card.animate([
+      { transform: 'translateX(90%) scale(0.88)', opacity: 0, offset: 0 },
+      { transform: 'translateX(0)   scale(1)',    opacity: 1, offset: 1 }
+    ], { duration: 480, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' }).finished;
+
+    await sleep(1350);
+
+    // Animate out: to left
+    await card.animate([
+      { transform: 'translateX(0)    scale(1)',    opacity: 1, offset: 0 },
+      { transform: 'translateX(-90%) scale(0.92)', opacity: 0, offset: 1 }
+    ], { duration: 380, easing: 'cubic-bezier(0.4,0,0.8,1)', fill: 'forwards' }).finished;
+
+    await sleep(80);
+  }
+
+  // Mark all dots done
+  for (let j = 0; j < total; j++) $(`ftdot${j}`).className = 'ft-dot done';
+}
+
+async function openFuturePage() {
+  await fadeTo('pg-future', () => {
+    $('ch-detail').classList.remove('show');
+    $('ch-hd').classList.remove('in');
+    $('ch-scroll').classList.remove('show');
+    $('ch-foot').classList.remove('show');
+  });
+
+  buildFutureBg();
+
+  // Hide end state initially
+  const endEl = $('ft-end');
+  endEl.style.opacity = '0';
+  endEl.style.transition = '';
+
+  await sleep(400);
+  await runFutureKeywords();
+
+  // Show closing message
+  endEl.style.transition = 'opacity 1.2s ease';
+  endEl.style.opacity = '1';
+  await sleep(2800);
+
+  // Transition to letter2
+  await fadeTo('pg-letter2', () => {
+    endEl.style.opacity = '0';
+  });
+  startLetter('l2-body', 'l2-inner', 'l2-date', LETTER2, 90, goToProposal, true);
 }
 
 /* ════════════════════════════════════
