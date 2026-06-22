@@ -180,92 +180,70 @@ html, body {
 /* ═══════════════════════════════════════
    FUTURE PAGE
 ═══════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   FUTURE PAGE — cinematic word-field
+═══════════════════════════════════════ */
 #pg-future {
-  background: linear-gradient(160deg, #0c0b1d 0%, #161228 55%, #0c0b1d 100%);
+  background: radial-gradient(ellipse at 50% 40%, #190f38 0%, #0b0818 50%, #060411 100%);
   overflow: hidden;
 }
-
-/* ── Ambient floating words ── */
-#ft-bg {
-  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+#pg-future::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse 55% 45% at 50% 46%, rgba(90,50,180,0.16) 0%, transparent 68%);
+  animation: ftPulse 7s ease-in-out infinite alternate;
 }
-.ft-ambient {
-  position: absolute;
-  font-size: var(--fs, 13px);
-  color: rgba(255,255,255,0.09);
-  white-space: nowrap;
-  animation: ftDrift var(--dur, 9s) var(--delay, 0s) ease-in-out infinite alternate;
-  will-change: transform, opacity;
+@keyframes ftPulse { from { opacity: 0.6; } to { opacity: 1.4; } }
+
+#ft-bg { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+
+.ft-word {
+  position: absolute; white-space: nowrap; line-height: 1;
+  opacity: 0; will-change: transform, opacity;
+  animation:
+    ftAppear var(--adur, 1.4s) var(--ad, 0s) ease forwards,
+    ftDrift  var(--fdur, 11s)  var(--dd, 2s) ease-in-out infinite alternate;
+}
+@keyframes ftAppear {
+  from { opacity: 0; }
+  to   { opacity: var(--op, 0.08); }
 }
 @keyframes ftDrift {
-  from { transform: translate(0,0); opacity: var(--op1, 0.05); }
-  to   { transform: translate(var(--dx, 18px), var(--dy, -14px)); opacity: var(--op2, 0.15); }
+  from { transform: translate(0, 0); }
+  to   { transform: translate(var(--dx, 12px), var(--dy, -9px)); }
+}
+.ft-main {
+  font-weight: 600;
+  animation:
+    ftAppear 1.8s var(--ad, 0s) ease forwards,
+    ftDrift  var(--fdur, 14s)  var(--dd, 2s) ease-in-out infinite alternate,
+    ftGlow   var(--gdur, 3.8s) calc(var(--dd, 2s) + 0.4s) ease-in-out infinite;
+}
+@keyframes ftGlow {
+  0%,100% { text-shadow: 0 0 22px rgba(255,210,150,0.22), 0 1px 3px rgba(0,0,0,0.55); }
+  50%     { text-shadow: 0 0 52px rgba(255,218,158,0.54), 0 0 104px rgba(255,185,110,0.18), 0 1px 3px rgba(0,0,0,0.55); }
 }
 
-/* ── Main stage ── */
-#ft-stage {
-  position: relative; z-index: 2;
-  display: flex; flex-direction: column; align-items: center; gap: 32px;
-  width: 100%;
-}
-
-/* ── Keyword card ── */
-#ft-card {
-  position: relative;
+#ft-end {
+  position: absolute; inset: 0; z-index: 5;
   display: flex; align-items: center; justify-content: center;
-  width: min(84vw, 340px);
-  min-height: 112px;
-  background: rgba(255,255,255,0.07);
-  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255,255,255,0.16);
-  border-radius: 22px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06),
-              inset 0 1px 0 rgba(255,255,255,0.12);
-  padding: 28px 32px;
-  will-change: transform, opacity;
+  pointer-events: none; opacity: 0;
 }
-#ft-kw {
-  font-size: clamp(1.9rem, 8.5vw, 2.9rem);
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -0.02em;
-  text-shadow: 0 0 60px rgba(200,180,255,0.5), 0 2px 16px rgba(0,0,0,0.6);
+#ft-end-inner {
+  padding: 38px 48px;
+  background: rgba(7,4,18,0.76);
+  backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 24px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
   text-align: center;
 }
-
-/* ── Dot progress ── */
-#ft-progress {
-  display: flex; gap: 8px; align-items: center;
-}
-.ft-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: rgba(255,255,255,0.22);
-  transition: background 0.3s ease, transform 0.3s ease;
-}
-.ft-dot.active {
-  background: rgba(255,255,255,0.85);
-  transform: scale(1.3);
-}
-.ft-dot.done {
-  background: rgba(255,255,255,0.4);
-}
-
-/* ── Closing message ── */
-#ft-end {
-  position: absolute; inset: 0; z-index: 3;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 20px;
-  pointer-events: none;
-  opacity: 0;
-}
-#ft-end-dots {
-  font-size: 2.8rem; font-weight: 300; color: rgba(255,255,255,0.7);
-  letter-spacing: 0.25em;
-}
 #ft-end-msg {
-  font-size: 1.25rem; font-weight: 400; color: rgba(255,255,255,0.85);
-  line-height: 1.9; text-align: center;
-  text-shadow: 0 0 40px rgba(200,180,255,0.4);
+  font-size: clamp(1.05rem, 4.2vw, 1.3rem);
+  font-weight: 400;
+  color: rgba(255,244,228,0.90);
+  line-height: 2.1;
+  text-shadow: 0 0 28px rgba(255,205,140,0.25);
 }
 
 /* ═══════════════════════════════════════
@@ -777,13 +755,10 @@ html, body {
 <!-- ══════════════════ FUTURE ══════════════════ -->
 <div class="pg" id="pg-future">
   <div id="ft-bg"></div>
-  <div id="ft-stage">
-    <div id="ft-card"><span id="ft-kw"></span></div>
-    <div id="ft-progress"></div>
-  </div>
   <div id="ft-end">
-    <div id="ft-end-dots">···</div>
-    <div id="ft-end-msg">그리고,<br>수많은 순간들이<br>우리를 기다리고 있어.</div>
+    <div id="ft-end-inner">
+      <div id="ft-end-msg">그리고,<br>수많은 순간들이<br>우리를 기다리고 있어.</div>
+    </div>
   </div>
 </div>
 
@@ -1659,92 +1634,51 @@ async function onChapterNext() {
 /* ════════════════════════════════════
    FUTURE PAGE
 ════════════════════════════════════ */
-const FUTURE_KEYWORDS = [
+const FUTURE_MAIN = [
   '결혼식', '신혼여행', '아파트 이사', '신혼생활',
   '해외여행', '출산', '육아', '승진'
 ];
-const FUTURE_AMBIENT = [
-  '첫집 구경','강아지 입양','부모님 여행','친구 결혼식',
-  '첫 기념일','크리스마스','새해 첫날','드라이브','캠핑',
-  '첫눈','생일','설날','추석','가족사진','주말 아침',
-  '화해','웃음','눈물','성장','좋은 하루','바다','여름밤',
-  '공원 산책','카페 데이트','요리','집들이','부부싸움',
-  '여행 계획','소소한 행복','함께하는 매 순간'
+const FUTURE_MID = [
+  '첫집 구경', '강아지 입양', '부모님 여행', '첫 기념일',
+  '크리스마스', '새해 첫날', '드라이브', '캠핑',
+  '첫눈', '생일', '설날', '추석', '가족사진', '주말 아침'
+];
+const FUTURE_BG = [
+  '화해', '웃음', '눈물', '성장', '좋은 하루', '바다',
+  '여름밤', '공원 산책', '카페 데이트', '요리', '집들이',
+  '여행 계획', '소소한 행복', '함께', '이사', '파티',
+  '가족', '졸업', '새벽', '봄날'
 ];
 
-function buildFutureBg() {
+function buildFutureScene() {
   const bg = $('ft-bg');
   bg.innerHTML = '';
-  const words = [...FUTURE_AMBIENT];
-  // Shuffle
-  for (let i = words.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [words[i], words[j]] = [words[j], words[i]];
-  }
-  words.forEach((w, i) => {
-    const el = document.createElement('span');
-    el.className = 'ft-ambient';
-    el.textContent = w;
-    const x = 4 + Math.random() * 88;
-    const y = 4 + Math.random() * 88;
-    const fs = 10 + Math.random() * 10;
-    const dur = 7 + Math.random() * 10;
-    const delay = -(Math.random() * dur);
-    const dx = (Math.random() - 0.5) * 40;
-    const dy = (Math.random() - 0.5) * 30;
-    const op1 = 0.04 + Math.random() * 0.06;
-    const op2 = 0.10 + Math.random() * 0.14;
-    el.style.cssText = `left:${x}%;top:${y}%;--fs:${fs}px;--dur:${dur}s;--delay:${delay}s;--dx:${dx}px;--dy:${dy}px;--op1:${op1};--op2:${op2};`;
-    bg.appendChild(el);
-  });
-}
+  const shuf = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=0|Math.random()*(i+1);[r[i],r[j]]=[r[j],r[i]];}return r; };
 
-async function runFutureKeywords() {
-  const card  = $('ft-card');
-  const kwEl  = $('ft-kw');
-  const prog  = $('ft-progress');
-  const total = FUTURE_KEYWORDS.length;
-
-  // Build dots
-  prog.innerHTML = '';
-  for (let i = 0; i < total; i++) {
-    const d = document.createElement('div');
-    d.className = 'ft-dot'; d.id = `ftdot${i}`;
-    prog.appendChild(d);
+  function addWords(words, isMid, isMain, adBase, adStep) {
+    const adurS = isMain ? 1.8 : 1.4;
+    shuf(words).forEach((w, i) => {
+      const el = document.createElement('span');
+      el.className = isMain ? 'ft-word ft-main' : 'ft-word';
+      el.textContent = w;
+      const fs   = isMain ? (27 + Math.random() * 14) : isMid ? (16 + Math.random() * 7) : (10 + Math.random() * 5);
+      const x    = (3 + Math.random() * 85).toFixed(1);
+      const y    = (5 + Math.random() * 82).toFixed(1);
+      const op   = isMain ? (0.70 + Math.random() * 0.22) : isMid ? (0.14 + Math.random() * 0.14) : (0.04 + Math.random() * 0.07);
+      const ad   = (adBase + i * adStep + Math.random() * adStep * 0.5).toFixed(2);
+      const dd   = (parseFloat(ad) + adurS + 0.05).toFixed(2);
+      const fdur = (isMain ? 12 : 10) + Math.random() * 7;
+      const gdur = 2.8 + Math.random() * 2.2;
+      const dx   = ((Math.random() - 0.5) * 34).toFixed(1);
+      const dy   = ((Math.random() - 0.5) * 26).toFixed(1);
+      el.style.cssText = `left:${x}%;top:${y}%;font-size:${fs.toFixed(1)}px;--op:${op.toFixed(3)};--ad:${ad}s;--dd:${dd}s;--fdur:${fdur.toFixed(1)}s;--gdur:${gdur.toFixed(1)}s;--dx:${dx}px;--dy:${dy}px`;
+      bg.appendChild(el);
+    });
   }
 
-  for (let i = 0; i < total; i++) {
-    kwEl.textContent = FUTURE_KEYWORDS[i];
-
-    // Update dots
-    for (let j = 0; j < total; j++) {
-      const d = $(`ftdot${j}`);
-      d.className = 'ft-dot' + (j < i ? ' done' : j === i ? ' active' : '');
-    }
-
-    // Glow pulse on card per keyword (unique color accent)
-    const hue = 210 + (i / total) * 120;
-    card.style.boxShadow = `0 8px 40px rgba(0,0,0,0.45), 0 0 60px rgba(${hue > 300 ? '255,180,200' : '180,160,255'},0.18), inset 0 1px 0 rgba(255,255,255,0.12)`;
-
-    // Animate in: from right
-    await card.animate([
-      { transform: 'translateX(90%) scale(0.88)', opacity: 0, offset: 0 },
-      { transform: 'translateX(0)   scale(1)',    opacity: 1, offset: 1 }
-    ], { duration: 480, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' }).finished;
-
-    await sleep(1350);
-
-    // Animate out: to left
-    await card.animate([
-      { transform: 'translateX(0)    scale(1)',    opacity: 1, offset: 0 },
-      { transform: 'translateX(-90%) scale(0.92)', opacity: 0, offset: 1 }
-    ], { duration: 380, easing: 'cubic-bezier(0.4,0,0.8,1)', fill: 'forwards' }).finished;
-
-    await sleep(80);
-  }
-
-  // Mark all dots done
-  for (let j = 0; j < total; j++) $(`ftdot${j}`).className = 'ft-dot done';
+  addWords(FUTURE_BG,   false, false, 0.0, 0.07);
+  addWords(FUTURE_MID,  true,  false, 0.1, 0.09);
+  addWords(FUTURE_MAIN, false, true,  0.2, 0.13);
 }
 
 async function openFuturePage() {
@@ -1755,25 +1689,19 @@ async function openFuturePage() {
     $('ch-foot').classList.remove('show');
   });
 
-  buildFutureBg();
-
-  // Hide end state initially
+  buildFutureScene();
   const endEl = $('ft-end');
   endEl.style.opacity = '0';
   endEl.style.transition = '';
 
-  await sleep(400);
-  await runFutureKeywords();
+  // Words materialise over ~4s (last main word: ad≈0.2+7*0.13+0.07≈1.2s + 1.8s appear ≈ 3s)
+  await sleep(4600);
 
-  // Show closing message
-  endEl.style.transition = 'opacity 1.2s ease';
+  endEl.style.transition = 'opacity 1.8s ease';
   endEl.style.opacity = '1';
-  await sleep(2800);
+  await sleep(3400);
 
-  // Transition to letter2
-  await fadeTo('pg-letter2', () => {
-    endEl.style.opacity = '0';
-  });
+  await fadeTo('pg-letter2', () => { endEl.style.opacity = '0'; });
   startLetter('l2-body', 'l2-inner', 'l2-date', LETTER2, 90, goToProposal, true);
 }
 
