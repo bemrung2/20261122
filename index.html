@@ -397,10 +397,10 @@ html, body {
 /* ═══════════════════════════════════════
    LETTER 2 — cosmic space redesign
 ═══════════════════════════════════════ */
-#pg-letter2 {
+#pg-letter1, #pg-letter2 {
   background: #06040e;
 }
-#pg-letter2::before {
+#pg-letter1::before, #pg-letter2::before {
   content: '';
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background:
@@ -425,7 +425,7 @@ html, body {
     radial-gradient(1px   1px   at 58% 32%, rgba(255,248,220,0.40) 0%, transparent 100%);
   animation: ftNebulaBreath 9s ease-in-out infinite alternate;
 }
-#pg-letter2 .letter-sheet {
+#pg-letter1 .letter-sheet, #pg-letter2 .letter-sheet {
   background: rgba(8,5,20,0.75);
   border-radius: 16px;
   border: 1px solid rgba(160,130,230,0.18);
@@ -453,20 +453,21 @@ html, body {
       0 0 110px rgba(110,55,220,0.22), inset 0 1px 0 rgba(255,255,255,0.10);
   }
 }
-#pg-letter2 .letter-sheet::before {
+#pg-letter1 .letter-sheet::before, #pg-letter2 .letter-sheet::before {
   background-image: none;
   background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 35%);
 }
-#pg-letter2 .letter-left-margin { display: none; }
+#pg-letter1 .letter-left-margin, #pg-letter2 .letter-left-margin { display: none; }
+#pg-letter1 #l1-inner { left: 26px; top: 42px; }
 #pg-letter2 #l2-inner { left: 26px; top: 42px; }
-#pg-letter2 .letter-date-el {
+#pg-letter1 .letter-date-el, #pg-letter2 .letter-date-el {
   color: rgba(200,170,100,0.68);
   text-shadow: 0 0 14px rgba(255,210,120,0.45);
 }
-#pg-letter2 .letter-body {
+#pg-letter1 .letter-body, #pg-letter2 .letter-body {
   color: rgba(255,248,232,0.87);
 }
-#pg-letter2 .letter-cursor {
+#pg-letter1 .letter-cursor, #pg-letter2 .letter-cursor {
   background: rgba(220,188,110,0.92);
   box-shadow: 0 0 6px rgba(255,210,120,0.80), 0 0 14px rgba(255,195,90,0.45);
 }
@@ -1803,13 +1804,12 @@ const FUTURE_MAIN_POS = [
 
 // Secondary and ambient words — appear all at once, fill the field
 const FUTURE_MID = [
-  '첫집 구경', '부모님 여행', '첫 기념일',
   '크리스마스', '새해 첫날', '드라이브', '캠핑',
-  '첫눈', '생일', '설날', '추석', '가족사진', '주말 아침'
+  '첫눈', '생일', '설날', '추석', '가족사진', '주말 아침', '기념일', '카페'
 ];
 const FUTURE_BG = [
-  '화해', '웃음', '눈물', '성장', '좋은 하루', '바다',
-  '여름밤', '공원 산책', '카페 데이트', '요리', '집들이',
+  '웃음', '눈물', '성장', '좋은 하루', '바다',
+  '여름밤', '공원 산책', '요리', '집들이',
   '여행 계획', '소소한 행복', '함께', '이사', '파티',
   '가족', '졸업', '새벽', '봄날'
 ];
