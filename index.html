@@ -473,6 +473,42 @@ html, body {
 }
 
 /* ═══════════════════════════════════════
+   LETTER 2 — cosmic line-by-line reveal
+═══════════════════════════════════════ */
+#l2-content {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 0 clamp(24px, 8vw, 52px);
+  text-align: center;
+}
+.l2-line {
+  opacity: 0;
+  color: rgba(255,248,232,0.88);
+  font-size: clamp(1.05rem, 4.3vw, 1.28rem);
+  font-weight: 300;
+  line-height: 2.1;
+  letter-spacing: 0.04em;
+  text-shadow:
+    0 0 28px rgba(190,160,255,0.18),
+    0  1px  2px rgba(0,0,0,0.55);
+  transform: translateY(16px);
+  transition:
+    opacity 1.8s cubic-bezier(0.25,0.46,0.45,0.94),
+    transform 1.8s cubic-bezier(0.25,0.46,0.45,0.94);
+  will-change: opacity, transform;
+}
+.l2-blank { line-height: 0; height: 0.65em; }
+.l2-vis  { opacity: 1; transform: translateY(0); }
+.l2-last {
+  color: rgba(255,244,215,0.96);
+  text-shadow:
+    0 0 44px rgba(255,210,130,0.42),
+    0 0 16px rgba(255,230,170,0.20),
+    0  1px  2px rgba(0,0,0,0.55);
+}
+
+/* ═══════════════════════════════════════
    CHAPTER OVERVIEW — horizontal carousel
 ═══════════════════════════════════════ */
 #pg-chapters {
@@ -918,14 +954,8 @@ html, body {
 </div>
 
 <!-- ══════════════════ LETTER 2 ══════════════════ -->
-<div class="pg pg-letter" id="pg-letter2">
-  <div class="letter-sheet">
-    <div class="letter-left-margin"></div>
-    <div class="letter-date-el" id="l2-date"></div>
-    <div class="letter-inner" id="l2-inner">
-      <div class="letter-body" id="l2-body"></div>
-    </div>
-  </div>
+<div class="pg" id="pg-letter2">
+  <div id="l2-content"></div>
 </div>
 
 <!-- ══════════════════ PROPOSAL ══════════════════ -->
@@ -1220,6 +1250,35 @@ function startLetter(bodyId, innerId, dateId, text, speed, onDone, pinTop) {
     setTimeout(tick, delay);
   }
   setTimeout(tick, 900);
+}
+
+/* ════════════════════════════════════
+   COSMIC LETTER 2 — line-by-line reveal
+════════════════════════════════════ */
+async function startCosmicLetter2(onDone) {
+  const content = $('l2-content');
+  content.innerHTML = '';
+  const lines = LETTER2.split('\n');
+  const lastIdx = lines.reduce((last, l, i) => l !== '' ? i : last, -1);
+
+  const els = lines.map((line, idx) => {
+    const p = document.createElement('p');
+    const isBlank = line === '';
+    const isLast  = idx === lastIdx;
+    p.className = 'l2-line' + (isBlank ? ' l2-blank' : '') + (isLast ? ' l2-last' : '');
+    if (!isBlank) p.textContent = line;
+    content.appendChild(p);
+    return { el: p, blank: isBlank };
+  });
+
+  await sleep(900);
+  for (const { el, blank } of els) {
+    el.classList.add('l2-vis');
+    await sleep(blank ? 650 : 2100);
+  }
+
+  await sleep(2800);
+  if (onDone) onDone();
 }
 
 /* ════════════════════════════════════
@@ -1774,7 +1833,7 @@ async function onChapterNext() {
       $('ch-foot').classList.remove('show');
     });
     busy = false;
-    startLetter('l2-body', 'l2-inner', 'l2-date', LETTER2, 90, goToProposal, true);
+    startCosmicLetter2(goToProposal);
   } else {
     await exitChapter();
     const next = currentCh + 1;
@@ -1790,7 +1849,7 @@ async function onChapterNext() {
    FUTURE PAGE
 ════════════════════════════════════ */
 // Main keywords — ignite one by one with predefined positions
-const FUTURE_MAIN = ['결혼식', '신혼여행', '아파트 이사', '신혼생활', '해외여행', '출산', '육아', '승진'];
+const FUTURE_MAIN = ['결혼식', '신혼여행', '아파트 이사', '신혼생활', '해외여행', '출산', '육아'];
 const FUTURE_MAIN_POS = [
   { x:  7, y: 13, fs: 32 },
   { x: 52, y:  8, fs: 28 },
@@ -1799,7 +1858,6 @@ const FUTURE_MAIN_POS = [
   { x: 10, y: 63, fs: 27 },
   { x: 57, y: 69, fs: 34 },
   { x: 35, y: 80, fs: 25 },
-  { x: 67, y: 48, fs: 23 },
 ];
 
 // Secondary and ambient words — appear all at once, fill the field
@@ -1811,7 +1869,7 @@ const FUTURE_BG = [
   '웃음', '눈물', '성장', '좋은 하루', '바다',
   '여름밤', '공원 산책', '요리', '집들이',
   '여행 계획', '소소한 행복', '함께', '이사', '파티',
-  '가족', '졸업', '새벽', '봄날'
+  '가족', '졸업', '새벽', '봄날', '승진'
 ];
 
 function ftShuf(a) {
@@ -1922,7 +1980,7 @@ async function openFuturePage() {
   await sleep(3600);
 
   await fadeTo('pg-letter2', () => { endEl.style.opacity = '0'; });
-  startLetter('l2-body', 'l2-inner', 'l2-date', LETTER2, 90, goToProposal, true);
+  startCosmicLetter2(goToProposal);
 }
 
 /* ════════════════════════════════════
