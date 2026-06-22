@@ -1862,7 +1862,7 @@ const FUTURE_MAIN_POS = [
 
 // Secondary and ambient words — appear all at once, fill the field
 const FUTURE_MID = [
-  '크리스마스', '새해 첫날', '드라이브', '캠핑',
+  '크리스마스', '새해', '드라이브', '캠핑',
   '첫눈', '생일', '설날', '추석', '가족사진', '주말 아침', '기념일', '카페'
 ];
 const FUTURE_BG = [
@@ -1989,10 +1989,18 @@ async function openFuturePage() {
 const TIFFANY_BOKEH = ['rgba(129,216,208,0.35)','rgba(178,237,233,0.2)',
                        'rgba(255,255,255,0.12)','rgba(74,173,165,0.22)'];
 async function goToProposal() {
-  await fadeTo('pg-proposal', () => {
-    spawnBokeh('bk1', 12, TIFFANY_BOKEH);
-    placeNo();
-  });
+  const c = $('curtain');
+  c.style.transition = '';
+  c.classList.add('on');
+  await sleep(900);
+  spawnBokeh('bk1', 12, TIFFANY_BOKEH);
+  placeNo();
+  showPage('pg-proposal');
+  await sleep(120);
+  c.style.transition = 'opacity 3.6s cubic-bezier(0.4,0,0.2,1)';
+  c.classList.remove('on');
+  await sleep(3800);
+  c.style.transition = '';
 }
 
 function placeNo() {
