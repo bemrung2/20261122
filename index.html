@@ -181,69 +181,152 @@ html, body {
    FUTURE PAGE
 ═══════════════════════════════════════ */
 /* ═══════════════════════════════════════
-   FUTURE PAGE — cinematic word-field
+   FUTURE PAGE — cinematic starfield
 ═══════════════════════════════════════ */
 #pg-future {
-  background: radial-gradient(ellipse at 50% 40%, #190f38 0%, #0b0818 50%, #060411 100%);
+  background: #06040e;
   overflow: hidden;
 }
+/* Deep-space ambient glow — breathes slowly */
 #pg-future::before {
   content: '';
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background: radial-gradient(ellipse 55% 45% at 50% 46%, rgba(90,50,180,0.16) 0%, transparent 68%);
-  animation: ftPulse 7s ease-in-out infinite alternate;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 44%, rgba(60,25,120,0.28) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 30% at 30% 20%, rgba(40,20,90,0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 35% 25% at 75% 75%, rgba(80,30,100,0.12) 0%, transparent 55%);
+  animation: ftNebulaBreath 9s ease-in-out infinite alternate;
 }
-@keyframes ftPulse { from { opacity: 0.6; } to { opacity: 1.4; } }
+@keyframes ftNebulaBreath {
+  from { opacity: 0.65; transform: scale(1);    }
+  to   { opacity: 1.00; transform: scale(1.06); }
+}
 
-#ft-bg { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+/* Whole word-field drifts gently — like a slow camera pan */
+#ft-bg {
+  position: absolute; inset: -30px; z-index: 1; pointer-events: none;
+  animation: ftCamPan 32s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes ftCamPan {
+  0%   { transform: translate(0,   0)   scale(1.00); }
+  33%  { transform: translate(-14px,-8px) scale(1.02); }
+  66%  { transform: translate(10px, 6px)  scale(1.01); }
+  100% { transform: translate(-6px, 14px) scale(1.03); }
+}
 
+/* Twinkling stars */
+.ft-star {
+  position: absolute; border-radius: 50%; background: #ffffff;
+  animation: ftStarTwinkle var(--dur,3s) var(--del,0s) ease-in-out infinite alternate;
+}
+@keyframes ftStarTwinkle {
+  from { opacity: var(--op1,0.3); transform: scale(1); }
+  to   { opacity: var(--op2,0.05); transform: scale(0.6); }
+}
+
+/* Shared word base */
 .ft-word {
   position: absolute; white-space: nowrap; line-height: 1;
   opacity: 0; will-change: transform, opacity;
-  animation:
-    ftAppear var(--adur, 1.4s) var(--ad, 0s) ease forwards,
-    ftDrift  var(--fdur, 11s)  var(--dd, 2s) ease-in-out infinite alternate;
-}
-@keyframes ftAppear {
-  from { opacity: 0; }
-  to   { opacity: var(--op, 0.08); }
-}
-@keyframes ftDrift {
-  from { transform: translate(0, 0); }
-  to   { transform: translate(var(--dx, 12px), var(--dy, -9px)); }
-}
-.ft-main {
-  font-weight: 600;
-  animation:
-    ftAppear 1.8s var(--ad, 0s) ease forwards,
-    ftDrift  var(--fdur, 14s)  var(--dd, 2s) ease-in-out infinite alternate,
-    ftGlow   var(--gdur, 3.8s) calc(var(--dd, 2s) + 0.4s) ease-in-out infinite;
-}
-@keyframes ftGlow {
-  0%,100% { text-shadow: 0 0 22px rgba(255,210,150,0.22), 0 1px 3px rgba(0,0,0,0.55); }
-  50%     { text-shadow: 0 0 52px rgba(255,218,158,0.54), 0 0 104px rgba(255,185,110,0.18), 0 1px 3px rgba(0,0,0,0.55); }
 }
 
+/* Secondary words — gentle fade then float */
+.ft-mid {
+  animation:
+    ftWordIn  1.1s var(--ad,0s) ease forwards,
+    ftDrift   var(--fdur,11s) calc(var(--ad,0s) + 1.1s) ease-in-out infinite alternate;
+}
+.ft-bgw {
+  animation:
+    ftWordIn  0.9s var(--ad,0s) ease forwards,
+    ftDrift   var(--fdur,9s)  calc(var(--ad,0s) + 0.9s) ease-in-out infinite alternate;
+}
+@keyframes ftWordIn {
+  from { opacity: 0; }
+  to   { opacity: var(--op,0.08); }
+}
+@keyframes ftDrift {
+  from { transform: translate(0,0); }
+  to   { transform: translate(var(--dx,10px),var(--dy,-7px)); }
+}
+
+/* Main keywords — cinematic star-birth */
+.ft-main {
+  font-weight: 600; letter-spacing: -0.01em;
+  animation:
+    ftStarBorn 1.6s var(--ad,0s) cubic-bezier(0.16,1,0.3,1) forwards,
+    ftDrift    var(--fdur,18s)  calc(var(--ad,0s) + 1.6s) ease-in-out infinite alternate,
+    ftGlow     var(--gdur,4.5s) calc(var(--ad,0s) + 2.2s) ease-in-out infinite;
+}
+@keyframes ftStarBorn {
+  0%   {
+    opacity: 0; transform: scale(0.22);
+    filter: blur(10px);
+    text-shadow: none;
+  }
+  22%  {
+    opacity: 1; transform: scale(1.30);
+    filter: blur(0);
+    text-shadow:
+      0 0 60px rgba(255,225,170,1.0),
+      0 0 120px rgba(255,195,110,0.7),
+      0 0 220px rgba(255,170, 80,0.35);
+  }
+  55%  {
+    opacity: var(--op); transform: scale(0.96);
+    text-shadow:
+      0 0 30px rgba(255,215,155,0.50),
+      0  1px  4px rgba(0,0,0,0.75);
+  }
+  100% {
+    opacity: var(--op); transform: scale(1);
+    text-shadow:
+      0 0 20px rgba(255,212,152,0.24),
+      0  1px  3px rgba(0,0,0,0.65);
+  }
+}
+@keyframes ftGlow {
+  0%,100% {
+    text-shadow:
+      0 0 18px rgba(255,212,152,0.20),
+      0  1px  3px rgba(0,0,0,0.65);
+  }
+  50% {
+    text-shadow:
+      0 0 44px rgba(255,220,158,0.54),
+      0 0 90px rgba(255,188,110,0.20),
+      0  1px  3px rgba(0,0,0,0.65);
+  }
+}
+
+/* Closing overlay */
 #ft-end {
   position: absolute; inset: 0; z-index: 5;
   display: flex; align-items: center; justify-content: center;
   pointer-events: none; opacity: 0;
+  /* Darkens center so message panel reads clearly */
+  background: radial-gradient(ellipse 75% 60% at 50% 50%, rgba(4,2,12,0.60) 0%, transparent 100%);
 }
 #ft-end-inner {
-  padding: 38px 48px;
-  background: rgba(7,4,18,0.76);
-  backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 24px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+  padding: 40px 52px;
+  background: rgba(6,3,16,0.84);
+  backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 26px;
+  box-shadow:
+    0 40px 90px rgba(0,0,0,0.75),
+    0  0   0 1px rgba(255,255,255,0.04),
+    inset 0 1px 0 rgba(255,255,255,0.07);
   text-align: center;
 }
 #ft-end-msg {
-  font-size: clamp(1.05rem, 4.2vw, 1.3rem);
+  font-size: clamp(1.05rem, 4.3vw, 1.32rem);
   font-weight: 400;
-  color: rgba(255,244,228,0.90);
-  line-height: 2.1;
-  text-shadow: 0 0 28px rgba(255,205,140,0.25);
+  color: rgba(255,244,228,0.93);
+  line-height: 2.2;
+  text-shadow: 0 0 30px rgba(255,205,140,0.28);
+  letter-spacing: 0.025em;
 }
 
 /* ═══════════════════════════════════════
@@ -1634,10 +1717,20 @@ async function onChapterNext() {
 /* ════════════════════════════════════
    FUTURE PAGE
 ════════════════════════════════════ */
-const FUTURE_MAIN = [
-  '결혼식', '신혼여행', '아파트 이사', '신혼생활',
-  '해외여행', '출산', '육아', '승진'
+// Main keywords — ignite one by one with predefined positions
+const FUTURE_MAIN = ['결혼식', '신혼여행', '아파트 이사', '신혼생활', '해외여행', '출산', '육아', '승진'];
+const FUTURE_MAIN_POS = [
+  { x:  7, y: 13, fs: 32 },
+  { x: 52, y:  8, fs: 28 },
+  { x:  5, y: 38, fs: 24 },
+  { x: 60, y: 26, fs: 28 },
+  { x: 10, y: 63, fs: 27 },
+  { x: 57, y: 69, fs: 34 },
+  { x: 35, y: 80, fs: 25 },
+  { x: 67, y: 48, fs: 23 },
 ];
+
+// Secondary and ambient words — appear all at once, fill the field
 const FUTURE_MID = [
   '첫집 구경', '강아지 입양', '부모님 여행', '첫 기념일',
   '크리스마스', '새해 첫날', '드라이브', '캠핑',
@@ -1650,35 +1743,74 @@ const FUTURE_BG = [
   '가족', '졸업', '새벽', '봄날'
 ];
 
-function buildFutureScene() {
-  const bg = $('ft-bg');
-  bg.innerHTML = '';
-  const shuf = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=0|Math.random()*(i+1);[r[i],r[j]]=[r[j],r[i]];}return r; };
+function ftShuf(a) {
+  const r = [...a];
+  for (let i = r.length - 1; i > 0; i--) { const j = 0 | Math.random() * (i + 1); [r[i], r[j]] = [r[j], r[i]]; }
+  return r;
+}
 
-  function addWords(words, isMid, isMain, adBase, adStep) {
-    const adurS = isMain ? 1.8 : 1.4;
-    shuf(words).forEach((w, i) => {
-      const el = document.createElement('span');
-      el.className = isMain ? 'ft-word ft-main' : 'ft-word';
-      el.textContent = w;
-      const fs   = isMain ? (27 + Math.random() * 14) : isMid ? (16 + Math.random() * 7) : (10 + Math.random() * 5);
-      const x    = (3 + Math.random() * 85).toFixed(1);
-      const y    = (5 + Math.random() * 82).toFixed(1);
-      const op   = isMain ? (0.70 + Math.random() * 0.22) : isMid ? (0.14 + Math.random() * 0.14) : (0.04 + Math.random() * 0.07);
-      const ad   = (adBase + i * adStep + Math.random() * adStep * 0.5).toFixed(2);
-      const dd   = (parseFloat(ad) + adurS + 0.05).toFixed(2);
-      const fdur = (isMain ? 12 : 10) + Math.random() * 7;
-      const gdur = 2.8 + Math.random() * 2.2;
-      const dx   = ((Math.random() - 0.5) * 34).toFixed(1);
-      const dy   = ((Math.random() - 0.5) * 26).toFixed(1);
-      el.style.cssText = `left:${x}%;top:${y}%;font-size:${fs.toFixed(1)}px;--op:${op.toFixed(3)};--ad:${ad}s;--dd:${dd}s;--fdur:${fdur.toFixed(1)}s;--gdur:${gdur.toFixed(1)}s;--dx:${dx}px;--dy:${dy}px`;
-      bg.appendChild(el);
-    });
+function ftSpawn(container, text, cls, x, y, fs, op, adS, fdur, gdur, dx, dy) {
+  const el = document.createElement('span');
+  el.className = `ft-word ${cls}`;
+  el.textContent = text;
+  const style = [
+    `left:${x.toFixed(1)}%`, `top:${y.toFixed(1)}%`, `font-size:${fs.toFixed(1)}px`,
+    `--op:${op.toFixed(3)}`,  `--ad:${adS.toFixed(2)}s`,
+    `--fdur:${fdur.toFixed(1)}s`, `--dx:${dx.toFixed(1)}px`, `--dy:${dy.toFixed(1)}px`,
+  ];
+  if (gdur) style.push(`--gdur:${gdur.toFixed(1)}s`);
+  el.style.cssText = style.join(';');
+  container.appendChild(el);
+}
+
+function buildFutureAtmosphere(container) {
+  // 70 twinkling stars
+  for (let i = 0; i < 70; i++) {
+    const s   = document.createElement('div');
+    s.className = 'ft-star';
+    const sz  = Math.random() < 0.72 ? 1 : Math.random() < 0.7 ? 2 : 3;
+    const op1 = (0.15 + Math.random() * 0.55).toFixed(2);
+    const op2 = (parseFloat(op1) * (0.12 + Math.random() * 0.25)).toFixed(2);
+    s.style.cssText = [
+      `left:${(Math.random()*100).toFixed(1)}%`, `top:${(Math.random()*100).toFixed(1)}%`,
+      `width:${sz}px`, `height:${sz}px`,
+      `--op1:${op1}`, `--op2:${op2}`,
+      `--dur:${(1.8+Math.random()*3.5).toFixed(1)}s`,
+      `--del:${(Math.random()*4).toFixed(1)}s`,
+    ].join(';');
+    container.appendChild(s);
   }
 
-  addWords(FUTURE_BG,   false, false, 0.0, 0.07);
-  addWords(FUTURE_MID,  true,  false, 0.1, 0.09);
-  addWords(FUTURE_MAIN, false, true,  0.2, 0.13);
+  // Centre-avoiding helper
+  const outsideCenter = (x, y, mx, my, Mx, My) => !(x > mx && x < Mx && y > my && y < My);
+
+  // Background micro-words
+  ftShuf(FUTURE_BG).forEach((w, i) => {
+    let x, y;
+    do { x = 3 + Math.random() * 90; y = 5 + Math.random() * 88; }
+    while (!outsideCenter(x, y, 28, 32, 72, 68));
+    ftSpawn(container, w, 'ft-bgw',
+      x, y, 9 + Math.random() * 5,
+      0.07 + Math.random() * 0.09,
+      0.3 + i * 0.05 + Math.random() * 0.08,
+      8 + Math.random() * 7,
+      null,
+      (Math.random() - 0.5) * 26, (Math.random() - 0.5) * 18);
+  });
+
+  // Mid words
+  ftShuf(FUTURE_MID).forEach((w, i) => {
+    let x, y;
+    do { x = 3 + Math.random() * 90; y = 5 + Math.random() * 88; }
+    while (!outsideCenter(x, y, 25, 30, 75, 70));
+    ftSpawn(container, w, 'ft-mid',
+      x, y, 14 + Math.random() * 8,
+      0.20 + Math.random() * 0.16,
+      0.5 + i * 0.07 + Math.random() * 0.1,
+      10 + Math.random() * 8,
+      null,
+      (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 22);
+  });
 }
 
 async function openFuturePage() {
@@ -1689,17 +1821,34 @@ async function openFuturePage() {
     $('ch-foot').classList.remove('show');
   });
 
-  buildFutureScene();
+  const bg = $('ft-bg');
+  bg.innerHTML = '';
+  buildFutureAtmosphere(bg);   // stars + mid + bg words (all start fading in now)
+
   const endEl = $('ft-end');
-  endEl.style.opacity = '0';
+  endEl.style.opacity    = '0';
   endEl.style.transition = '';
 
-  // Words materialise over ~4s (last main word: ad≈0.2+7*0.13+0.07≈1.2s + 1.8s appear ≈ 3s)
-  await sleep(4600);
+  // Sequential main keyword ignitions — each waits for previous to bloom
+  await sleep(700);
+  for (let i = 0; i < FUTURE_MAIN.length; i++) {
+    const p    = FUTURE_MAIN_POS[i];
+    const gdur = 3.4 + Math.random() * 2.0;
+    const dx   = (Math.random() - 0.5) * 20;
+    const dy   = (Math.random() - 0.5) * 14;
+    // --ad:0 so animation fires immediately on DOM insert
+    ftSpawn(bg, FUTURE_MAIN[i], 'ft-main', p.x, p.y, p.fs, 0.90, 0, 18, gdur, dx, dy);
+    // Gap: first keyword gets a bit longer to stand alone, rest tighter
+    await sleep(i === 0 ? 1900 : 1450);
+  }
 
-  endEl.style.transition = 'opacity 1.8s ease';
-  endEl.style.opacity = '1';
-  await sleep(3400);
+  // Let all words float and settle together
+  await sleep(2200);
+
+  // Closing message fades in over the word-field
+  endEl.style.transition = 'opacity 2.2s ease';
+  endEl.style.opacity    = '1';
+  await sleep(3600);
 
   await fadeTo('pg-letter2', () => { endEl.style.opacity = '0'; });
   startLetter('l2-body', 'l2-inner', 'l2-date', LETTER2, 90, goToProposal, true);
