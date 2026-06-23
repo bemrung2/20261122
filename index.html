@@ -1519,6 +1519,18 @@ async function enterChapter(idx) {
   veil.classList.remove('show');
   hd.classList.add('in');
   await sleep(450);
+
+  // Wait for all grid images to finish loading before revealing grid
+  const gridImgs = [...($('ch-scroll').querySelectorAll('img'))];
+  await Promise.race([
+    Promise.all(gridImgs.map(img => new Promise(res => {
+      if (img.complete && img.naturalWidth) { res(); return; }
+      img.addEventListener('load',  res, { once: true });
+      img.addEventListener('error', res, { once: true });
+    }))),
+    sleep(4000)
+  ]);
+
   scroll.classList.add('show');
   foot.classList.add('show');
 
@@ -1584,32 +1596,41 @@ function loadDetail(idx) {
   const grid = $('ch-scroll');
   grid.innerHTML = ''; grid.scrollTop = 0;
 
+  const isVideoSrc = src => /\.(mp4|mov|webm|m4v)$/i.test(src);
+
   ch.photos.forEach((photo, i) => {
     const cell = document.createElement('div');
     cell.className = 'photo-cell';
 
-    if (photo.src) {
+    if (photo.src && !isVideoSrc(photo.src)) {
       const img = document.createElement('img');
       img.src = photo.src; img.alt = '';
       cell.appendChild(img);
     } else {
-      // gradient placeholder using chapter color
+      // Gradient tile: gradient background + icon
       const bg = document.createElement('div');
       bg.className = 'cell-grad';
       bg.style.cssText = `background:${ch.bg};opacity:0.72;`;
       cell.appendChild(bg);
       const icon = document.createElement('div');
       icon.className = 'cell-ph-icon';
-      icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 40 40" fill="none">
-        <rect x="3" y="9" width="34" height="23" rx="4" stroke="white" stroke-width="1.6"/>
-        <circle cx="20" cy="20" r="6.5" stroke="white" stroke-width="1.6"/>
-        <circle cx="30" cy="14" r="2" fill="white"/>
-      </svg>`;
+      if (photo.src && isVideoSrc(photo.src)) {
+        // Play button for video cells
+        icon.innerHTML = `<svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="17" stroke="white" stroke-width="1.4" opacity="0.7"/>
+          <polygon points="16,13 30,20 16,27" fill="white" opacity="0.9"/>
+        </svg>`;
+      } else {
+        icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 40 40" fill="none">
+          <rect x="3" y="9" width="34" height="23" rx="4" stroke="white" stroke-width="1.6"/>
+          <circle cx="20" cy="20" r="6.5" stroke="white" stroke-width="1.6"/>
+          <circle cx="30" cy="14" r="2" fill="white"/>
+        </svg>`;
+      }
       cell.appendChild(icon);
     }
 
     cell.addEventListener('click', () => {
-      // 해당 사진부터 autoplay 재시작 (타이머 + 프로그레스 바 포함)
       stopAutoPlay();
       apChIdx   = idx;
       apPIdx    = i;
