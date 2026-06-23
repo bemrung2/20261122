@@ -1135,6 +1135,56 @@ let pvBarsHideTimer = null;
 ════════════════════════════════════ */
 const $ = id => document.getElementById(id);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const isVideoSrc = src => /\.(mp4|mov|webm|m4v)$/i.test(src);
+
+/* ── Media preload pool ──
+   Photos: preloaded as Image() → browser HTTP cache
+   Videos: kept as <video preload="auto"> in a hidden DOM div so the
+   download buffer survives between viewer opens / closes.           */
+const _vidPool  = new Map(); // src → <video>
+const _imgDone  = new Set(); // srcs already issued as Image()
+
+function _mpc() {           // returns (or creates) the hidden preload container
+  let d = document.getElementById('_mpc');
+  if (!d) {
+    d = document.createElement('div');
+    d.id = '_mpc';
+    d.style.cssText = 'position:fixed;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none;z-index:-1;';
+    document.body.appendChild(d);
+  }
+  return d;
+}
+
+function preloadChapterMedia(chIdx) {
+  const ch = CHAPTERS[chIdx];
+  if (!ch) return;
+  ch.photos.forEach(p => {
+    if (!p.src) return;
+    if (isVideoSrc(p.src)) {
+      if (!_vidPool.has(p.src)) {
+        const v = document.createElement('video');
+        v.src = p.src; v.preload = 'auto'; v.muted = true; v.playsInline = true;
+        v.load();
+        _mpc().appendChild(v);
+        _vidPool.set(p.src, v);
+      }
+    } else {
+      if (!_imgDone.has(p.src)) {
+        _imgDone.add(p.src);
+        const img = new Image(); img.src = p.src; // prime browser cache
+      }
+    }
+  });
+}
+
+function _returnVidToPool(vid) {
+  if (!vid) return;
+  vid.pause();
+  vid.muted = true;
+  vid.currentTime = 0;
+  vid.style.cssText = '';
+  _mpc().appendChild(vid); // moves element, buffer stays alive
+}
 
 function showPage(id) {
   document.querySelectorAll('.pg').forEach(p => p.classList.remove('active'));
@@ -1455,6 +1505,9 @@ async function goToChapters() {
   stage.style.transform  = 'scale(1)';
   stage.style.opacity    = '1';
 
+  // Kick off preloading for ALL chapters while user sees carousel
+  CHAPTERS.forEach((_, i) => preloadChapterMedia(i));
+
   // pause so user sees carousel, then auto-enter ch0
   await sleep(2400);
   if (!busy && !isManualMode) enterChapter(0);
@@ -1464,6 +1517,9 @@ async function enterChapter(idx) {
   if (busy) return;
   busy = true; currentCh = idx;
   const ch = CHAPTERS[idx];
+
+  // Ensure media is queued for download before any animation delay
+  preloadChapterMedia(idx);
 
   // Focus the card smoothly
   if (activeCard !== idx) positionCards(idx, true);
@@ -1527,21 +1583,21 @@ async function enterChapter(idx) {
   hd.classList.add('in');
   await sleep(450);
 
-  // Wait for all grid images and video thumbnails to load before revealing grid
-  const gridImgs  = [...($('ch-scroll').querySelectorAll('img'))];
-  const gridVids  = [...($('ch-scroll').querySelectorAll('video'))];
-  const imgWaits  = gridImgs.map(img => new Promise(res => {
+  // Images were pre-cached; this wait should resolve almost instantly from HTTP cache.
+  // Videos in the grid only need metadata (for the first-frame thumbnail).
+  const gridImgs = [...($('ch-scroll').querySelectorAll('img'))];
+  const gridVids = [...($('ch-scroll').querySelectorAll('video'))];
+  const imgWaits = gridImgs.map(img => new Promise(res => {
     if (img.complete && img.naturalWidth) { res(); return; }
     img.addEventListener('load',  res, { once: true });
     img.addEventListener('error', res, { once: true });
   }));
-  const vidWaits  = gridVids.map(vid => new Promise(res => {
-    if (vid.readyState >= 2) { res(); return; }
-    vid.addEventListener('loadeddata',    res, { once: true });
-    vid.addEventListener('loadedmetadata',res, { once: true });
-    vid.addEventListener('error',         res, { once: true });
+  const vidWaits = gridVids.map(vid => new Promise(res => {
+    if (vid.readyState >= 1) { res(); return; } // HAVE_METADATA is enough for thumbnail
+    vid.addEventListener('loadedmetadata', res, { once: true });
+    vid.addEventListener('error',          res, { once: true });
   }));
-  await Promise.race([Promise.all([...imgWaits, ...vidWaits]), sleep(4000)]);
+  await Promise.race([Promise.all([...imgWaits, ...vidWaits]), sleep(1500)]);
 
   scroll.classList.add('show');
   foot.classList.add('show');
@@ -1607,8 +1663,6 @@ function loadDetail(idx) {
 
   const grid = $('ch-scroll');
   grid.innerHTML = ''; grid.scrollTop = 0;
-
-  const isVideoSrc = src => /\.(mp4|mov|webm|m4v)$/i.test(src);
 
   ch.photos.forEach((photo, i) => {
     const cell = document.createElement('div');
@@ -1765,16 +1819,16 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   const alreadyOpen = pv.classList.contains('show');
   const isVideo = photo.src && /\.(mp4|mov|webm|m4v)$/i.test(photo.src);
 
-  // If replacing content in open viewer: fade out first, stop old video
+  // If replacing content in open viewer: return old video to pool, then fade
   if (alreadyOpen) {
     const oldVid = pvImg.querySelector('video');
-    if (oldVid) oldVid.pause();
+    _returnVidToPool(oldVid); // moves element back to _mpc; buffer stays alive
     pvImg.style.transition = 'none';
     pvImg.style.opacity    = '0';
     await sleep(40);
   }
 
-  // Build media content
+  // Clear non-video residual children (video was already moved above)
   pvImg.innerHTML = '';
   pvImg.style.background = '';
   let dur = 5000;
@@ -1790,26 +1844,36 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
     </div>`;
   } else if (isVideo) {
     pvImg.style.background = '#0a0806';
-    const vid = document.createElement('video');
-    vid.src = photo.src;
-    vid.playsInline = true;
+
+    // Reuse pre-buffered pool element — moving it preserves the download buffer
+    let vid = _vidPool.get(photo.src);
+    if (!vid) {
+      // Fallback: create on-demand (shouldn't normally reach here)
+      vid = document.createElement('video');
+      vid.src = photo.src; vid.preload = 'auto'; vid.playsInline = true;
+      vid.muted = true; vid.load();
+      _vidPool.set(photo.src, vid);
+    }
+    vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:inherit;';
     vid.muted  = false;
     vid.volume = 1.0;
-    vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:inherit;';
-    pvImg.appendChild(vid);
-    // wait for duration metadata (max 5s fallback)
-    await new Promise(res => {
-      if (vid.readyState >= 1) { res(); return; }
-      vid.addEventListener('loadedmetadata', res, { once: true });
-      setTimeout(res, 5000);
-    });
+    vid.currentTime = 0;
+    pvImg.appendChild(vid); // moves from _mpc to pvImg — buffer intact
+
+    // Metadata should already be available from preload; wait only if needed
+    if (vid.readyState < 1) {
+      await new Promise(res => {
+        vid.addEventListener('loadedmetadata', res, { once: true });
+        setTimeout(res, 4000);
+      });
+    }
     if (vid.duration && isFinite(vid.duration) && vid.duration > 0.1) {
       dur = Math.round(vid.duration * 1000) + 300;
     }
     if (vid.videoWidth && vid.videoHeight) {
       pvImg.style.aspectRatio = `${vid.videoWidth} / ${vid.videoHeight}`;
     }
-    // Try with sound; if browser blocks audio, fall back to muted play
+    // Play — already buffered, starts immediately
     vid.play().catch(() => {
       vid.muted = true;
       vid.play().catch(() => {});
@@ -1885,7 +1949,7 @@ async function closePhotoViewer(instant) {
   const pv = $('photo-viewer');
   if (!pv.classList.contains('show')) return;
   const vid = $('pv-img')?.querySelector('video');
-  if (vid) vid.pause();
+  _returnVidToPool(vid); // return to pool so buffer is preserved for next open
   if (instant) {
     pv.style.transition = 'none';
     pv.classList.remove('show');
