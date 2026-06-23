@@ -719,13 +719,15 @@ html, body {
 
 /* photo / video frame */
 #pv-img {
-  width: 100%; aspect-ratio: 3/4;
+  width: 100%; aspect-ratio: 3/4; /* JS overrides per-image */
+  max-height: 68dvh;
   border-radius: 18px; overflow: hidden;
   position: relative;
   background: #0f0e0c;
   transform: scale(0.72) translateY(20px);
   opacity: 0;
-  transition: transform 0.7s cubic-bezier(0.16,1,0.3,1), opacity 0.55s ease;
+  transition: transform 0.7s cubic-bezier(0.16,1,0.3,1), opacity 0.55s ease,
+              aspect-ratio 0s; /* instant ratio switch (happens while opacity=0) */
 }
 #photo-viewer.show #pv-img {
   transform: scale(1) translateY(0);
@@ -734,13 +736,13 @@ html, body {
 
 /* caption */
 #pv-cap {
-  margin-top: 22px; min-height: 58px;
-  font-size: 14.5px; line-height: 1.95;
+  margin-top: 20px;
+  font-size: 14.5px; line-height: 2.0;
   color: rgba(255,255,255,0.82);
   text-align: center; white-space: pre-line;
-  font-weight: 300; padding: 0 8px;
-  letter-spacing: 0.01em;
-  opacity: 0; transform: translateY(12px);
+  font-weight: 300; padding: 0 12px;
+  letter-spacing: 0.015em;
+  opacity: 0; transform: translateY(10px);
   transition: opacity 0.45s ease 0.22s, transform 0.45s ease 0.22s;
 }
 #photo-viewer.show #pv-cap { opacity: 1; transform: translateY(0); }
@@ -1038,10 +1040,10 @@ const CHAPTERS = [
     deco: 'I',
     bg: 'linear-gradient(145deg, #b07840 0%, #8a5a28 40%, #6a3e18 100%)',
     photos: [
-      { src: 'photos/ep1/1.jpeg', cap: '' },
-      { src: 'photos/ep1/2.jpeg', cap: '' },
-      { src: 'photos/ep1/3.jpeg', cap: '' },
-      { src: 'photos/ep1/4.jpeg', cap: '' },
+      { src: 'photos/ep1/1.jpeg', cap: '2021년 8월, KB국민은행 37기.\n같은 IT직무로 입사한 동기였어.' },
+      { src: 'photos/ep1/2.jpeg', cap: '처음 출근하던 날,\n봄이 한창이었어.' },
+      { src: 'photos/ep1/3.jpeg', cap: '동기들과 어울리다 보니,\n자꾸 네가 눈에 들어오더라.' },
+      { src: 'photos/ep1/4.jpeg', cap: '뭔가 비슷한 사람이다 싶었고,\n그게 시작이었어.' },
     ]
   },
   {
@@ -1757,14 +1759,27 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
     if (vid.duration && isFinite(vid.duration) && vid.duration > 0.1) {
       dur = Math.round(vid.duration * 1000) + 300;
     }
+    if (vid.videoWidth && vid.videoHeight) {
+      pvImg.style.aspectRatio = `${vid.videoWidth} / ${vid.videoHeight}`;
+    }
     vid.play().catch(() => {});
   } else {
     pvImg.style.background = '#0f0e0c';
     const img = document.createElement('img');
     img.src = photo.src;
     img.alt = '';
-    img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:inherit;';
+    img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;';
     pvImg.appendChild(img);
+    // Wait for natural dimensions to set the exact aspect ratio
+    await new Promise(res => {
+      if (img.complete && img.naturalWidth) { res(); return; }
+      img.addEventListener('load',  res, { once: true });
+      img.addEventListener('error', res, { once: true });
+      setTimeout(res, 4000);
+    });
+    if (img.naturalWidth && img.naturalHeight) {
+      pvImg.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+    }
   }
 
   // caption
