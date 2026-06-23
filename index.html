@@ -1040,10 +1040,15 @@ const CHAPTERS = [
     deco: 'I',
     bg: 'linear-gradient(145deg, #b07840 0%, #8a5a28 40%, #6a3e18 100%)',
     photos: [
-      { src: 'photos/ep1/1.jpeg', cap: '2021년 8월, KB국민은행 37기.\n같은 IT직무로 입사한 동기였어.' },
-      { src: 'photos/ep1/2.jpeg', cap: '처음 출근하던 날,\n봄이 한창이었어.' },
-      { src: 'photos/ep1/3.jpeg', cap: '동기들과 어울리다 보니,\n자꾸 네가 눈에 들어오더라.' },
-      { src: 'photos/ep1/4.jpeg', cap: '뭔가 비슷한 사람이다 싶었고,\n그게 시작이었어.' },
+      { src: 'photos/ep1/1.jpeg',  cap: '2021년 8월, KB국민은행 37기.\n같은 IT직무로 입사한 동기였어.' },
+      { src: 'photos/ep1/2.jpeg',  cap: '처음 출근하던 날,\n봄이 한창이었어.' },
+      { src: 'videos/ep1/1.mov',   cap: '' },
+      { src: 'videos/ep1/2.mov',   cap: '' },
+      { src: 'photos/ep1/3.jpeg',  cap: '동기들과 어울리다 보니,\n자꾸 네가 눈에 들어오더라.' },
+      { src: 'photos/ep1/4.jpeg',  cap: '뭔가 비슷한 사람이다 싶었고,\n그게 시작이었어.' },
+      { src: 'photos/ep1/5.jpeg',  cap: '' },
+      { src: 'photos/ep1/6.jpeg',  cap: '' },
+      { src: 'photos/ep1/7.jpeg',  cap: '' },
     ]
   },
   {
@@ -1747,7 +1752,8 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
     const vid = document.createElement('video');
     vid.src = photo.src;
     vid.playsInline = true;
-    vid.autoplay    = true;
+    vid.muted  = false;
+    vid.volume = 1.0;
     vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:inherit;';
     pvImg.appendChild(vid);
     // wait for duration metadata (max 5s fallback)
@@ -1762,7 +1768,11 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
     if (vid.videoWidth && vid.videoHeight) {
       pvImg.style.aspectRatio = `${vid.videoWidth} / ${vid.videoHeight}`;
     }
-    vid.play().catch(() => {});
+    // Try with sound; if browser blocks audio, fall back to muted play
+    vid.play().catch(() => {
+      vid.muted = true;
+      vid.play().catch(() => {});
+    });
   } else {
     pvImg.style.background = '#0f0e0c';
     const img = document.createElement('img');
