@@ -715,14 +715,14 @@ html, body {
 }
 .pv-bar-fill.done   { width: 100%; }
 @keyframes barFill  { to { width: 100%; } }
-.pv-bar-fill.active { animation: barFill 5s linear forwards; }
+.pv-bar-fill.active { animation: barFill var(--pv-dur, 5s) linear forwards; }
 
-/* photo */
+/* photo / video frame */
 #pv-img {
-  width: 100%; aspect-ratio: 1;
+  width: 100%; aspect-ratio: 3/4;
   border-radius: 18px; overflow: hidden;
   position: relative;
-  background: #2a2520 center/cover no-repeat;
+  background: #0f0e0c;
   transform: scale(0.72) translateY(20px);
   opacity: 0;
   transition: transform 0.7s cubic-bezier(0.16,1,0.3,1), opacity 0.55s ease;
@@ -1605,7 +1605,7 @@ function loadDetail(idx) {
       apChIdx   = idx;
       apPIdx    = i;
       apRunning = true;
-      openPhotoViewer(idx, i, true).then(() => startHoldTimer(5000));
+      openPhotoViewer(idx, i, true).then(dur => startHoldTimer(dur));
     });
 
     grid.appendChild(cell);
@@ -1655,8 +1655,8 @@ async function runAutoStep(chIdx, pIdx) {
   await sleep(1200);
   if (!apRunning || apChIdx !== chIdx) return;
 
-  await openPhotoViewer(chIdx, pIdx, true);
-  startHoldTimer(5000);
+  const dur = await openPhotoViewer(chIdx, pIdx, true);
+  startHoldTimer(dur);
 }
 
 /* ── 홀드 타이머 (일시정지 지원) ── */
@@ -1681,8 +1681,8 @@ function startHoldTimer(ms) {
     // 다음 사진으로 — 뷰어 유지, 사진만 교체
     if (!apRunning || apChIdx !== chIdx) return;
     apPIdx = pIdx + 1;
-    await openPhotoViewer(chIdx, pIdx + 1, true);
-    startHoldTimer(5000);
+    const dur = await openPhotoViewer(chIdx, pIdx + 1, true);
+    startHoldTimer(dur);
   }, ms);
 }
 
@@ -1693,6 +1693,8 @@ function pauseHold() {
   apRemaining = Math.max(80, apRemaining - (Date.now() - apTimerStart));
   const fill = $('pv-bars')?.querySelector('.pv-bar-fill.active');
   if (fill) fill.style.animationPlayState = 'paused';
+  const vid = $('pv-img')?.querySelector('video');
+  if (vid) vid.pause();
 }
 
 function resumeHold() {
@@ -1700,6 +1702,8 @@ function resumeHold() {
   apHolding = false;
   const fill = $('pv-bars')?.querySelector('.pv-bar-fill.active');
   if (fill) fill.style.animationPlayState = '';
+  const vid = $('pv-img')?.querySelector('video');
+  if (vid) vid.play().catch(() => {});
   startHoldTimer(apRemaining);
 }
 
@@ -1709,12 +1713,23 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   const pv    = $('photo-viewer');
   const pvImg = $('pv-img');
   const alreadyOpen = pv.classList.contains('show');
+  const isVideo = photo.src && /\.(mp4|mov|webm|m4v)$/i.test(photo.src);
 
-  // photo content
+  // If replacing content in open viewer: fade out first, stop old video
+  if (alreadyOpen) {
+    const oldVid = pvImg.querySelector('video');
+    if (oldVid) oldVid.pause();
+    pvImg.style.transition = 'none';
+    pvImg.style.opacity    = '0';
+    await sleep(40);
+  }
+
+  // Build media content
   pvImg.innerHTML = '';
-  if (photo.src) {
-    pvImg.style.background = `#2a2520 url(${photo.src}) center/cover no-repeat`;
-  } else {
+  pvImg.style.background = '';
+  let dur = 5000;
+
+  if (!photo.src) {
     pvImg.style.background = ch.bg.replace('145deg', '155deg');
     pvImg.innerHTML = `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
       <svg width="50" height="50" viewBox="0 0 40 40" fill="none" style="opacity:0.2">
@@ -1723,12 +1738,37 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
         <circle cx="30" cy="14" r="2" fill="white"/>
       </svg>
     </div>`;
+  } else if (isVideo) {
+    pvImg.style.background = '#0a0806';
+    const vid = document.createElement('video');
+    vid.src = photo.src;
+    vid.playsInline = true;
+    vid.autoplay    = true;
+    vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:inherit;';
+    pvImg.appendChild(vid);
+    // wait for duration metadata (max 5s fallback)
+    await new Promise(res => {
+      if (vid.readyState >= 1) { res(); return; }
+      vid.addEventListener('loadedmetadata', res, { once: true });
+      setTimeout(res, 5000);
+    });
+    if (vid.duration && isFinite(vid.duration) && vid.duration > 0.1) {
+      dur = Math.round(vid.duration * 1000) + 300;
+    }
+    vid.play().catch(() => {});
+  } else {
+    pvImg.style.background = '#0f0e0c';
+    const img = document.createElement('img');
+    img.src = photo.src;
+    img.alt = '';
+    img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:inherit;';
+    pvImg.appendChild(img);
   }
 
   // caption
   $('pv-cap').textContent = photo.cap;
 
-  // progress bars — visible by default, center tap toggles
+  // progress bars
   const barsEl = $('pv-bars');
   barsEl.innerHTML = '';
   if (pvBarsHideTimer) { clearTimeout(pvBarsHideTimer); pvBarsHideTimer = null; }
@@ -1742,23 +1782,22 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   barsEl.style.opacity = '1';
   pvBarsVisible = true;
 
-  if (alreadyOpen) {
-    // 뷰어 유지, 사진만 교체 — in-place 페이드인 (자동 넘김 / 수동 탭 공통)
-    pvImg.style.transition = 'none';
-    pvImg.style.opacity    = '0';
-    pvImg.style.transform  = '';
-    await sleep(30);
-    pvImg.style.transition = 'opacity 0.55s ease';
-    pvImg.style.opacity    = '1';
-    if (isAuto) {
-      await sleep(60);
-      const fills = barsEl.querySelectorAll('.pv-bar-fill');
-      if (fills[pIdx]) fills[pIdx].classList.add('active');
+  function activateBar() {
+    const fills = barsEl.querySelectorAll('.pv-bar-fill');
+    if (fills[pIdx]) {
+      fills[pIdx].style.setProperty('--pv-dur', `${(dur / 1000).toFixed(2)}s`);
+      fills[pIdx].classList.add('active');
     }
-    return;
   }
 
-  // reset photo to initial state (will animate in via CSS)
+  if (alreadyOpen) {
+    pvImg.style.transition = 'opacity 0.45s ease';
+    pvImg.style.opacity    = '1';
+    if (isAuto) { await sleep(60); activateBar(); }
+    return dur;
+  }
+
+  // Fresh open — animate in via CSS
   pvImg.style.transition = 'none';
   pvImg.style.transform  = 'scale(0.72) translateY(20px)';
   pvImg.style.opacity    = '0';
@@ -1766,21 +1805,19 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   pv.classList.add('show');
   await sleep(30);
 
-  // let CSS transition take over
   pvImg.style.transition = '';
   pvImg.style.transform  = '';
   pvImg.style.opacity    = '';
 
-  if (isAuto) {
-    await sleep(60);
-    const fills = barsEl.querySelectorAll('.pv-bar-fill');
-    if (fills[pIdx]) fills[pIdx].classList.add('active');
-  }
+  if (isAuto) { await sleep(60); activateBar(); }
+  return dur;
 }
 
 async function closePhotoViewer(instant) {
   const pv = $('photo-viewer');
   if (!pv.classList.contains('show')) return;
+  const vid = $('pv-img')?.querySelector('video');
+  if (vid) vid.pause();
   if (instant) {
     pv.style.transition = 'none';
     pv.classList.remove('show');
@@ -2189,7 +2226,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const next = apPIdx + 1;
       stopAutoPlay();
       apChIdx = cIdx; apPIdx = next; apRunning = true;
-      openPhotoViewer(cIdx, next, true).then(() => startHoldTimer(5000));
+      openPhotoViewer(cIdx, next, true).then(dur => startHoldTimer(dur));
     } else {
       stopAutoPlay();
       if (isManualMode) {
@@ -2206,7 +2243,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const cIdx = apChIdx >= 0 ? apChIdx : currentCh;
       stopAutoPlay();
       apChIdx = cIdx; apPIdx = prev; apRunning = true;
-      openPhotoViewer(cIdx, prev, true).then(() => startHoldTimer(5000));
+      openPhotoViewer(cIdx, prev, true).then(dur => startHoldTimer(dur));
     } else { resumeHold(); }
   }
 
