@@ -512,8 +512,30 @@ html, body {
    CHAPTER OVERVIEW — horizontal carousel
 ═══════════════════════════════════════ */
 #pg-chapters {
-  background: #1e1a12; overflow: hidden;
+  background: #05030d; overflow: hidden;
   align-items: stretch; justify-content: stretch;
+}
+
+/* Starfield bg for the chapters page */
+#pg-chapters::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at  8% 12%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 22% 28%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 38%  6%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 18%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(2px 2px at 70%  8%, rgba(255,255,255,0.8) 0%, transparent 100%),
+    radial-gradient(1px 1px at 85% 22%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 45%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 78% 65%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 62% 80%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 45% 92%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 28% 85%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 12% 72%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at  4% 55%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(2px 2px at 33% 40%, rgba(255,255,255,0.65) 0%, transparent 100%);
 }
 
 /* overview wrapper */
@@ -553,48 +575,72 @@ html, body {
   margin-left: -137px;
   cursor: pointer;
   will-change: transform, opacity;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06);
+  box-shadow:
+    0 28px 72px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(120,160,255,0.10),
+    0 0 40px rgba(60,100,220,0.08);
   /* transition set by JS */
 }
 
 .cc-bg   { position: absolute; inset: 0; }
-.cc-shim { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 35%, rgba(0,0,0,0.62)); }
+.cc-shim { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 28%, rgba(0,0,0,0.72)); }
 
-/* subtle grid texture overlay */
+/* Nebula glow — color injected per-card via inline style */
+.cc-nebula { position: absolute; inset: 0; }
+
+/* Star field overlay */
 .cc-tex {
-  position: absolute; inset: 0; opacity: 0.04;
+  position: absolute; inset: 0;
   background-image:
-    linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
-  background-size: 20px 20px;
+    radial-gradient(1.2px 1.2px at 12%  8%, rgba(255,255,255,0.80) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 85% 12%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1.6px 1.6px at 48% 22%, rgba(255,255,255,0.90) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 72% 35%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 22% 48%, rgba(255,255,255,0.65) 0%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 92% 55%, rgba(255,255,255,0.50) 0%, transparent 100%),
+    radial-gradient(1px   1px   at  8% 65%, rgba(255,255,255,0.60) 0%, transparent 100%),
+    radial-gradient(2px   2px   at 60% 18%, rgba(255,255,255,0.95) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 35% 75%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 78% 82%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 18% 88%, rgba(255,255,255,0.70) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 55% 92%, rgba(255,255,255,0.40) 0%, transparent 100%),
+    radial-gradient(1.8px 1.8px at 40%  5%, rgba(255,255,255,0.95) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 95% 75%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1px   1px   at  3% 30%, rgba(255,255,255,0.50) 0%, transparent 100%),
+    radial-gradient(1.4px 1.4px at 68% 65%, rgba(255,255,255,0.70) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 30% 42%, rgba(255,255,255,0.40) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 88% 28%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(2px   2px   at 52% 55%, rgba(255,255,255,0.65) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 15% 95%, rgba(255,255,255,0.45) 0%, transparent 100%);
 }
 
 .cc-deco {
   position: absolute; top: 16px; right: 18px;
   font-size: 54px; line-height: 1;
-  color: rgba(255,255,255,0.05); font-weight: 500;
+  color: rgba(255,255,255,0.07); font-weight: 500;
   pointer-events: none;
 }
 .cc-line {
   position: absolute; bottom: 82px; left: 22px;
-  width: 28px; height: 1px; background: var(--gold); opacity: 0.5;
+  width: 28px; height: 1px;
+  background: rgba(160,200,255,0.55);
 }
 .cc-content {
   position: absolute; bottom: 0; left: 0; right: 0;
   padding: 0 22px 26px;
 }
-.cc-num  { font-size: 9.5px; letter-spacing: 3px; color: var(--gold); font-weight: 300; margin-bottom: 6px; }
-.cc-name { font-size: 26px; color: white; font-weight: 500; letter-spacing: -0.4px; margin-bottom: 4px; }
-.cc-date { font-size: 12px; color: rgba(255,255,255,0.42); font-weight: 300; }
+.cc-num  { font-size: 9.5px; letter-spacing: 3px; color: rgba(170,205,255,0.78); font-weight: 300; margin-bottom: 6px; }
+.cc-name { font-size: 26px; color: rgba(255,255,255,0.96); font-weight: 500; letter-spacing: -0.4px; margin-bottom: 4px; }
+.cc-date { font-size: 12px; color: rgba(255,255,255,0.38); font-weight: 300; }
 
 /* indicator dots */
 .carousel-dots { display: flex; gap: 6px; }
 .cdot {
   width: 5px; height: 5px; border-radius: 50%;
-  background: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.3);
   transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
 }
-.cdot.active { width: 20px; border-radius: 3px; background: var(--gold); }
+.cdot.active { width: 20px; border-radius: 3px; background: rgba(160,200,255,0.85); }
 
 /* ═══════════════════════════════════════
    CHAPTER TITLE VEIL
@@ -616,7 +662,7 @@ html, body {
 .ch-vtitle.in  { transform: scale(1);    opacity: 1; }
 .ch-vtitle.up  { transform: scale(0.5) translateY(-52px); opacity: 0; transition-duration: 0.55s; }
 
-.ch-vt-num  { font-size: 10px; letter-spacing: 4px; color: var(--gold); font-weight: 300; margin-bottom: 12px; }
+.ch-vt-num  { font-size: 10px; letter-spacing: 4px; color: rgba(170,205,255,0.78); font-weight: 300; margin-bottom: 12px; }
 .ch-vt-name { font-size: 34px; color: white; font-weight: 500; letter-spacing: -0.4px; }
 
 /* ═══════════════════════════════════════
@@ -639,7 +685,7 @@ html, body {
   transition: transform 0.65s cubic-bezier(0.16,1,0.3,1);
 }
 .ch-hd.in { transform: translateY(0); }
-.ch-hd-num  { font-size: 9.5px; letter-spacing: 3px; color: var(--gold); font-weight: 300; margin-bottom: 3px; }
+.ch-hd-num  { font-size: 9.5px; letter-spacing: 3px; color: #4a82c8; font-weight: 300; margin-bottom: 3px; }
 .ch-hd-name { font-size: 20px; color: var(--ink); font-weight: 500; }
 .ch-hd-sub  { font-size: 12px; color: var(--ink3); font-weight: 300; margin-top: 2px; }
 
@@ -1043,9 +1089,9 @@ const PIN_LEN = 8;
 
 const CHAPTERS = [
   {
-    num: 'EP. 01', name: '첫 만남', sub: '2021년 8월',
+    num: 'EP. 01', name: '회사 동기', sub: '2021년 8월 23일 ~',
     deco: 'I',
-    bg: 'linear-gradient(145deg, #b07840 0%, #8a5a28 40%, #6a3e18 100%)',
+    bg: 'linear-gradient(150deg, #0e1830 0%, #0a1020 55%, #060c18 100%)',
     photos: [
       { src: 'photos/ep1/1.jpeg',  cap: '2021년 8월, KB국민은행 37기.\n같은 IT직무로 입사한 동기였어.' },
       { src: 'photos/ep1/2.jpeg',  cap: '처음 출근하던 날,\n봄이 한창이었어.' },
@@ -1059,9 +1105,9 @@ const CHAPTERS = [
     ]
   },
   {
-    num: 'EP. 02', name: '연인이 되다', sub: '2022년 10월 30일',
+    num: 'EP. 02', name: '연인', sub: '2022년 10월 30일 ~',
     deco: 'II',
-    bg: 'linear-gradient(145deg, #4a6898 0%, #324878 40%, #1e3058 100%)',
+    bg: 'linear-gradient(150deg, #180b32 0%, #220e42 55%, #140828 100%)',
     photos: [
       { src: '', cap: '1년 넘게 함께 하다 보니,\n이 사람이다 싶었어.' },
       { src: '', cap: '2022년 10월 30일,\n우리가 된 날.' },
@@ -1069,27 +1115,27 @@ const CHAPTERS = [
     ]
   },
   {
-    num: 'EP. 03', name: '함께한 날들', sub: '2023 – 2024',
+    num: 'EP. 03', name: '일상', sub: '2022년 ~ 2026년',
     deco: 'III',
-    bg: 'linear-gradient(145deg, #3e7858 0%, #2c5e40 40%, #1e4430 100%)',
+    bg: 'linear-gradient(150deg, #081c28 0%, #0a2030 55%, #061418 100%)',
     photos: [
       { src: '', cap: '어딜 가든 네가 옆에 있으면\n그게 여행이 됐어.' },
       { src: '', cap: '소소한 하루하루가 쌓여서\n지금의 우리가 됐어.' },
     ]
   },
   {
-    num: 'EP. 04', name: '이제부터', sub: '2026년 11월 22일',
+    num: 'EP. 04', name: '여행', sub: '2022년 ~ 2026년',
     deco: 'IV',
-    bg: 'linear-gradient(145deg, #904868 0%, #703050 40%, #521e3a 100%)',
+    bg: 'linear-gradient(150deg, #0e0c28 0%, #161040 55%, #0a081e 100%)',
     photos: [
       { src: '', cap: '이제 우리의 새 챕터를 시작하려 해.\n11월 22일이 기다려져.' },
       { src: '', cap: '민소커플, 앞으로도 쭉.' },
     ]
   },
   {
-    num: 'EP. 05', name: '앞으로의 순간들', sub: '우리가 함께 쓸 이야기',
+    num: 'EP. 05', name: '앞으로의 우리', sub: '2026년 11월 22일 ~',
     deco: 'V',
-    bg: 'linear-gradient(145deg, #2a1f4e 0%, #1a1232 40%, #0e0a1e 100%)',
+    bg: 'linear-gradient(150deg, #060410 0%, #0a081a 55%, #040208 100%)',
     future: true,
     photos: []
   }
@@ -1352,6 +1398,14 @@ async function startCosmicLetter2(onDone) {
 ════════════════════════════════════ */
 const CARD_STEP = 305; // px between card centers
 
+const CC_NEBULA = [
+  'radial-gradient(ellipse 70% 55% at 25% 28%, rgba(40,110,240,0.30) 0%, transparent 68%), radial-gradient(ellipse 45% 40% at 80% 70%, rgba(80,60,200,0.15) 0%, transparent 60%)',
+  'radial-gradient(ellipse 65% 55% at 72% 25%, rgba(170,40,220,0.26) 0%, transparent 68%), radial-gradient(ellipse 50% 40% at 20% 70%, rgba(120,20,180,0.14) 0%, transparent 60%)',
+  'radial-gradient(ellipse 65% 50% at 30% 60%, rgba(20,150,190,0.26) 0%, transparent 68%), radial-gradient(ellipse 50% 40% at 75% 25%, rgba(20,100,160,0.14) 0%, transparent 60%)',
+  'radial-gradient(ellipse 70% 55% at 65% 32%, rgba(90,50,240,0.28) 0%, transparent 68%), radial-gradient(ellipse 45% 40% at 20% 72%, rgba(60,30,180,0.15) 0%, transparent 60%)',
+  'radial-gradient(ellipse 80% 65% at 50% 40%, rgba(160,90,255,0.20) 0%, transparent 68%), radial-gradient(ellipse 50% 45% at 80% 75%, rgba(100,60,220,0.12) 0%, transparent 60%)',
+];
+
 function buildCarousel() {
   const stage = $('carousel-stage');
   const dots  = $('carousel-dots');
@@ -1363,6 +1417,7 @@ function buildCarousel() {
     card.className = 'cc'; card.id = `cc${i}`;
     card.innerHTML = `
       <div class="cc-bg" style="background:${ch.bg}"></div>
+      <div class="cc-nebula" style="background:${CC_NEBULA[i]}"></div>
       <div class="cc-tex"></div>
       <div class="cc-shim"></div>
       <div class="cc-deco">${ch.deco}</div>
