@@ -75,15 +75,34 @@ html, body {
 /* ═══════════════════════════════════════
    LOCK SCREEN
 ═══════════════════════════════════════ */
-#pg-lock { background: var(--dark); padding: var(--sat) 4vw var(--sab); }
+#pg-lock { background: #06040e; padding: var(--sat) 4vw var(--sab); overflow: hidden; }
+
+/* Subtle starfield behind the lock card */
+#pg-lock::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 75% 55% at 50% 50%, rgba(35,18,90,0.55) 0%, transparent 70%),
+    radial-gradient(1.5px 1.5px at 14% 12%, rgba(255,255,255,0.70) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 32%  7%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(2px   2px   at 58% 10%, rgba(255,248,220,0.75) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 80%  6%, rgba(255,255,255,0.50) 0%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 93% 24%, rgba(200,188,255,0.60) 0%, transparent 100%),
+    radial-gradient(1px   1px   at  7% 44%, rgba(255,255,255,0.48) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 96% 58%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 72% 78%, rgba(200,188,255,0.55) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 44% 88%, rgba(255,255,255,0.50) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 18% 82%, rgba(255,255,255,0.42) 0%, transparent 100%),
+    radial-gradient(1.2px 1.2px at  4% 68%, rgba(255,255,255,0.48) 0%, transparent 100%);
+}
 
 .lock-card {
   position: relative; z-index: 1;
-  background: var(--paper); border-radius: 20px;
+  background: rgba(245,246,255,0.97); border-radius: 20px;
   padding: 28px 24px; width: min(370px, 92vw);
   flex: 1;
   display: flex; flex-direction: column; justify-content: flex-start;
-  box-shadow: 0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.07);
+  box-shadow: 0 40px 100px rgba(0,0,0,0.80), 0 0 0 1px rgba(100,140,255,0.16), 0 0 60px rgba(50,80,200,0.10);
   animation: cardUp 0.85s cubic-bezier(0.16,1,0.3,1) both;
   touch-action: manipulation;
 }
@@ -101,11 +120,11 @@ html, body {
 .lock-mono {
   display: flex; align-items: center; justify-content: center;
   width: 58px; height: 58px; border-radius: 50%;
-  background: linear-gradient(140deg, var(--gold), var(--gold-d));
+  background: linear-gradient(140deg, #3e78d0, #1e4898);
   margin: 0 auto;
   font-size: 19px; font-weight: 500; color: white; letter-spacing: -1px;
-  box-shadow: 0 8px 28px rgba(200,169,110,0.45);
-  touch-action: manipulation; /* prevent double-tap zoom */
+  box-shadow: 0 8px 28px rgba(40,90,220,0.45);
+  touch-action: manipulation;
 }
 .lock-q { text-align: center; }
 .lock-q .lq-hint {
@@ -120,11 +139,11 @@ html, body {
 .pin-dots { display: flex; justify-content: center; gap: 7px; }
 .pd {
   width: 20px; height: 20px; border-radius: 50%;
-  border: 1.5px solid #ddd5c5; background: transparent;
+  border: 1.5px solid #c2c8e0; background: transparent;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.14s ease;
 }
-.pd.on { background: var(--ink); border-color: var(--ink); }
+.pd.on { background: #1e4898; border-color: #1e4898; }
 .pd.on::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: white; }
 .pd.err { background: #cc3333; border-color: #cc3333; animation: pdShake 0.32s ease; }
 @keyframes pdShake {
@@ -136,17 +155,17 @@ html, body {
 .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
 .key {
   height: 54px; border: none; border-radius: 13px;
-  background: #f3ede3; color: var(--ink);
+  background: #eef0fa; color: #1a2244;
   font-size: 22px; font-weight: 400; font-family: inherit;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   transition: background 0.11s, transform 0.1s;
   touch-action: manipulation;
 }
-.key:active { background: var(--gold-l); transform: scale(0.92); }
-.key-del    { background: var(--ink); color: white; }
-.key-del:active { background: #1a0f0a; }
-.key-ok     { background: var(--ink); color: white; font-size: 14.5px; font-weight: 500; }
-.key-ok:active { background: #1a0f0a; }
+.key:active { background: rgba(100,148,240,0.28); transform: scale(0.92); }
+.key-del    { background: #131c3e; color: white; }
+.key-del:active { background: #1e2c5e; }
+.key-ok     { background: #1e4898; color: white; font-size: 14.5px; font-weight: 500; }
+.key-ok:active { background: #2a5ab0; }
 .key-blank  { background: transparent; pointer-events: none; }
 .lock-err {
   text-align: center; font-size: 12px; color: #cc3333;
@@ -174,7 +193,7 @@ html, body {
   transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
   box-shadow: 0 1px 4px rgba(0,0,0,0.18);
 }
-.mode-switch.on { background: var(--gold); }
+.mode-switch.on { background: #3a70c8; }
 .mode-switch.on::after { transform: translateX(18px); }
 
 /* ═══════════════════════════════════════
@@ -583,7 +602,7 @@ html, body {
 }
 
 .cc-bg   { position: absolute; inset: 0; }
-.cc-shim { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 28%, rgba(0,0,0,0.72)); }
+.cc-shim { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 18%, rgba(0,0,0,0.62) 68%, rgba(0,0,0,0.80)); }
 
 /* Nebula glow — color injected per-card via inline style */
 .cc-nebula { position: absolute; inset: 0; }
@@ -820,7 +839,28 @@ html, body {
 /* ═══════════════════════════════════════
    PROPOSAL
 ═══════════════════════════════════════ */
-#pg-proposal { background: var(--dark); overflow: hidden; }
+#pg-proposal { background: #06040e; overflow: hidden; }
+/* Deep space glow + star field */
+#pg-proposal::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(50,20,110,0.32) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 30% at 18% 18%, rgba(30,10,90,0.20) 0%, transparent 55%),
+    radial-gradient(ellipse 35% 28% at 82% 78%, rgba(90,20,130,0.16) 0%, transparent 50%),
+    radial-gradient(1.5px 1.5px at 10% 10%, rgba(255,255,255,0.72) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 28%  5%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(2px   2px   at 52% 10%, rgba(255,248,220,0.78) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 78%  4%, rgba(255,255,255,0.52) 0%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 92% 20%, rgba(200,188,255,0.60) 0%, transparent 100%),
+    radial-gradient(1px   1px   at  5% 48%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 96% 62%, rgba(255,255,255,0.48) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 65% 80%, rgba(200,188,255,0.52) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 38% 88%, rgba(255,255,255,0.48) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 16% 86%, rgba(255,255,255,0.42) 0%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 82% 40%, rgba(255,255,255,0.45) 0%, transparent 100%);
+  animation: ftNebulaBreath 10s ease-in-out infinite alternate;
+}
 .proposal-inner {
   position: relative; z-index: 1;
   display: flex; flex-direction: column; align-items: center; text-align: center;
@@ -866,7 +906,22 @@ html, body {
 /* ═══════════════════════════════════════
    ACCEPT
 ═══════════════════════════════════════ */
-#pg-accept { background: var(--dark); overflow: hidden; }
+#pg-accept { background: #06040e; overflow: hidden; }
+#pg-accept::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 75% 60% at 50% 45%, rgba(30,100,120,0.28) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 30% at 20% 18%, rgba(10,80,100,0.18) 0%, transparent 55%),
+    radial-gradient(1.5px 1.5px at 12% 10%, rgba(255,255,255,0.72) 0%, transparent 100%),
+    radial-gradient(2px   2px   at 54%  8%, rgba(255,248,220,0.78) 0%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 88% 18%, rgba(178,237,233,0.65) 0%, transparent 100%),
+    radial-gradient(1px   1px   at  7% 50%, rgba(255,255,255,0.48) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 94% 60%, rgba(178,237,233,0.50) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 70% 82%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 35% 90%, rgba(178,237,233,0.48) 0%, transparent 100%);
+  animation: ftNebulaBreath 10s ease-in-out infinite alternate;
+}
 .accept-inner {
   position: relative; z-index: 1;
   display: flex; flex-direction: column; align-items: center; text-align: center;
@@ -1091,7 +1146,7 @@ const CHAPTERS = [
   {
     num: 'EP. 01', name: '회사 동기', sub: '2021년 8월 23일 ~',
     deco: 'I',
-    bg: 'linear-gradient(150deg, #0e1830 0%, #0a1020 55%, #060c18 100%)',
+    bg: 'linear-gradient(150deg, #0b1c44 0%, #0e2252 55%, #070e28 100%)',
     photos: [
       { src: 'photos/ep1/1.jpeg',  cap: '2021년 8월, KB국민은행 37기.\n같은 IT직무로 입사한 동기였어.' },
       { src: 'photos/ep1/2.jpeg',  cap: '처음 출근하던 날,\n봄이 한창이었어.' },
@@ -1107,7 +1162,7 @@ const CHAPTERS = [
   {
     num: 'EP. 02', name: '연인', sub: '2022년 10월 30일 ~',
     deco: 'II',
-    bg: 'linear-gradient(150deg, #180b32 0%, #220e42 55%, #140828 100%)',
+    bg: 'linear-gradient(150deg, #240838 0%, #300a52 55%, #180526 100%)',
     photos: [
       { src: '', cap: '1년 넘게 함께 하다 보니,\n이 사람이다 싶었어.' },
       { src: '', cap: '2022년 10월 30일,\n우리가 된 날.' },
@@ -1117,7 +1172,7 @@ const CHAPTERS = [
   {
     num: 'EP. 03', name: '일상', sub: '2022년 ~ 2026년',
     deco: 'III',
-    bg: 'linear-gradient(150deg, #081c28 0%, #0a2030 55%, #061418 100%)',
+    bg: 'linear-gradient(150deg, #061e2e 0%, #0a2c3e 55%, #031418 100%)',
     photos: [
       { src: '', cap: '어딜 가든 네가 옆에 있으면\n그게 여행이 됐어.' },
       { src: '', cap: '소소한 하루하루가 쌓여서\n지금의 우리가 됐어.' },
@@ -1126,7 +1181,7 @@ const CHAPTERS = [
   {
     num: 'EP. 04', name: '여행', sub: '2022년 ~ 2026년',
     deco: 'IV',
-    bg: 'linear-gradient(150deg, #0e0c28 0%, #161040 55%, #0a081e 100%)',
+    bg: 'linear-gradient(150deg, #100a2e 0%, #1c1248 55%, #080618 100%)',
     photos: [
       { src: '', cap: '이제 우리의 새 챕터를 시작하려 해.\n11월 22일이 기다려져.' },
       { src: '', cap: '민소커플, 앞으로도 쭉.' },
@@ -1135,7 +1190,7 @@ const CHAPTERS = [
   {
     num: 'EP. 05', name: '앞으로의 우리', sub: '2026년 11월 22일 ~',
     deco: 'V',
-    bg: 'linear-gradient(150deg, #060410 0%, #0a081a 55%, #040208 100%)',
+    bg: 'linear-gradient(150deg, #180830 0%, #241040 55%, #100520 100%)',
     future: true,
     photos: []
   }
@@ -1269,8 +1324,10 @@ function todayStr() {
 /* ════════════════════════════════════
    LOCK
 ════════════════════════════════════ */
+const COSMIC_BOKEH = ['rgba(60,110,240,0.28)','rgba(100,60,220,0.18)','rgba(200,188,255,0.10)','rgba(30,70,200,0.20)'];
+
 function initLock() {
-  spawnBokeh('bk0');
+  spawnBokeh('bk0', 14, COSMIC_BOKEH);
   const row = $('pin-dots');
   for (let i = 0; i < PIN_LEN; i++) {
     const d = document.createElement('div');
@@ -1398,12 +1455,27 @@ async function startCosmicLetter2(onDone) {
 ════════════════════════════════════ */
 const CARD_STEP = 305; // px between card centers
 
+// Per-card nebula: stronger, more saturated, distinct per episode
 const CC_NEBULA = [
-  'radial-gradient(ellipse 70% 55% at 25% 28%, rgba(40,110,240,0.30) 0%, transparent 68%), radial-gradient(ellipse 45% 40% at 80% 70%, rgba(80,60,200,0.15) 0%, transparent 60%)',
-  'radial-gradient(ellipse 65% 55% at 72% 25%, rgba(170,40,220,0.26) 0%, transparent 68%), radial-gradient(ellipse 50% 40% at 20% 70%, rgba(120,20,180,0.14) 0%, transparent 60%)',
-  'radial-gradient(ellipse 65% 50% at 30% 60%, rgba(20,150,190,0.26) 0%, transparent 68%), radial-gradient(ellipse 50% 40% at 75% 25%, rgba(20,100,160,0.14) 0%, transparent 60%)',
-  'radial-gradient(ellipse 70% 55% at 65% 32%, rgba(90,50,240,0.28) 0%, transparent 68%), radial-gradient(ellipse 45% 40% at 20% 72%, rgba(60,30,180,0.15) 0%, transparent 60%)',
-  'radial-gradient(ellipse 80% 65% at 50% 40%, rgba(160,90,255,0.20) 0%, transparent 68%), radial-gradient(ellipse 50% 45% at 80% 75%, rgba(100,60,220,0.12) 0%, transparent 60%)',
+  // EP01 — Sapphire blue
+  'radial-gradient(ellipse 80% 65% at 20% 28%, rgba(30,110,255,0.48) 0%, rgba(60,140,255,0.10) 55%, transparent 70%), radial-gradient(ellipse 48% 42% at 84% 74%, rgba(40,70,220,0.24) 0%, transparent 55%)',
+  // EP02 — Amethyst violet
+  'radial-gradient(ellipse 78% 62% at 78% 22%, rgba(210,30,255,0.46) 0%, rgba(170,20,230,0.10) 55%, transparent 70%), radial-gradient(ellipse 48% 42% at 16% 76%, rgba(150,10,210,0.22) 0%, transparent 55%)',
+  // EP03 — Aqua teal
+  'radial-gradient(ellipse 78% 62% at 24% 66%, rgba(10,200,220,0.46) 0%, rgba(10,160,190,0.10) 55%, transparent 70%), radial-gradient(ellipse 48% 42% at 80% 20%, rgba(5,130,170,0.24) 0%, transparent 55%)',
+  // EP04 — Royal indigo
+  'radial-gradient(ellipse 80% 65% at 72% 28%, rgba(110,40,255,0.48) 0%, rgba(90,30,230,0.10) 55%, transparent 70%), radial-gradient(ellipse 48% 42% at 14% 76%, rgba(70,20,210,0.24) 0%, transparent 55%)',
+  // EP05 — Aurora (warm purple + rose)
+  'radial-gradient(ellipse 85% 70% at 50% 36%, rgba(190,60,255,0.42) 0%, rgba(170,40,240,0.10) 55%, transparent 70%), radial-gradient(ellipse 52% 46% at 84% 80%, rgba(255,60,180,0.18) 0%, transparent 55%)',
+];
+
+// Per-card colored border glow — subtle halo matching each episode's hue
+const CC_GLOW = [
+  '0 28px 72px rgba(0,0,0,0.75), 0 0 0 1px rgba(50,120,255,0.22), 0 0 56px rgba(30,100,240,0.14)',
+  '0 28px 72px rgba(0,0,0,0.75), 0 0 0 1px rgba(200,40,255,0.22), 0 0 56px rgba(180,20,240,0.14)',
+  '0 28px 72px rgba(0,0,0,0.75), 0 0 0 1px rgba(10,190,220,0.22), 0 0 56px rgba(10,160,200,0.14)',
+  '0 28px 72px rgba(0,0,0,0.75), 0 0 0 1px rgba(100,50,255,0.22), 0 0 56px rgba(80,30,240,0.14)',
+  '0 28px 72px rgba(0,0,0,0.75), 0 0 0 1px rgba(180,60,255,0.22), 0 0 56px rgba(160,40,240,0.14)',
 ];
 
 function buildCarousel() {
@@ -1415,6 +1487,7 @@ function buildCarousel() {
     // card
     const card = document.createElement('div');
     card.className = 'cc'; card.id = `cc${i}`;
+    card.style.boxShadow = CC_GLOW[i];
     card.innerHTML = `
       <div class="cc-bg" style="background:${ch.bg}"></div>
       <div class="cc-nebula" style="background:${CC_NEBULA[i]}"></div>
@@ -1427,15 +1500,6 @@ function buildCarousel() {
         <div class="cc-name">${ch.name}</div>
         <div class="cc-date">${ch.sub}</div>
       </div>`;
-
-    // if photo exists use as bg
-    if (ch.photos[0]?.src) {
-      const img = document.createElement('img');
-      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 0.5s;';
-      img.onload = () => { img.style.opacity = '1'; };
-      img.src = ch.photos[0].src;
-      card.insertBefore(img, card.firstChild);
-    }
 
     stage.appendChild(card);
 
