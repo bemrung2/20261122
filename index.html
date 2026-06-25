@@ -735,7 +735,8 @@ html, body {
 #ch-veil {
   position: absolute; inset: 0; z-index: 40;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(16,14,8,0.9);
+  background: rgba(4,2,16,0.92);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   opacity: 0; pointer-events: none;
   transition: opacity 0.5s ease;
 }
@@ -753,12 +754,12 @@ html, body {
 .ch-vt-name { font-size: 34px; color: white; font-weight: 500; letter-spacing: -0.4px; }
 
 /* ═══════════════════════════════════════
-   CHAPTER DETAIL
+   CHAPTER DETAIL — cosmic
 ═══════════════════════════════════════ */
 .ch-detail {
   position: absolute; inset: 0; z-index: 20;
   display: flex; flex-direction: column;
-  background: #faf6ee;
+  background: #06040e;
   opacity: 0; pointer-events: none;
   transition: opacity 0.38s ease;
 }
@@ -766,21 +767,24 @@ html, body {
 
 .ch-hd {
   flex-shrink: 0;
-  padding: calc(var(--sat) + 14px) 24px 14px;
-  background: white; border-bottom: 1px solid rgba(0,0,0,0.07);
+  padding: calc(var(--sat) + 14px) 24px 16px;
+  background: rgba(6,3,18,0.96);
+  border-bottom: 1px solid rgba(160,140,255,0.12);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   transform: translateY(-100%);
   transition: transform 0.65s cubic-bezier(0.16,1,0.3,1);
 }
 .ch-hd.in { transform: translateY(0); }
-.ch-hd-num  { font-size: 9.5px; letter-spacing: 3px; color: #4a82c8; font-weight: 300; margin-bottom: 3px; }
-.ch-hd-name { font-size: 20px; color: var(--ink); font-weight: 500; }
-.ch-hd-sub  { font-size: 12px; color: var(--ink3); font-weight: 300; margin-top: 2px; }
+.ch-hd-num  { font-size: 9.5px; letter-spacing: 3px; color: rgba(172,158,255,0.72); font-weight: 300; margin-bottom: 4px; }
+.ch-hd-name { font-size: 20px; color: rgba(255,248,235,0.96); font-weight: 500; }
+.ch-hd-sub  { font-size: 12px; color: rgba(190,175,255,0.45); font-weight: 300; margin-top: 3px; }
 
 .ch-scroll {
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 0;
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
   align-content: start;
+  background: #06040e;
   opacity: 0; transition: opacity 0.45s ease 0.25s;
 }
 .ch-scroll::-webkit-scrollbar { display: none; }
@@ -789,7 +793,7 @@ html, body {
 /* ── Instagram grid photo cells ── */
 .photo-cell {
   aspect-ratio: 1; position: relative; overflow: hidden;
-  cursor: pointer; background: #cec6bb;
+  cursor: pointer; background: #0c0820;
 }
 .photo-cell img, .photo-cell video {
   position: absolute; inset: 0;
@@ -890,19 +894,23 @@ html, body {
 .ch-foot {
   flex-shrink: 0;
   padding: 13px 20px; padding-bottom: calc(var(--sab) + 13px);
-  background: white; border-top: 1px solid rgba(0,0,0,0.07);
+  background: rgba(6,3,18,0.96);
+  border-top: 1px solid rgba(160,140,255,0.12);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   opacity: 0; transition: opacity 0.45s ease 0.45s;
 }
 .ch-foot.show { opacity: 1; }
 
 .btn-next {
   width: 100%; height: 52px; border-radius: 16px; border: none;
-  background: var(--ink); color: white;
+  background: linear-gradient(135deg, rgba(105,52,230,0.88) 0%, rgba(68,28,188,0.88) 100%);
+  color: rgba(255,248,240,0.96);
   font-family: inherit; font-size: 15px; font-weight: 400;
   cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: opacity 0.15s, transform 0.15s;
+  box-shadow: 0 4px 24px rgba(90,40,220,0.40), 0 0 0 1px rgba(160,120,255,0.20);
+  transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
 }
-.btn-next:active { opacity: 0.75; transform: scale(0.97); }
+.btn-next:active { opacity: 0.80; transform: scale(0.97); box-shadow: 0 2px 12px rgba(90,40,220,0.30); }
 
 /* ═══════════════════════════════════════
    PROPOSAL
