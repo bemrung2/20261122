@@ -976,7 +976,8 @@ html, body {
   position: fixed; width: 210px; height: 46px; border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.1); background: transparent;
   color: rgba(255,255,255,0.28); font-family: inherit; font-size: 14px; cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  touch-action: manipulation;
+  transition: left 0.28s cubic-bezier(0.34,1.56,0.64,1), top 0.28s cubic-bezier(0.34,1.56,0.64,1);
 }
 
 /* ═══════════════════════════════════════
@@ -2258,13 +2259,13 @@ async function onChapterNext() {
 // Main keywords — ignite one by one with predefined positions
 const FUTURE_MAIN = ['결혼식', '신혼여행', '아파트 이사', '신혼생활', '해외여행', '출산', '육아'];
 const FUTURE_MAIN_POS = [
-  { x:  7, y: 13, fs: 32 },
-  { x: 52, y:  8, fs: 28 },
-  { x:  5, y: 38, fs: 24 },
-  { x: 60, y: 26, fs: 28 },
-  { x: 10, y: 63, fs: 27 },
-  { x: 57, y: 69, fs: 34 },
-  { x: 35, y: 80, fs: 25 },
+  { x: 14, y: 12, fs: 32 },
+  { x: 52, y:  7, fs: 28 },
+  { x: 12, y: 37, fs: 24 },
+  { x: 60, y: 25, fs: 28 },
+  { x: 16, y: 62, fs: 27 },
+  { x: 56, y: 68, fs: 34 },
+  { x: 37, y: 80, fs: 25 },
 ];
 
 // Secondary and ambient words — appear all at once, fill the field
@@ -2323,7 +2324,7 @@ function buildFutureAtmosphere(container) {
   // Background micro-words — staggered 0.18s apart so they float up one by one
   ftShuf(FUTURE_BG).forEach((w, i) => {
     let x, y;
-    do { x = 3 + Math.random() * 90; y = 5 + Math.random() * 88; }
+    do { x = 11 + Math.random() * 77; y = 5 + Math.random() * 88; }
     while (!outsideCenter(x, y, 28, 32, 72, 68));
     ftSpawn(container, w, 'ft-bgw',
       x, y, 10 + Math.random() * 5,
@@ -2337,7 +2338,7 @@ function buildFutureAtmosphere(container) {
   // Mid words — staggered 0.24s apart
   ftShuf(FUTURE_MID).forEach((w, i) => {
     let x, y;
-    do { x = 3 + Math.random() * 90; y = 5 + Math.random() * 88; }
+    do { x = 11 + Math.random() * 77; y = 5 + Math.random() * 88; }
     while (!outsideCenter(x, y, 25, 30, 75, 70));
     ftSpawn(container, w, 'ft-mid',
       x, y, 15 + Math.random() * 8,
@@ -2422,9 +2423,8 @@ function placeNo() {
 const NO_MSGS = ['싫어!','싫다고!','안 해!','절대!','저리 가!','꺼져!!','왜 이래!','싫어!!!','안 돼!','진짜 싫어!'];
 let noTaps = 0, _noLastTs = 0;
 function dodgeNo(e) {
-  e.preventDefault();
   const now = Date.now();
-  if (now - _noLastTs < 400) return; // 이중 발화 방지
+  if (now - _noLastTs < 350) return;
   _noLastTs = now;
   const btn = $('btn-no');
   const yes = document.querySelector('.btn-yes');
@@ -2570,7 +2570,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initGridDismiss();
   $('btn-ch-next').addEventListener('click', onChapterNext);
   $('btn-yes').addEventListener('click', onYes);
-  $('btn-no').addEventListener('pointerdown', dodgeNo);
+  $('btn-no').addEventListener('click', dodgeNo);
 
   // ─── Photo Viewer Touch ───────────────────────────────────
   // ① 좌/우 탭 or 스와이프 → 이전/다음
