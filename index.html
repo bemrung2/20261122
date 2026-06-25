@@ -1181,7 +1181,7 @@ html, body {
     <div class="proposal-sub">앞으로의 모든 시간을<br>함께하고 싶어</div>
     <button class="btn-yes" id="btn-yes">Yes!</button>
   </div>
-  <button class="btn-no" id="btn-no">...글쎄</button>
+  <button class="btn-no" id="btn-no">싫어!</button>
 </div>
 
 <!-- ══════════════════ ACCEPT ══════════════════ -->
@@ -2419,16 +2419,32 @@ function placeNo() {
   btn.style.bottom = 'auto';
 }
 
+const NO_MSGS = ['싫어!','싫다고!','안 해!','절대!','저리 가!','꺼져!!','왜 이래!','싫어!!!','안 돼!','진짜 싫어!'];
 let noTaps = 0;
 function dodgeNo(e) {
   e.preventDefault();
-  noTaps++;
   const btn = $('btn-no');
-  if (noTaps >= 4) { btn.textContent = '진심이야? 🥺'; return; }
+  const yes = document.querySelector('.btn-yes');
+  const yR  = yes.getBoundingClientRect();
   const w = window.innerWidth, h = window.innerHeight;
-  const x = 20 + Math.random() * (w - 230 - 40);
-  const y = 110 + Math.random() * (h - 46 - 220);
-  btn.style.left = x + 'px'; btn.style.top = y + 'px';
+  const bw = 210, bh = 46, margin = 20;
+
+  // pick a random position that doesn't overlap btn-yes
+  let x, y, tries = 0;
+  do {
+    x = margin + Math.random() * (w - bw - margin * 2);
+    y = 90    + Math.random() * (h - bh - 180);
+    tries++;
+  } while (
+    tries < 30 &&
+    x < yR.right  + margin && x + bw > yR.left   - margin &&
+    y < yR.bottom + margin && y + bh > yR.top     - margin
+  );
+
+  btn.style.left = x + 'px';
+  btn.style.top  = y + 'px';
+  btn.textContent = NO_MSGS[noTaps % NO_MSGS.length];
+  noTaps++;
 }
 
 /* ════════════════════════════════════
