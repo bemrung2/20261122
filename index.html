@@ -2420,9 +2420,12 @@ function placeNo() {
 }
 
 const NO_MSGS = ['싫어!','싫다고!','안 해!','절대!','저리 가!','꺼져!!','왜 이래!','싫어!!!','안 돼!','진짜 싫어!'];
-let noTaps = 0;
+let noTaps = 0, _noLastTs = 0;
 function dodgeNo(e) {
   e.preventDefault();
+  const now = Date.now();
+  if (now - _noLastTs < 400) return; // 이중 발화 방지
+  _noLastTs = now;
   const btn = $('btn-no');
   const yes = document.querySelector('.btn-yes');
   const yR  = yes.getBoundingClientRect();
@@ -2567,8 +2570,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initGridDismiss();
   $('btn-ch-next').addEventListener('click', onChapterNext);
   $('btn-yes').addEventListener('click', onYes);
-  $('btn-no').addEventListener('touchstart', dodgeNo, { passive: false });
-  $('btn-no').addEventListener('click', dodgeNo);
+  $('btn-no').addEventListener('pointerdown', dodgeNo);
 
   // ─── Photo Viewer Touch ───────────────────────────────────
   // ① 좌/우 탭 or 스와이프 → 이전/다음
