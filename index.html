@@ -2259,13 +2259,13 @@ async function onChapterNext() {
 // Main keywords — ignite one by one with predefined positions
 const FUTURE_MAIN = ['결혼식', '신혼여행', '아파트 이사', '신혼생활', '해외여행', '출산', '육아'];
 const FUTURE_MAIN_POS = [
-  { x: 14, y: 12, fs: 32 },
-  { x: 52, y:  7, fs: 28 },
-  { x: 12, y: 37, fs: 24 },
-  { x: 60, y: 25, fs: 28 },
-  { x: 16, y: 62, fs: 27 },
-  { x: 56, y: 68, fs: 34 },
-  { x: 37, y: 80, fs: 25 },
+  { x: 25, y: 10, fs: 32 },   // 결혼식  → 화면 좌측 ~14%
+  { x: 63, y:  7, fs: 28 },   // 신혼여행 → 화면 우측 ~66%
+  { x: 16, y: 37, fs: 24 },   // 아파트 이사 → 화면 좌측 ~11%
+  { x: 63, y: 26, fs: 28 },   // 신혼생활 → 화면 우측 ~66%
+  { x: 20, y: 62, fs: 27 },   // 해외여행 → 화면 좌측 ~14%
+  { x: 70, y: 68, fs: 34 },   // 출산 → 화면 우측 ~73%
+  { x: 46, y: 82, fs: 25 },   // 육아 → 화면 중앙 ~45%
 ];
 
 // Secondary and ambient words — appear all at once, fill the field
@@ -2274,10 +2274,10 @@ const FUTURE_MID = [
   '첫눈', '생일', '설날', '추석', '가족사진', '주말 아침', '기념일', '카페'
 ];
 const FUTURE_BG = [
-  '웃음', '눈물', '바다',
+  '웃음', '바다',
   '여름밤', '공원 산책', '요리', '집들이',
   '여행 계획', '소소한 행복', '함께', '이사', '파티',
-  '가족', '졸업', '새벽', '봄날', '승진'
+  '가족', '새벽', '봄날', '승진'
 ];
 
 function ftShuf(a) {
