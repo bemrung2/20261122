@@ -792,8 +792,13 @@ html, body {
 
 /* ── Instagram grid photo cells ── */
 .photo-cell {
-  aspect-ratio: 1; position: relative; overflow: hidden;
+  position: relative; overflow: hidden;
   cursor: pointer; background: #0c0820;
+  min-width: 0;
+}
+/* padding-bottom trick: 항상 1:1 정사각형 — aspect-ratio보다 iOS 호환성 높음 */
+.photo-cell::before {
+  content: ''; display: block; padding-bottom: 100%;
 }
 .photo-cell img, .photo-cell video {
   position: absolute; inset: 0;
