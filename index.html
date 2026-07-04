@@ -1282,17 +1282,17 @@ const CHAPTERS = [
       { src: 'photos/ep4/2.jpeg',  cap: '여수 벨메르에서도 좋은 시간 보내고\n술도 실컷 먹고 왔지' },
       { src: 'photos/ep4/3.jpeg',  cap: '제천 리솜 포레스트에서는 2박 3일동안\n실컷 먹고 자고 힐링하고 왔고' },
       { src: 'photos/ep4/4.jpeg',  cap: '부산에서는 맛있는 음식도 먹고\n요트도 타고, 드론쇼도 기억에 남네' },
-      { src: 'photos/ep4/5.jpeg',  cap: '속초 전날 내가 다쳐왔지만\n처음으로 대게도 먹고, 카시아에서 실컷 쉬었지' },
-      { src: 'photos/ep4/6.jpeg',  cap: '우리의 첫 해외여행\n푸꾸옥으로 가는 길이야' },
-      { src: 'photos/ep4/7.jpeg',  cap: '도착하자마자 반쌔오도 먹고\n할아버지 맥주라는 것도 먹었지' },
-      { src: 'photos/ep4/8.jpeg',  cap: '700일을 기념해서 몰래 주문한 케이크야\n망고 케이크라 맛있었지 ㅋ' },
-      { src: 'photos/ep4/9.jpeg',  cap: '진짜 더웠지만 사진은 잘 나왔지?\n동물 별로 없는 동물원도 가고' },
-      { src: 'photos/ep4/10.jpeg', cap: '실컷 수영도 하고\n맛있는 음식도 먹고' },
-      { src: 'photos/ep4/11.jpeg', cap: '맛있는 술 마시며\n멋진 노을도 구경했어' },
-      { src: 'photos/ep4/12.jpeg', cap: '두 번째 해외인 도쿄로 가는 비행기야\n항공샷에 빠져서 도쿄는 이 구도밖에 없어 ㅋ' },
-      { src: 'photos/ep4/13.jpeg', cap: '하루 종일 걷고 나서, 쿠시카츠 집에서\n맛있는 생맥주로 하루를 마무리했지' },
-      { src: 'photos/ep4/14.jpeg', cap: '이제 우리 세 번째 해외인\n이탈리아, 스위스, 파리를 기다리자!' },
-      { src: 'photos/ep4/15.jpeg', cap: '' },
+      { src: 'photos/ep4/5.jpeg',  cap: '제주도 그랜드하얏트에서 4박 5일!\n숙소가 너무 좋고 맛있는 음식도 많이 먹었지' },
+      { src: 'photos/ep4/6.jpeg',  cap: '속초 전날 내가 다쳐왔지만\n처음으로 대게도 먹고, 카시아에서 실컷 쉬었지' },
+      { src: 'photos/ep4/7.jpeg',  cap: '우리의 첫 해외여행\n푸꾸옥으로 가는 길이야' },
+      { src: 'photos/ep4/8.jpeg',  cap: '도착하자마자 반쌔오도 먹고\n할아버지 맥주라는 것도 먹었지' },
+      { src: 'photos/ep4/9.jpeg',  cap: '700일을 기념해서 몰래 주문한 케이크야\n망고 케이크라 맛있었지 ㅋ' },
+      { src: 'photos/ep4/10.jpeg', cap: '진짜 더웠지만 사진은 잘 나왔지?\n동물 별로 없는 동물원도 가고' },
+      { src: 'photos/ep4/11.jpeg', cap: '실컷 수영도 하고\n맛있는 음식도 먹고' },
+      { src: 'photos/ep4/12.jpeg', cap: '맛있는 술 마시며\n멋진 노을도 구경했어' },
+      { src: 'photos/ep4/13.jpeg', cap: '두 번째 해외인 도쿄로 가는 비행기야\n항공샷에 빠져서 도쿄는 이 구도밖에 없어 ㅋ' },
+      { src: 'photos/ep4/14.jpeg', cap: '하루 종일 걷고 나서, 쿠시카츠 집에서\n맛있는 생맥주로 하루를 마무리했지' },
+      { src: 'photos/ep4/15.jpeg', cap: '이제 우리 세 번째 해외인\n이탈리아, 스위스, 파리를 기다리자!' },
     ]
   },
   {
@@ -1327,6 +1327,7 @@ let pin = '';
 let currentCh  = 0;
 let activeCard = 0;
 let busy = false;
+let _apGen = 0;   // increments on stopAutoPlay — stale openPhotoViewer calls abort
 
 let pvBarsVisible   = false;
 let pvBarsHideTimer = null;
@@ -2000,6 +2001,7 @@ function startAutoPlayFrom(chIdx, pIdx)  {
 }
 
 function stopAutoPlay() {
+  _apGen++;          // invalidate any in-flight openPhotoViewer calls
   apRunning = false;
   apChIdx   = -1;
   apHolding = false;
@@ -2027,7 +2029,7 @@ async function runAutoStep(chIdx, pIdx) {
 
 /* ── 홀드 타이머 (일시정지 지원) ── */
 function startHoldTimer(ms) {
-  if (isManualMode) return; // manual mode: no auto-advance
+  if (isManualMode || !apRunning) return; // manual mode or stopped: no auto-advance
   if (apTimer) { clearTimeout(apTimer); apTimer = null; }
   apRemaining  = ms;
   apTimerStart = Date.now();
@@ -2074,6 +2076,7 @@ function resumeHold() {
 }
 
 async function openPhotoViewer(chIdx, pIdx, isAuto) {
+  const myGen = _apGen;   // capture — if stopAutoPlay fires mid-await, myGen !== _apGen
   const ch    = CHAPTERS[chIdx];
   const photo = ch.photos[pIdx];
   const pv    = $('photo-viewer');
@@ -2196,6 +2199,7 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   pvImg.style.transform  = 'scale(0.72) translateY(20px)';
   pvImg.style.opacity    = '0';
 
+  if (_apGen !== myGen) return dur;   // stale call — stopAutoPlay fired mid-await
   pv.classList.add('show');
   await sleep(30);
 
@@ -2637,14 +2641,14 @@ window.addEventListener('DOMContentLoaded', () => {
       const next = apPIdx + 1;
       stopAutoPlay();
       apChIdx = cIdx; apPIdx = next; apRunning = true;
-      openPhotoViewer(cIdx, next, true).then(dur => startHoldTimer(dur));
+      openPhotoViewer(cIdx, next, true).then(dur => { if (apRunning) startHoldTimer(dur); });
     } else {
       stopAutoPlay();
       if (isManualMode) {
         // manual mode: last photo → close viewer, stay in grid
         closePhotoViewer(false);
       } else {
-        onChapterNext();
+        closePhotoViewer(false).then(() => onChapterNext());
       }
     }
   }
