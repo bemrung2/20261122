@@ -2091,6 +2091,7 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
     pvImg.style.transition = 'none';
     pvImg.style.opacity    = '0';
     await sleep(40);
+    if (_apGen !== myGen) return dur; // stale — abort before touching pvImg content
   }
 
   // Clear non-video residual children (video was already moved above)
@@ -2188,6 +2189,7 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   }
 
   if (alreadyOpen) {
+    if (_apGen !== myGen) return dur; // stale — media loaded but don't show it
     pvImg.style.transition = 'opacity 0.45s ease';
     pvImg.style.opacity    = '1';
     if (isAuto) { await sleep(60); activateBar(); }
