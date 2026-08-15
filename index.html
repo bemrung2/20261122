@@ -819,13 +819,22 @@ html, body {
 .pv-body  { position: absolute; inset: 0; z-index: 1; }
 .pv-stage { position: absolute; inset: 0; }
 
-/* One layer per shot — the incoming shot dissolves over the outgoing one */
+/* One layer per shot. The new shot sweeps in from the right as the old one
+   is pushed off left — a directional advance, so each cut reads as time
+   moving forward rather than as two images blending. Fast in, gentle settle. */
 .pv-layer {
   position: absolute; inset: 0;
-  opacity: 0; transition: opacity 1.05s ease;
+  opacity: 0;
+  transform: translate3d(7%, 0, 0) scale(1.05);
+  transition: opacity 0.42s ease,
+              transform 0.66s cubic-bezier(0.19, 1, 0.28, 1);
+  will-change: transform, opacity;
 }
-.pv-layer.in  { opacity: 1; }
-.pv-layer.out { opacity: 0; }
+.pv-layer.in  { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+.pv-layer.out {
+  opacity: 0; transform: translate3d(-5.5%, 0, 0) scale(0.975);
+  transition: opacity 0.34s ease, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
 /* Blurred, darkened copy fills the frame so no photo is ever cropped */
 .pv-blur {
@@ -833,7 +842,8 @@ html, body {
   width: 100%; height: 100%;
   object-fit: cover;
   filter: blur(38px) brightness(0.30) saturate(1.25);
-  transform: scale(1.16);
+  /* overscanned so the layer can slide without exposing a bare edge */
+  transform: scale(1.26);
 }
 /* The photo itself — always whole, never cropped */
 .pv-main {
@@ -909,9 +919,14 @@ html, body {
   letter-spacing: 0.01em;
   text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 28px rgba(0,0,0,0.65);
   opacity: 0; transform: translateY(14px);
-  transition: opacity 0.9s ease 0.4s, transform 0.9s cubic-bezier(0.16,1,0.3,1) 0.4s;
+  transition: opacity 0.55s ease 0.15s, transform 0.55s cubic-bezier(0.16,1,0.3,1) 0.15s;
 }
 #photo-viewer.show #pv-cap { opacity: 1; transform: translateY(0); }
+/* caption rides the cut with the shot rather than snapping to new text */
+#photo-viewer.show #pv-cap.swapping {
+  opacity: 0; transform: translateY(9px);
+  transition: opacity 0.26s ease, transform 0.26s ease;
+}
 
 /* Footer reads as a scrim over the film, not as an app toolbar */
 .ch-foot {
@@ -2320,8 +2335,15 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
     });
   }
 
-  // caption
-  $('pv-cap').textContent = photo.cap;
+  // caption fades out now; the new text is set at the cut, below, so a stale
+  // shot can never leave its words on screen
+  const capEl = $('pv-cap');
+  if (alreadyOpen) {
+    capEl.classList.add('swapping');
+    // a real frame has to elapse or the browser coalesces the fade away, and
+    // letting the words clear just before the cut reads better besides
+    await sleep(110);
+  }
 
   // progress bars
   const barsEl = $('pv-bars');
@@ -2355,8 +2377,12 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
     kbEl.classList.add(`kb${1 + Math.floor(Math.random() * 4)}`);
   }
 
-  // Reveal: dissolve the new shot in and retire the previous ones
-  requestAnimationFrame(() => layer.classList.add('in'));
+  // The cut: sweep the new shot in, push the previous ones out, swap the words
+  capEl.textContent = photo.cap;
+  requestAnimationFrame(() => {
+    layer.classList.add('in');
+    capEl.classList.remove('swapping');
+  });
   prevLayers.forEach(old => {
     old.classList.add('out');
     setTimeout(() => {
@@ -2364,7 +2390,7 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
       // inside `old`, and must not be yanked back to the pool
       _returnVidToPool(old.querySelector('video'));
       old.remove();
-    }, 1100);
+    }, 700);
   });
 
   if (!alreadyOpen) pv.classList.add('show');
@@ -2389,6 +2415,7 @@ async function closePhotoViewer(instant) {
   }
   // Discard spent shot layers so the next open starts on a clean frame
   $('pv-img').innerHTML = '';
+  $('pv-cap').classList.remove('swapping');
 }
 
 async function onChapterNext() {
