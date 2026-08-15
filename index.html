@@ -1059,7 +1059,7 @@ html, body {
    LANDSCAPE — phone rotated sideways (cinematic widescreen layout)
    Targets phones only: tablets/desktop stay on the portrait layout.
 ═══════════════════════════════════════════════════════════════════ */
-@media (orientation: landscape) and (max-height: 620px) {
+@media (orientation: landscape) and (min-aspect-ratio: 12/10) {
 
   /* Sideways there is no top notch to clear, so the portrait fallbacks
      (44px / 34px) would waste the little height we have. Fall back to 0
@@ -1067,6 +1067,11 @@ html, body {
   :root {
     --sat: env(safe-area-inset-top, 0px);
     --sab: env(safe-area-inset-bottom, 0px);
+    /* height reserved under the photo for the caption (2 lines + padding) */
+    --cap-band: calc(var(--sab) + clamp(84px, 23vh, 190px));
+    /* one scale knob: everything sideways is sized off viewport height, so
+       the same layout holds from a 393px-tall phone up to a 1080p TV */
+    --u: clamp(1px, 0.255vh, 2.4px);
   }
 
   /* ── LOCK: identity on the left, keypad on the right ── */
@@ -1077,37 +1082,40 @@ html, body {
     gap: clamp(28px, 6vw, 64px);
     width: min(720px, 100%); padding: 0;
   }
-  .lock-top    { flex: 1; gap: 13px; min-width: 0; }
-  .lock-bottom { margin-top: 0; width: 268px; flex: none; gap: 8px; }
-  .lock-mono   { width: 50px; height: 50px; font-size: 15px; }
-  .lock-q .lq-hint { font-size: 11px; margin-bottom: 5px; }
-  .lock-q .lq-main { font-size: 14.5px; }
-  .keypad  { gap: 7px; }
-  .key     { height: 42px; font-size: 19px; border-radius: 11px; }
-  .key-ok  { font-size: 13px; }
-  .pd      { width: 15px; height: 15px; }
-  .pin-dots { gap: 8px; }
-  .lock-err { font-size: 11px; height: 14px; }
+  .lock-top    { flex: 1; gap: calc(13 * var(--u)); min-width: 0; }
+  .lock-bottom { margin-top: 0; width: calc(268 * var(--u)); flex: none; gap: calc(8 * var(--u)); }
+  .lock-mono   { width: calc(50 * var(--u)); height: calc(50 * var(--u)); font-size: calc(15 * var(--u)); }
+  .lock-q .lq-hint { font-size: calc(11 * var(--u)); margin-bottom: calc(5 * var(--u)); }
+  .lock-q .lq-main { font-size: calc(14.5 * var(--u)); }
+  .keypad  { gap: calc(7 * var(--u)); }
+  .key     { height: calc(42 * var(--u)); font-size: calc(19 * var(--u)); border-radius: calc(11 * var(--u)); }
+  .key-ok  { font-size: calc(13 * var(--u)); }
+  .pd      { width: calc(15 * var(--u)); height: calc(15 * var(--u)); }
+  .pin-dots { gap: calc(8 * var(--u)); }
+  .lock-err { font-size: calc(11 * var(--u)); height: calc(14 * var(--u)); }
 
   /* ── CAROUSEL: shorter cards, tighter spacing ── */
-  #ov-wrap { gap: 13px; padding: 8px 0; }
-  .carousel-stage { height: 250px; }
-  .cc { width: 190px; height: 246px; margin-left: -95px; border-radius: 19px; }
-  .cc-deco { font-size: 40px; top: 12px; right: 14px; }
-  .cc-line { bottom: 66px; left: 17px; width: 22px; }
-  .cc-content { padding: 0 17px 19px; }
-  .cc-num  { font-size: 8.5px; letter-spacing: 2.4px; margin-bottom: 4px; }
-  .cc-name { font-size: 20px; margin-bottom: 3px; }
-  .cc-date { font-size: 10.5px; }
+  #ov-wrap { gap: calc(13 * var(--u)); padding: calc(8 * var(--u)) 0; }
+  .carousel-stage { height: calc(250 * var(--u)); }
+  .cc {
+    width: calc(190 * var(--u)); height: calc(246 * var(--u));
+    margin-left: calc(-95 * var(--u)); border-radius: calc(19 * var(--u));
+  }
+  .cc-deco { font-size: calc(40 * var(--u)); top: calc(12 * var(--u)); right: calc(14 * var(--u)); }
+  .cc-line { bottom: calc(66 * var(--u)); left: calc(17 * var(--u)); width: calc(22 * var(--u)); }
+  .cc-content { padding: 0 calc(17 * var(--u)) calc(19 * var(--u)); }
+  .cc-num  { font-size: calc(8.5 * var(--u)); letter-spacing: calc(2.4 * var(--u)); margin-bottom: calc(4 * var(--u)); }
+  .cc-name { font-size: calc(20 * var(--u)); margin-bottom: calc(3 * var(--u)); }
+  .cc-date { font-size: calc(10.5 * var(--u)); }
 
   /* ── CHAPTER TITLE VEIL ── */
-  .ch-vt-num  { font-size: 9px; letter-spacing: 3.4px; margin-bottom: 9px; }
-  .ch-vt-name { font-size: 27px; }
-  .ch-vtitle.up { transform: scale(0.5) translateY(-34px); }
+  .ch-vt-num  { font-size: calc(9 * var(--u)); letter-spacing: calc(3.4 * var(--u)); margin-bottom: calc(9 * var(--u)); }
+  .ch-vt-name { font-size: calc(27 * var(--u)); }
+  .ch-vtitle.up { transform: scale(0.5) translateY(calc(-34 * var(--u))); }
 
   /* ── CHAPTER DETAIL: title rail on the left, photo grid fills the rest ── */
   .ch-detail {
-    --sb: 200px;                       /* sidebar width */
+    --sb: calc(200 * var(--u));        /* sidebar width */
     display: grid;
     grid-template-columns: var(--sb) 1fr;
     grid-template-rows: 1fr auto;
@@ -1117,15 +1125,15 @@ html, body {
   .ch-hd {
     grid-area: hd;
     display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 16px 18px 10px;
+    padding: calc(16 * var(--u)) calc(18 * var(--u)) calc(10 * var(--u));
     border-bottom: none;
     border-right: 1px solid rgba(160,140,255,0.12);
     transform: translateX(-100%);
   }
   .ch-hd.in { transform: translateX(0); }
-  .ch-hd-num  { font-size: 9px; letter-spacing: 2.6px; }
-  .ch-hd-name { font-size: 17px; }
-  .ch-hd-sub  { font-size: 11px; }
+  .ch-hd-num  { font-size: calc(9 * var(--u)); letter-spacing: calc(2.6 * var(--u)); }
+  .ch-hd-name { font-size: calc(17 * var(--u)); }
+  .ch-hd-sub  { font-size: calc(11 * var(--u)); }
   .ch-scroll {
     grid-area: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -1133,22 +1141,32 @@ html, body {
   }
   .ch-foot {
     grid-area: foot;
-    padding: 0 18px 14px; padding-bottom: calc(var(--sab) + 14px);
+    padding: 0 calc(18 * var(--u)) calc(14 * var(--u));
+    padding-bottom: calc(var(--sab) + 14 * var(--u));
     background: transparent; border-top: none;
     backdrop-filter: none; -webkit-backdrop-filter: none;
     border-right: 1px solid rgba(160,140,255,0.12);
   }
-  .btn-next { height: 44px; font-size: 13.5px; border-radius: 13px; }
+  .btn-next { height: calc(44 * var(--u)); font-size: calc(13.5 * var(--u)); border-radius: 999px; }
 
-  /* ── PHOTO VIEWER ──
-     The frame is full-bleed in both orientations, exactly as a video would
-     be, so only the subtitle needs tightening for the shorter viewport. */
-  #pv-cap {
-    bottom: calc(var(--sab) + 26px);
-    padding: 0 clamp(40px, 14vw, 180px);
-    line-height: 1.75;
+  /* ── PHOTO VIEWER — cast to a TV ──
+     Landscape is watched on a big screen, so the photo is centred in its own
+     area and the caption sits on a clean band beneath it rather than lying
+     over the image. The blurred backdrop still fills the panel behind both. */
+  /* explicit height, not auto insets — an <img> with auto size falls back to
+     its intrinsic dimensions rather than filling the inset box */
+  .pv-main {
+    top: 16px; bottom: auto; left: 0; right: 0;
+    width: 100%;
+    height: calc(100% - 16px - var(--cap-band));
   }
-  .pv-scrim { height: 56%; }
+  #pv-cap {
+    bottom: calc(var(--sab) + 22 * var(--u));
+    padding: 0 clamp(40px, 12vw, 190px);
+    font-size: clamp(15px, 3.9vh, 30px);
+    line-height: 1.7;
+  }
+  .pv-scrim { height: 42%; }
 
   /* ── FUTURE PAGE ── */
   #ft-bg { inset: -20px -30px; }
@@ -1728,11 +1746,17 @@ async function startCosmicLetter2(onDone) {
 ════════════════════════════════════ */
 /* True when the phone is held sideways — must match the CSS media query. */
 function isLandscape() {
-  return window.matchMedia('(orientation: landscape) and (max-height: 620px)').matches;
+  return window.matchMedia('(orientation: landscape) and (min-aspect-ratio: 12/10)').matches;
 }
 
-// px between card centers — follows the card width set by the active layout
-function cardStep() { return isLandscape() ? 212 : 305; }
+// px between card centers — measured off the card the active layout produced,
+// so it keeps up as the cards scale with the screen (phone → TV)
+function cardStep() {
+  const c = document.getElementById('cc0');
+  const w = c ? c.offsetWidth : 0;   // offsetWidth ignores the drag transform
+  if (w > 0) return Math.round(w * 1.114);
+  return isLandscape() ? 212 : 305;
+}
 
 // Per-card nebula: stronger, more saturated, distinct per episode
 const CC_NEBULA = [
