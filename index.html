@@ -720,6 +720,12 @@ html, body {
   transition: opacity 0.5s ease;
 }
 #ch-veil.show { opacity: 1; pointer-events: all; }
+/* fully opaque while an episode is swapped behind it, so the rebuild
+   underneath can never show through the chapter card */
+#ch-veil.solid {
+  background: #04020f;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
 
 .ch-vtitle {
   text-align: center;
@@ -2418,6 +2424,58 @@ async function closePhotoViewer(instant) {
   $('pv-cap').classList.remove('swapping');
 }
 
+/* Roll straight from the last shot of one episode into the first shot of the
+   next. The chapter card rises over the still-open viewer, the episode is
+   swapped behind it, and the card lifts onto the new opening shot — so the
+   carousel and the grid never reappear and the reel never stops. */
+async function advanceEpisodeSeamless(next) {
+  const veil   = $('ch-veil');
+  const vtitle = $('ch-vtitle');
+  const ch     = CHAPTERS[next];
+
+  preloadChapterMedia(next);
+
+  // Chapter card rises over the frame that is still on screen
+  $('ch-vt-num').textContent  = ch.num;
+  $('ch-vt-name').textContent = ch.name;
+  vtitle.classList.remove('in', 'up');
+  veil.classList.add('solid', 'show');
+  await sleep(560);
+  vtitle.classList.add('in');
+  await sleep(1450);
+
+  // Behind the opaque card: retire the old episode, stage the new one
+  stopAutoPlay();
+  await closePhotoViewer(true);
+  currentCh = next;
+
+  if (ch.future) {
+    openFuturePage();                 // raises its own curtain over us
+    await sleep(900);
+    veil.classList.remove('show', 'solid');
+    vtitle.classList.remove('in', 'up');
+    return;
+  }
+
+  loadDetail(next);
+  positionCards(next, false);
+  $('ch-hd').classList.add('in');
+  $('ch-scroll').classList.add('show');
+  $('ch-foot').classList.add('show');
+  $('ch-detail').classList.add('show');
+
+  vtitle.classList.add('up');
+  await sleep(430);
+
+  // Open the new episode's first shot, then lift the card onto it
+  apChIdx = next; apPIdx = 0; apRunning = true;
+  const dur = await openPhotoViewer(next, 0, true);
+  veil.classList.remove('show');
+  await sleep(520);
+  veil.classList.remove('solid');
+  if (apRunning) startHoldTimer(dur);
+}
+
 async function onChapterNext() {
   // ── 뷰어 열림: 사진 레벨 네비게이션 우선 ──
   if ($('photo-viewer').classList.contains('show')) {
@@ -2432,7 +2490,16 @@ async function onChapterNext() {
       startAutoPlayFrom(currentCh, apPIdx + 1);
       return;
     }
-    // 마지막 사진 → 에피소드 전환 (뷰어 닫고 fall-through)
+    // 마지막 사진 → 다음 에피소드로 끊김 없이 이어서 재생
+    if (!isManualMode && currentCh < CHAPTERS.length - 1) {
+      if (busy) return;
+      busy = true;
+      await advanceEpisodeSeamless(currentCh + 1);
+      busy = false;
+      return;
+    }
+
+    // 수동 모드 / 마지막 에피소드 → 뷰어 닫고 fall-through
     stopAutoPlay();
     await closePhotoViewer(false);
     await sleep(800);
