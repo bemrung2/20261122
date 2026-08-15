@@ -802,31 +802,72 @@ html, body {
 }
 .photo-cell.tapping { animation: cellTap 0.38s cubic-bezier(0.16,1,0.3,1) forwards; }
 
-/* ── Photo viewer overlay ── */
+/* ═══════════════════════════════════════
+   PHOTO VIEWER — full-bleed cinematic frame
+   Every shot fills the screen, drifts slowly (Ken Burns) and dissolves
+   into the next, so a folder of stills plays back like a film.
+═══════════════════════════════════════ */
 #photo-viewer {
   position: absolute; inset: 0; z-index: 10;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.55s ease;
+  transition: opacity 0.85s ease;
 }
 #photo-viewer.show { opacity: 1; pointer-events: all; }
 
-.pv-backdrop {
+.pv-backdrop { position: absolute; inset: 0; background: #000; }
+
+.pv-body  { position: absolute; inset: 0; z-index: 1; }
+.pv-stage { position: absolute; inset: 0; }
+
+/* One layer per shot — the incoming shot dissolves over the outgoing one */
+.pv-layer {
   position: absolute; inset: 0;
-  background: rgba(12,10,6,0.93);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  opacity: 0; transition: opacity 1.05s ease;
 }
-.pv-body {
-  position: relative; z-index: 1;
-  width: 100%; padding: 0 20px;
-  display: flex; flex-direction: column; align-items: center; gap: 0;
+.pv-layer.in  { opacity: 1; }
+.pv-layer.out { opacity: 0; }
+
+/* Blurred, darkened copy fills the frame so no photo is ever cropped */
+.pv-blur {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: blur(38px) brightness(0.30) saturate(1.25);
+  transform: scale(1.16);
+}
+/* The photo itself — always whole, never cropped */
+.pv-main {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  will-change: transform;
 }
 
-/* progress bars (Stories-style) — 기본 숨김, 가운데 탭 시 표시 */
+/* Ken Burns — slow drift, direction varied per shot so it never repeats */
+@keyframes kb1 { from { transform: scale(1.00) translate( 0,     0);    } to { transform: scale(1.13) translate(-1.8%,-1.3%); } }
+@keyframes kb2 { from { transform: scale(1.13) translate( 1.5%, 1.1%);  } to { transform: scale(1.00) translate( 0,     0);    } }
+@keyframes kb3 { from { transform: scale(1.03) translate( 1.9%,-1.0%);  } to { transform: scale(1.15) translate(-1.3%, 1.1%); } }
+@keyframes kb4 { from { transform: scale(1.15) translate(-1.6%, 1.0%);  } to { transform: scale(1.02) translate( 1.2%,-1.0%); } }
+.pv-main.kb1 { animation: kb1 var(--kbdur, 7s) linear both; }
+.pv-main.kb2 { animation: kb2 var(--kbdur, 7s) linear both; }
+.pv-main.kb3 { animation: kb3 var(--kbdur, 7s) linear both; }
+.pv-main.kb4 { animation: kb4 var(--kbdur, 7s) linear both; }
+
+/* Subtitle scrim so captions stay readable over any photo */
+.pv-scrim {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 46%;
+  z-index: 1; pointer-events: none;
+  background: linear-gradient(to top,
+    rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.58) 34%, rgba(0,0,0,0.18) 66%, transparent 100%);
+}
+
+/* progress bars — thin film-strip ticks pinned to the top edge */
 .pv-bars {
-  display: flex; gap: 3px; width: 100%; padding: 0 0 14px;
+  position: absolute; z-index: 3;
+  top: calc(var(--sat) + 10px);
+  left: calc(var(--sal) + 14px); right: calc(var(--sar) + 14px);
+  width: auto; padding: 0;
+  display: flex; gap: 3px;
   opacity: 0;
   pointer-events: none;
 }
@@ -843,56 +884,55 @@ html, body {
 @keyframes barFill  { to { width: 100%; } }
 .pv-bar-fill.active { animation: barFill var(--pv-dur, 5s) linear forwards; }
 
-/* photo / video frame */
+/* the frame itself — edge to edge, no card, no rounding */
 #pv-img {
-  width: 100%; aspect-ratio: 3/4; /* JS overrides per-image */
-  max-height: 68dvh;
-  border-radius: 18px; overflow: hidden;
-  position: relative;
-  background: #0f0e0c;
-  transform: scale(0.72) translateY(20px);
-  opacity: 0;
-  transition: transform 0.7s cubic-bezier(0.16,1,0.3,1), opacity 0.55s ease,
-              aspect-ratio 0s; /* instant ratio switch (happens while opacity=0) */
+  position: absolute; inset: 0;
+  overflow: hidden; background: #000;
 }
-#photo-viewer.show #pv-img {
-  transform: scale(1) translateY(0);
-  opacity: 1;
+/* vignette — pulls the eye to the centre of frame, as a lens would */
+#pv-img::after {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(ellipse 76% 60% at 50% 46%, transparent 46%, rgba(0,0,0,0.45) 100%);
 }
 
-/* caption */
+/* caption — sits low in frame like a film subtitle */
 #pv-cap {
-  margin-top: 20px;
-  font-size: 14.5px; line-height: 2.0;
-  color: rgba(255,255,255,0.82);
+  position: absolute; z-index: 2;
+  left: 0; right: 0;
+  bottom: calc(var(--sab) + 40px);
+  padding: 0 clamp(24px, 7vw, 96px);
+  font-size: clamp(14.5px, min(4.2vw, 4.4vh), 19px);
+  line-height: 1.9;
+  color: rgba(255,255,255,0.97);
   text-align: center; white-space: pre-line;
-  font-weight: 300; padding: 0 12px;
-  letter-spacing: 0.015em;
-  opacity: 0; transform: translateY(10px);
-  transition: opacity 0.45s ease 0.22s, transform 0.45s ease 0.22s;
+  font-weight: 300;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 28px rgba(0,0,0,0.65);
+  opacity: 0; transform: translateY(14px);
+  transition: opacity 0.9s ease 0.4s, transform 0.9s cubic-bezier(0.16,1,0.3,1) 0.4s;
 }
 #photo-viewer.show #pv-cap { opacity: 1; transform: translateY(0); }
 
+/* Footer reads as a scrim over the film, not as an app toolbar */
 .ch-foot {
   flex-shrink: 0;
-  padding: 13px 20px; padding-bottom: calc(var(--sab) + 13px);
-  background: rgba(6,3,18,0.96);
-  border-top: 1px solid rgba(160,140,255,0.12);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  padding: 16px 20px; padding-bottom: calc(var(--sab) + 16px);
+  background: linear-gradient(to top, rgba(6,3,18,0.97) 45%, rgba(6,3,18,0) 100%);
+  border-top: none;
   opacity: 0; transition: opacity 0.45s ease 0.45s;
 }
 .ch-foot.show { opacity: 1; }
 
 .btn-next {
-  width: 100%; height: 52px; border-radius: 16px; border: none;
-  background: linear-gradient(135deg, rgba(105,52,230,0.88) 0%, rgba(68,28,188,0.88) 100%);
-  color: rgba(255,248,240,0.96);
-  font-family: inherit; font-size: 15px; font-weight: 400;
-  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-  box-shadow: 0 4px 24px rgba(90,40,220,0.40), 0 0 0 1px rgba(160,120,255,0.20);
-  transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+  width: 100%; height: 46px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.17);
+  background: rgba(255,255,255,0.055);
+  color: rgba(255,248,240,0.86);
+  font-family: inherit; font-size: 13px; font-weight: 300; letter-spacing: 0.16em;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: background 0.2s, transform 0.2s;
 }
-.btn-next:active { opacity: 0.80; transform: scale(0.97); box-shadow: 0 2px 12px rgba(90,40,220,0.30); }
+.btn-next:active { background: rgba(255,255,255,0.13); transform: scale(0.98); }
 
 /* ═══════════════════════════════════════
    PROPOSAL
@@ -1100,38 +1140,15 @@ html, body {
   }
   .btn-next { height: 44px; font-size: 13.5px; border-radius: 13px; }
 
-  /* ── PHOTO VIEWER: still on the left, caption reads alongside it ── */
-  /* static so the bars below anchor to the viewer, not to this centred block
-     (z-index still applies — .pv-body is a flex item of #photo-viewer) */
-  .pv-body { position: static; padding: 0; gap: 0; }
-  .pv-bars {
-    position: absolute; z-index: 2;
-    top: calc(var(--sat) + 9px);
-    left: calc(var(--sal) + 22px); right: calc(var(--sar) + 22px);
-    width: auto; padding: 0;
-  }
-  .pv-stage {
-    display: flex; flex-direction: row; align-items: center;
-    justify-content: center; gap: clamp(22px, 4vw, 48px);
-    width: 100%;
-    padding: 0 calc(var(--sar) + 4vw) 0 calc(var(--sal) + 4vw);
-  }
-  #pv-img {
-    flex: 0 0 auto;
-    width: auto; height: 80dvh;
-    max-height: 80dvh; max-width: 54vw;
-    border-radius: 14px;
-    transform: scale(0.78) translateX(-16px);
-  }
-  #photo-viewer.show #pv-img { transform: scale(1) translateX(0); }
+  /* ── PHOTO VIEWER ──
+     The frame is full-bleed in both orientations, exactly as a video would
+     be, so only the subtitle needs tightening for the shorter viewport. */
   #pv-cap {
-    flex: 1 1 auto; min-width: 0; max-width: 380px;
-    margin-top: 0; padding: 0;
-    text-align: left;
-    font-size: 15px; line-height: 2.0;
-    transform: translateX(14px);
+    bottom: calc(var(--sab) + 26px);
+    padding: 0 clamp(40px, 14vw, 180px);
+    line-height: 1.75;
   }
-  #photo-viewer.show #pv-cap { transform: translateX(0); }
+  .pv-scrim { height: 56%; }
 
   /* ── FUTURE PAGE ── */
   #ft-bg { inset: -20px -30px; }
@@ -1266,6 +1283,7 @@ html, body {
         <div id="pv-bars" class="pv-bars"></div>
         <div class="pv-stage">
           <div id="pv-img"></div>
+          <div class="pv-scrim"></div>
           <div id="pv-cap"></div>
         </div>
       </div>
@@ -2178,6 +2196,8 @@ function pauseHold() {
   apRemaining = Math.max(80, apRemaining - (Date.now() - apTimerStart));
   const fill = $('pv-bars')?.querySelector('.pv-bar-fill.active');
   if (fill) fill.style.animationPlayState = 'paused';
+  const kb = $('pv-img')?.querySelector('.pv-layer.in .pv-main');
+  if (kb) kb.style.animationPlayState = 'paused';   // freeze the drift too
   const vid = $('pv-img')?.querySelector('video');
   if (vid) vid.pause();
 }
@@ -2187,6 +2207,8 @@ function resumeHold() {
   apHolding = false;
   const fill = $('pv-bars')?.querySelector('.pv-bar-fill.active');
   if (fill) fill.style.animationPlayState = '';
+  const kb = $('pv-img')?.querySelector('.pv-layer.in .pv-main');
+  if (kb) kb.style.animationPlayState = '';
   const vid = $('pv-img')?.querySelector('video');
   if (vid) vid.play().catch(() => {});
   startHoldTimer(apRemaining);
@@ -2201,32 +2223,27 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   const alreadyOpen = pv.classList.contains('show');
   const isVideo = photo.src && /\.(mp4|mov|webm|m4v)$/i.test(photo.src);
 
-  // If replacing content in open viewer: return old video to pool, then fade
-  if (alreadyOpen) {
-    const oldVid = pvImg.querySelector('video');
-    _returnVidToPool(oldVid); // moves element back to _mpc; buffer stays alive
-    pvImg.style.transition = 'none';
-    pvImg.style.opacity    = '0';
-    await sleep(40);
-    if (_apGen !== myGen) return dur; // stale — abort before touching pvImg content
-  }
-
-  // Clear non-video residual children (video was already moved above)
-  pvImg.innerHTML = '';
-  pvImg.style.background = '';
   let dur = 5000;
 
+  // Build the incoming shot in its own layer, so it can dissolve over the
+  // outgoing one instead of the frame blinking to black between photos.
+  const prevLayers = [...pvImg.querySelectorAll('.pv-layer')];
+  const layer = document.createElement('div');
+  layer.className = 'pv-layer';
+  let kbEl = null;   // element that carries the Ken Burns drift
+
   if (!photo.src) {
-    pvImg.style.background = ch.bg.replace('145deg', '155deg');
-    pvImg.innerHTML = `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+    layer.style.background = ch.bg.replace('145deg', '155deg');
+    layer.innerHTML = `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
       <svg width="50" height="50" viewBox="0 0 40 40" fill="none" style="opacity:0.2">
         <rect x="3" y="9" width="34" height="23" rx="4" stroke="white" stroke-width="1.4"/>
         <circle cx="20" cy="20" r="6.5" stroke="white" stroke-width="1.4"/>
         <circle cx="30" cy="14" r="2" fill="white"/>
       </svg>
     </div>`;
+    pvImg.appendChild(layer);
   } else if (isVideo) {
-    pvImg.style.background = '#0a0806';
+    layer.style.background = '#000';
 
     // Reuse pre-buffered pool element — moving it preserves the download buffer
     let vid = _vidPool.get(photo.src);
@@ -2237,11 +2254,13 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
       vid.muted = true; vid.load();
       _vidPool.set(photo.src, vid);
     }
-    vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:inherit;';
+    vid.className   = 'pv-main';   // full-bleed, contained — no crop
+    vid.style.cssText = '';
     vid.muted  = false;
     vid.volume = 1.0;
     vid.currentTime = 0;
-    pvImg.appendChild(vid); // moves from _mpc to pvImg — buffer intact
+    layer.appendChild(vid);        // moves from _mpc to the layer — buffer intact
+    pvImg.appendChild(layer);
 
     // Metadata should already be available from preload; wait only if needed
     if (vid.readyState < 1) {
@@ -2253,31 +2272,28 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
     if (vid.duration && isFinite(vid.duration) && vid.duration > 0.1) {
       dur = Math.round(vid.duration * 1000) + 300;
     }
-    if (vid.videoWidth && vid.videoHeight) {
-      pvImg.style.aspectRatio = `${vid.videoWidth} / ${vid.videoHeight}`;
-    }
     // Play — already buffered, starts immediately
     vid.play().catch(() => {
       vid.muted = true;
       vid.play().catch(() => {});
     });
   } else {
-    pvImg.style.background = '#0f0e0c';
-    const img = document.createElement('img');
-    img.src = photo.src;
-    img.alt = '';
-    img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;';
-    pvImg.appendChild(img);
-    // Wait for natural dimensions to set the exact aspect ratio
+    // Blurred copy behind the photo fills the frame, so a portrait shot on a
+    // wide screen reads as a composed frame rather than a letterboxed image.
+    const blur = document.createElement('img');
+    blur.className = 'pv-blur'; blur.src = photo.src; blur.alt = '';
+    const main = document.createElement('img');
+    main.className = 'pv-main'; main.src = photo.src; main.alt = '';
+    layer.append(blur, main);
+    pvImg.appendChild(layer);
+    kbEl = main;
+
     await new Promise(res => {
-      if (img.complete && img.naturalWidth) { res(); return; }
-      img.addEventListener('load',  res, { once: true });
-      img.addEventListener('error', res, { once: true });
+      if (main.complete && main.naturalWidth) { res(); return; }
+      main.addEventListener('load',  res, { once: true });
+      main.addEventListener('error', res, { once: true });
       setTimeout(res, 4000);
     });
-    if (img.naturalWidth && img.naturalHeight) {
-      pvImg.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
-    }
   }
 
   // caption
@@ -2305,26 +2321,29 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
     }
   }
 
-  if (alreadyOpen) {
-    if (_apGen !== myGen) return dur; // stale — media loaded but don't show it
-    pvImg.style.transition = 'opacity 0.45s ease';
-    pvImg.style.opacity    = '1';
-    if (isAuto) { await sleep(60); activateBar(); }
-    return dur;
+  // Stale call — this shot was superseded while its media loaded. Drop the
+  // layer we built so it can never surface over the current one.
+  if (_apGen !== myGen) { layer.remove(); return dur; }
+
+  // Start the drift so the motion runs for exactly as long as the shot holds
+  if (kbEl) {
+    kbEl.style.setProperty('--kbdur', `${Math.round(dur * 1.35)}ms`);
+    kbEl.classList.add(`kb${1 + Math.floor(Math.random() * 4)}`);
   }
 
-  // Fresh open — animate in via CSS
-  pvImg.style.transition = 'none';
-  pvImg.style.transform  = 'scale(0.72) translateY(20px)';
-  pvImg.style.opacity    = '0';
+  // Reveal: dissolve the new shot in and retire the previous ones
+  requestAnimationFrame(() => layer.classList.add('in'));
+  prevLayers.forEach(old => {
+    old.classList.add('out');
+    setTimeout(() => {
+      // re-query: if this video was reclaimed by a later shot it is no longer
+      // inside `old`, and must not be yanked back to the pool
+      _returnVidToPool(old.querySelector('video'));
+      old.remove();
+    }, 1100);
+  });
 
-  if (_apGen !== myGen) return dur;   // stale call — stopAutoPlay fired mid-await
-  pv.classList.add('show');
-  await sleep(30);
-
-  pvImg.style.transition = '';
-  pvImg.style.transform  = '';
-  pvImg.style.opacity    = '';
+  if (!alreadyOpen) pv.classList.add('show');
 
   if (isAuto) { await sleep(60); activateBar(); }
   return dur;
@@ -2344,6 +2363,8 @@ async function closePhotoViewer(instant) {
     pv.classList.remove('show');
     await sleep(420);
   }
+  // Discard spent shot layers so the next open starts on a clean frame
+  $('pv-img').innerHTML = '';
 }
 
 async function onChapterNext() {
