@@ -1192,14 +1192,14 @@ html, body {
   /* ── FUTURE PAGE ── */
   #ft-bg { inset: -20px -30px; }
   #ft-end-msg {
-    font-size: clamp(0.95rem, 3.6vh, 1.24rem);
+    font-size: clamp(0.95rem, 3.8vh, 2.1rem);
     line-height: 1.95;
   }
 
   /* ── LETTER 2: tighter leading so all lines fit the short viewport ── */
   #l2-content { padding: 0 clamp(28px, 7vw, 64px); }
   .l2-line {
-    font-size: clamp(0.95rem, 4.2vh, 1.16rem);
+    font-size: clamp(0.95rem, 3.6vh, 2.1rem);   /* grows on a cast TV */
     line-height: 1.74;
   }
   .l2-blank { height: 0.45em; }
@@ -1505,6 +1505,16 @@ const CHAPTERS = [
 ];
 
 
+// Opening letter — plays right after the PIN, in the same cosmic style as
+// the closing one, so the reel is book-ended by the two letters.
+const LETTER_INTRO = `우리가 처음 만난 순간부터
+결혼을 앞두고 있는 현재까지 정리해봤어.
+
+나중에입력
+나중에입력
+
+나중에입력`;
+
 const LETTER2 = `앞으로도 우리 함께
 많은 추억들을 만들어가겠지?
 
@@ -1723,7 +1733,13 @@ async function checkPin() {
     lockEl.style.transform  = 'scale(1.4)';
     lockEl.style.opacity    = '0';
     await sleep(800);
-    goToChapters();
+    // Open on a letter, in the same style the reel closes with
+    await fadeTo('pg-letter2', () => {
+      lockEl.style.transition = '';
+      lockEl.style.transform  = '';
+      lockEl.style.opacity    = '';
+    });
+    startCosmicLetter(LETTER_INTRO, goToChapters);
   } else {
     syncDots(true);
     $('lock-err').classList.add('show');
@@ -1736,10 +1752,10 @@ async function checkPin() {
 /* ════════════════════════════════════
    COSMIC LETTER 2 — line-by-line reveal
 ════════════════════════════════════ */
-async function startCosmicLetter2(onDone) {
+async function startCosmicLetter(text, onDone) {
   const content = $('l2-content');
   content.innerHTML = '';
-  const lines = LETTER2.split('\n');
+  const lines = text.split('\n');
   const lastIdx = lines.reduce((last, l, i) => l !== '' ? i : last, -1);
 
   const els = lines.map((line, idx) => {
@@ -2526,7 +2542,7 @@ async function onChapterNext() {
       $('ch-foot').classList.remove('show');
     });
     busy = false;
-    startCosmicLetter2(goToProposal);
+    startCosmicLetter(LETTER2, goToProposal);
   } else {
     await exitChapter();
     const next = currentCh + 1;
@@ -2595,7 +2611,14 @@ function ftShuf(a) {
   return r;
 }
 
+/* Word sizes below are authored for a phone. Sideways the same field may be
+   on a TV, so scale them with the viewport height. */
+function ftScale() {
+  return isLandscape() ? Math.min(2.4, Math.max(1, window.innerHeight / 393)) : 1;
+}
+
 function ftSpawn(container, text, cls, x, y, fs, op, adS, fdur, gdur, dx, dy) {
+  fs *= ftScale();
   const el = document.createElement('span');
   el.className = `ft-word ${cls}`;
   el.textContent = text;
@@ -2700,7 +2723,7 @@ async function openFuturePage() {
   await sleep(3600);
 
   await fadeTo('pg-letter2', () => { endEl.style.opacity = '0'; });
-  startCosmicLetter2(goToProposal);
+  startCosmicLetter(LETTER2, goToProposal);
 }
 
 /* ════════════════════════════════════
