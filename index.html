@@ -14,6 +14,8 @@
 :root {
   --sat: env(safe-area-inset-top, 44px);
   --sab: env(safe-area-inset-bottom, 34px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
   --paper: #fffef8;
   --gold:  #c8a96e;
   --gold-l:#e8d5a8;
@@ -387,7 +389,6 @@ html, body {
     0 0 80px rgba(255,190,100,0.40),
     0 0 160px rgba(255,165,70,0.18),
     0  1px  2px rgba(0,0,0,0.55);
-}
 }
 
 /* ═══════════════════════════════════════
@@ -1010,6 +1011,174 @@ html, body {
    CONFETTI
 ═══════════════════════════════════════ */
 #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 1000; display: none; }
+
+/* Layout wrappers — invisible in portrait, become flex containers in landscape */
+.pv-stage, .proposal-text, .accept-text { display: contents; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LANDSCAPE — phone rotated sideways (cinematic widescreen layout)
+   Targets phones only: tablets/desktop stay on the portrait layout.
+═══════════════════════════════════════════════════════════════════ */
+@media (orientation: landscape) and (max-height: 620px) {
+
+  /* Sideways there is no top notch to clear, so the portrait fallbacks
+     (44px / 34px) would waste the little height we have. Fall back to 0
+     and let a real device inset override it where one exists. */
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ── LOCK: identity on the left, keypad on the right ── */
+  #pg-lock { padding: 10px calc(var(--sar) + 3vw) 10px calc(var(--sal) + 3vw); }
+  .lock-card {
+    flex: none;
+    flex-direction: row; align-items: center; justify-content: center;
+    gap: clamp(28px, 6vw, 64px);
+    width: min(720px, 100%); padding: 0;
+  }
+  .lock-top    { flex: 1; gap: 13px; min-width: 0; }
+  .lock-bottom { margin-top: 0; width: 268px; flex: none; gap: 8px; }
+  .lock-mono   { width: 50px; height: 50px; font-size: 15px; }
+  .lock-q .lq-hint { font-size: 11px; margin-bottom: 5px; }
+  .lock-q .lq-main { font-size: 14.5px; }
+  .keypad  { gap: 7px; }
+  .key     { height: 42px; font-size: 19px; border-radius: 11px; }
+  .key-ok  { font-size: 13px; }
+  .pd      { width: 15px; height: 15px; }
+  .pin-dots { gap: 8px; }
+  .lock-err { font-size: 11px; height: 14px; }
+
+  /* ── CAROUSEL: shorter cards, tighter spacing ── */
+  #ov-wrap { gap: 13px; padding: 8px 0; }
+  .carousel-stage { height: 250px; }
+  .cc { width: 190px; height: 246px; margin-left: -95px; border-radius: 19px; }
+  .cc-deco { font-size: 40px; top: 12px; right: 14px; }
+  .cc-line { bottom: 66px; left: 17px; width: 22px; }
+  .cc-content { padding: 0 17px 19px; }
+  .cc-num  { font-size: 8.5px; letter-spacing: 2.4px; margin-bottom: 4px; }
+  .cc-name { font-size: 20px; margin-bottom: 3px; }
+  .cc-date { font-size: 10.5px; }
+
+  /* ── CHAPTER TITLE VEIL ── */
+  .ch-vt-num  { font-size: 9px; letter-spacing: 3.4px; margin-bottom: 9px; }
+  .ch-vt-name { font-size: 27px; }
+  .ch-vtitle.up { transform: scale(0.5) translateY(-34px); }
+
+  /* ── CHAPTER DETAIL: title rail on the left, photo grid fills the rest ── */
+  .ch-detail {
+    --sb: 200px;                       /* sidebar width */
+    display: grid;
+    grid-template-columns: var(--sb) 1fr;
+    grid-template-rows: 1fr auto;
+    grid-template-areas: "hd grid" "foot grid";
+    padding-left: var(--sal); padding-right: var(--sar);
+  }
+  .ch-hd {
+    grid-area: hd;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 16px 18px 10px;
+    border-bottom: none;
+    border-right: 1px solid rgba(160,140,255,0.12);
+    transform: translateX(-100%);
+  }
+  .ch-hd.in { transform: translateX(0); }
+  .ch-hd-num  { font-size: 9px; letter-spacing: 2.6px; }
+  .ch-hd-name { font-size: 17px; }
+  .ch-hd-sub  { font-size: 11px; }
+  .ch-scroll {
+    grid-area: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-auto-rows: calc((100vw - var(--sal) - var(--sar) - var(--sb) - 8px) / 5);
+  }
+  .ch-foot {
+    grid-area: foot;
+    padding: 0 18px 14px; padding-bottom: calc(var(--sab) + 14px);
+    background: transparent; border-top: none;
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+    border-right: 1px solid rgba(160,140,255,0.12);
+  }
+  .btn-next { height: 44px; font-size: 13.5px; border-radius: 13px; }
+
+  /* ── PHOTO VIEWER: still on the left, caption reads alongside it ── */
+  /* static so the bars below anchor to the viewer, not to this centred block
+     (z-index still applies — .pv-body is a flex item of #photo-viewer) */
+  .pv-body { position: static; padding: 0; gap: 0; }
+  .pv-bars {
+    position: absolute; z-index: 2;
+    top: calc(var(--sat) + 9px);
+    left: calc(var(--sal) + 22px); right: calc(var(--sar) + 22px);
+    width: auto; padding: 0;
+  }
+  .pv-stage {
+    display: flex; flex-direction: row; align-items: center;
+    justify-content: center; gap: clamp(22px, 4vw, 48px);
+    width: 100%;
+    padding: 0 calc(var(--sar) + 4vw) 0 calc(var(--sal) + 4vw);
+  }
+  #pv-img {
+    flex: 0 0 auto;
+    width: auto; height: 80dvh;
+    max-height: 80dvh; max-width: 54vw;
+    border-radius: 14px;
+    transform: scale(0.78) translateX(-16px);
+  }
+  #photo-viewer.show #pv-img { transform: scale(1) translateX(0); }
+  #pv-cap {
+    flex: 1 1 auto; min-width: 0; max-width: 380px;
+    margin-top: 0; padding: 0;
+    text-align: left;
+    font-size: 15px; line-height: 2.0;
+    transform: translateX(14px);
+  }
+  #photo-viewer.show #pv-cap { transform: translateX(0); }
+
+  /* ── FUTURE PAGE ── */
+  #ft-bg { inset: -20px -30px; }
+  #ft-end-msg {
+    font-size: clamp(0.95rem, 3.6vh, 1.24rem);
+    line-height: 1.95;
+  }
+
+  /* ── LETTER 2: tighter leading so all lines fit the short viewport ── */
+  #l2-content { padding: 0 clamp(28px, 7vw, 64px); }
+  .l2-line {
+    font-size: clamp(0.95rem, 4.2vh, 1.16rem);
+    line-height: 1.74;
+  }
+  .l2-blank { height: 0.45em; }
+
+  /* ── PROPOSAL: ring on the left, question and answer on the right ── */
+  .proposal-inner {
+    flex-direction: row; align-items: center; justify-content: center;
+    gap: clamp(26px, 6vw, 60px); text-align: left;
+    padding: 12px calc(var(--sar) + 5vw) 12px calc(var(--sal) + 5vw);
+  }
+  .proposal-text {
+    display: flex; flex-direction: column;
+    align-items: flex-start; min-width: 0;
+  }
+  .ring-wrap { width: 84px; height: 84px; margin-bottom: 0; flex: none; }
+  .proposal-q   { font-size: 30px; margin-bottom: 9px; line-height: 1.25; }
+  .proposal-sub { font-size: 12.5px; line-height: 1.75; margin-bottom: 22px; }
+  .btn-yes { width: 210px; height: 48px; font-size: 15px; border-radius: 15px; }
+  .btn-no  { width: 168px; height: 40px; font-size: 13px; }
+
+  /* ── ACCEPT: same two-column rhythm as the proposal ── */
+  .accept-inner {
+    flex-direction: row; align-items: center; justify-content: center;
+    gap: clamp(26px, 6vw, 60px); text-align: left;
+    padding: 12px calc(var(--sar) + 5vw) 12px calc(var(--sal) + 5vw);
+  }
+  .accept-text {
+    display: flex; flex-direction: column;
+    align-items: flex-start; min-width: 0;
+  }
+  .accept-icon  { width: 84px; height: 84px; margin-bottom: 0; flex: none; }
+  .accept-title { font-size: 25px; margin-bottom: 10px; }
+  .accept-sub   { font-size: 12.5px; line-height: 1.8; }
+  .accept-badge { margin-top: 20px; padding: 10px 24px; font-size: 11.5px; }
+}
 </style>
 </head>
 <body>
@@ -1095,8 +1264,10 @@ html, body {
       <div class="pv-backdrop"></div>
       <div class="pv-body" id="pv-body">
         <div id="pv-bars" class="pv-bars"></div>
-        <div id="pv-img"></div>
-        <div id="pv-cap"></div>
+        <div class="pv-stage">
+          <div id="pv-img"></div>
+          <div id="pv-cap"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1149,9 +1320,11 @@ html, body {
         <circle cx="44" cy="13" r="1.8" fill="rgba(255,255,255,0.85)"/>
       </svg>
     </div>
-    <div class="proposal-q">Will You<br>Marry Me?</div>
-    <div class="proposal-sub">앞으로의 모든 시간을<br>함께하고 싶어</div>
-    <button class="btn-yes" id="btn-yes">Yes!</button>
+    <div class="proposal-text">
+      <div class="proposal-q">Will You<br>Marry Me?</div>
+      <div class="proposal-sub">앞으로의 모든 시간을<br>함께하고 싶어</div>
+      <button class="btn-yes" id="btn-yes">Yes!</button>
+    </div>
   </div>
   <button class="btn-no" id="btn-no">싫어!</button>
 </div>
@@ -1177,9 +1350,11 @@ html, body {
         <circle cx="44" cy="13" r="1.8" fill="rgba(255,255,255,0.85)"/>
       </svg>
     </div>
-    <div class="accept-title" id="accept-title">고마워, 소영아</div>
-    <div class="accept-sub"   id="accept-sub">이 순간부터<br>우리의 새로운 이야기가 시작이야.<br><br>앞으로 잘 부탁해 ♡</div>
-    <div class="accept-badge" id="accept-badge">2026 · 11 · 22</div>
+    <div class="accept-text">
+      <div class="accept-title" id="accept-title">고마워, 소영아</div>
+      <div class="accept-sub"   id="accept-sub">이 순간부터<br>우리의 새로운 이야기가 시작이야.<br><br>앞으로 잘 부탁해 ♡</div>
+      <div class="accept-badge" id="accept-badge">2026 · 11 · 22</div>
+    </div>
   </div>
 </div>
 
@@ -1533,7 +1708,13 @@ async function startCosmicLetter2(onDone) {
 /* ════════════════════════════════════
    CAROUSEL BUILD
 ════════════════════════════════════ */
-const CARD_STEP = 305; // px between card centers
+/* True when the phone is held sideways — must match the CSS media query. */
+function isLandscape() {
+  return window.matchMedia('(orientation: landscape) and (max-height: 620px)').matches;
+}
+
+// px between card centers — follows the card width set by the active layout
+function cardStep() { return isLandscape() ? 212 : 305; }
 
 // Per-card nebula: stronger, more saturated, distinct per episode
 const CC_NEBULA = [
@@ -1598,7 +1779,7 @@ function positionCards(idx, animated) {
   CHAPTERS.forEach((_, i) => {
     const card = $(`cc${i}`);
     const offset = i - idx;
-    const x = offset * CARD_STEP;
+    const x = offset * cardStep();
     const scale = Math.max(0.76, 1 - Math.abs(offset) * 0.13);
     const opacity = Math.max(0.28, 1 - Math.abs(offset) * 0.33);
     const zIndex = 10 - Math.abs(offset);
@@ -1638,7 +1819,7 @@ function initCarouselTouch() {
     // live drag: shift all cards
     CHAPTERS.forEach((_, i) => {
       const offset = i - activeCard;
-      const baseX = offset * CARD_STEP + dx * 0.88;
+      const baseX = offset * cardStep() + dx * 0.88;
       const scale = Math.max(0.76, 1 - Math.abs(offset) * 0.13);
       $(`cc${i}`).style.transform = `translateX(${baseX}px) scale(${scale})`;
     });
@@ -1650,7 +1831,7 @@ function initCarouselTouch() {
       const touchX = e.changedTouches[0].clientX;
       const stageRect = stage.getBoundingClientRect();
       const cx = stageRect.left + stageRect.width / 2;
-      const touched = Math.round((cx - touchX) / CARD_STEP) * -1 + activeCard;
+      const touched = Math.round((cx - touchX) / cardStep()) * -1 + activeCard;
       const clamped = Math.max(0, Math.min(CHAPTERS.length - 1, touched));
 
       if (clamped !== activeCard) {
@@ -1729,7 +1910,7 @@ async function enterChapter(idx) {
     const c = $(`cc${i}`);
     if (i !== idx) {
       c.style.transition = 'transform 0.55s ease, opacity 0.55s ease';
-      c.style.transform  = `translateX(${(i - idx) * CARD_STEP}px) scale(0.72)`;
+      c.style.transform  = `translateX(${(i - idx) * cardStep()}px) scale(0.72)`;
       c.style.opacity    = '0.05';
     } else {
       c.style.transition = 'transform 0.55s cubic-bezier(0.16,1,0.3,1)';
@@ -1840,7 +2021,7 @@ async function exitChapter() {
     const offset = i - currentCh;
     const scale  = Math.max(0.76, 1 - Math.abs(offset) * 0.13);
     const opacity= Math.max(0.28, 1 - Math.abs(offset) * 0.33);
-    c.style.transform = `translateX(${offset * CARD_STEP}px) scale(${scale})`;
+    c.style.transform = `translateX(${offset * cardStep()}px) scale(${scale})`;
     c.style.opacity   = opacity;
   });
   activeCard = currentCh;
@@ -2233,6 +2414,30 @@ const FUTURE_MAIN_POS = [
   { x: 46, y: 82, fs: 25 },   // 육아 → 화면 중앙 ~45%
 ];
 
+// Landscape keyword layout — authored in VISIBLE-screen %, converted below.
+// Spread wide across the 16:9 canvas, leaving the centre clear for the closing line.
+const FUTURE_MAIN_POS_LS = [
+  { x: 12, y: 15, fs: 30 },   // 결혼식
+  { x: 73, y: 11, fs: 26 },   // 신혼여행
+  { x:  7, y: 45, fs: 22 },   // 아파트 이사
+  { x: 77, y: 39, fs: 26 },   // 신혼생활
+  { x: 15, y: 75, fs: 25 },   // 해외여행
+  { x: 60, y: 72, fs: 32 },   // 출산
+  { x: 41, y: 84, fs: 24 },   // 육아
+];
+
+/* #ft-bg is inset beyond the viewport so it can pan, so a word's % position
+   inside it is not the % the eye sees. Convert desired screen % → container %. */
+function ftToContainer(bg, visX, visY) {
+  const W = bg.offsetWidth,   H  = bg.offsetHeight;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const insX = (W - vw) / 2,  insY = (H - vh) / 2;
+  return {
+    x: ((visX / 100) * vw + insX) / W * 100,
+    y: ((visY / 100) * vh + insY) / H * 100,
+  };
+}
+
 // Secondary and ambient words — appear all at once, fill the field
 const FUTURE_MID = [
   '크리스마스', '새해', '드라이브', '캠핑',
@@ -2333,13 +2538,16 @@ async function openFuturePage() {
 
   // Sequential main keyword ignitions — each waits for previous to bloom
   await sleep(700);
+  const ls    = isLandscape();
+  const table = ls ? FUTURE_MAIN_POS_LS : FUTURE_MAIN_POS;
   for (let i = 0; i < FUTURE_MAIN.length; i++) {
-    const p    = FUTURE_MAIN_POS[i];
+    const p    = table[i];
+    const pos  = ls ? ftToContainer(bg, p.x, p.y) : { x: p.x, y: p.y };
     const gdur = 3.4 + Math.random() * 2.0;
     const dx   = (Math.random() - 0.5) * 20;
     const dy   = (Math.random() - 0.5) * 14;
     // --ad:0 so animation fires immediately on DOM insert
-    ftSpawn(bg, FUTURE_MAIN[i], 'ft-main', p.x, p.y, p.fs, 0.90, 0, 18, gdur, dx, dy);
+    ftSpawn(bg, FUTURE_MAIN[i], 'ft-main', pos.x, pos.y, p.fs, 0.90, 0, 18, gdur, dx, dy);
     // Gap: first keyword gets a bit longer to stand alone, rest tighter
     await sleep(i === 0 ? 1900 : 1450);
   }
@@ -2376,12 +2584,17 @@ async function goToProposal() {
   c.style.transition = '';
 }
 
+// btn-no is sized by CSS per orientation — keep the JS maths in step
+function noBtnSize() { return isLandscape() ? { w: 168, h: 40 } : { w: 210, h: 46 }; }
+
 function placeNo() {
   const yes = document.querySelector('.btn-yes');
   const r   = yes.getBoundingClientRect();
   const btn = $('btn-no');
-  btn.style.left   = `${window.innerWidth / 2 - 105}px`;
-  btn.style.top    = `${r.bottom + 22}px`;
+  const { w, h } = noBtnSize();
+  const left = r.left + r.width / 2 - w / 2;
+  btn.style.left   = `${Math.max(12, Math.min(window.innerWidth - w - 12, left))}px`;
+  btn.style.top    = `${Math.min(r.bottom + 18, window.innerHeight - h - 12)}px`;
   btn.style.bottom = 'auto';
 }
 
@@ -2395,13 +2608,16 @@ function dodgeNo(e) {
   const yes = document.querySelector('.btn-yes');
   const yR  = yes.getBoundingClientRect();
   const w = window.innerWidth, h = window.innerHeight;
-  const bw = 210, bh = 46, margin = 20;
+  const { w: bw, h: bh } = noBtnSize();
+  const margin = isLandscape() ? 14 : 20;
+  // vertical keep-out at top/bottom — much smaller in landscape, where height is scarce
+  const vPad = isLandscape() ? 16 : 90;
 
   // pick a random position that doesn't overlap btn-yes
   let x, y, tries = 0;
   do {
-    x = margin + Math.random() * (w - bw - margin * 2);
-    y = 90    + Math.random() * (h - bh - 180);
+    x = margin + Math.random() * Math.max(10, w - bw - margin * 2);
+    y = vPad   + Math.random() * Math.max(10, h - bh - vPad * 2);
     tries++;
   } while (
     tries < 30 &&
@@ -2526,6 +2742,39 @@ function initGridDismiss() {
     dragY = 0;
   }, { passive: true });
 }
+
+/* ════════════════════════════════════
+   ORIENTATION — re-layout anything positioned in JS pixels
+════════════════════════════════════ */
+function relayoutForOrientation() {
+  // Carousel cards are placed with JS transforms — restep them for the new width
+  if ($('cc0')) positionCards(activeCard, false);
+
+  // Confetti canvas is a fixed-size bitmap
+  const canvas = $('confetti');
+  if (canvas && canvas.style.display !== 'none') {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  // The dodging button lives in absolute pixels — pull it back on screen
+  if ($('pg-proposal').classList.contains('active')) {
+    const btn = $('btn-no');
+    const { w, h } = noBtnSize();
+    const left = parseFloat(btn.style.left) || 0;
+    const top  = parseFloat(btn.style.top)  || 0;
+    if (left + w > window.innerWidth - 8 || top + h > window.innerHeight - 8) placeNo();
+  }
+}
+
+let _orientTimer = null;
+function onViewportChange() {
+  clearTimeout(_orientTimer);
+  // wait for the browser to settle on the new viewport size before measuring
+  _orientTimer = setTimeout(relayoutForOrientation, 220);
+}
+window.addEventListener('orientationchange', onViewportChange);
+window.addEventListener('resize', onViewportChange);
 
 /* ════════════════════════════════════
    BOOT
