@@ -222,11 +222,12 @@ html, body {
 }
 .lock-err.show { opacity: 1; }
 .mode-toggle {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
   max-height: 0; overflow: hidden;
   opacity: 0; transition: opacity 0.3s ease, max-height 0.3s ease;
 }
-.mode-toggle.show { max-height: 36px; opacity: 1; }
+.mode-toggle.show { max-height: 80px; opacity: 1; }
+.mode-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .mode-label { font-size: 11.5px; color: rgba(185,168,255,0.52); letter-spacing: 0.2px; }
 .mode-switch {
   width: 40px; height: 22px; border-radius: 11px;
@@ -1069,6 +1070,73 @@ html, body {
 .accept-badge.in { opacity: 1; }
 
 /* ═══════════════════════════════════════
+   PIXEL WORLD
+═══════════════════════════════════════ */
+#pg-world { background: #8fd07a; overflow: hidden; }
+#world-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  touch-action: none;
+}
+#world-hint {
+  position: absolute; z-index: 3;
+  top: calc(var(--sat) + 14px); left: 0; right: 0;
+  text-align: center;
+  font-size: 12.5px; font-weight: 300; letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.95);
+  text-shadow: 0 2px 0 rgba(0,0,0,0.45), 0 0 12px rgba(0,0,0,0.5);
+  opacity: 0; transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+#world-hint.show { opacity: 1; }
+
+/* "enter here" pill — appears when the girl is standing at a door */
+/* bottom-right, opposite the stick: the girl stays near the middle of the
+   screen, so a centred pill would sit right on top of her */
+#world-prompt {
+  position: absolute; z-index: 4;
+  right: calc(var(--sar) + 22px); bottom: calc(var(--sab) + 54px);
+  transform: translateY(10px) scale(0.94); transform-origin: bottom right;
+  display: flex; align-items: center; gap: 9px;
+  padding: 10px 20px; border-radius: 999px;
+  background: rgba(20,12,40,0.86);
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 4px 0 rgba(0,0,0,0.35), 0 10px 30px rgba(0,0,0,0.4);
+  color: #fff; font-size: 13.5px; font-weight: 400;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
+}
+#world-prompt.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: all; }
+#world-prompt b {
+  font-weight: 500; font-size: 12px; letter-spacing: 0.06em;
+  background: var(--tiffany); color: #08202a;
+  padding: 4px 11px; border-radius: 999px;
+}
+#world-prompt-name { opacity: 0.92; }
+
+/* on-screen joystick */
+#world-stick {
+  position: absolute; z-index: 5;
+  left: calc(var(--sal) + 26px); bottom: calc(var(--sab) + 26px);
+  width: 116px; height: 116px; border-radius: 50%;
+  background: rgba(12,8,26,0.28);
+  border: 2px solid rgba(255,255,255,0.34);
+  touch-action: none;
+  opacity: 0; transition: opacity 0.5s ease;
+}
+#world-stick.show { opacity: 1; }
+#world-stick-knob {
+  position: absolute; left: 50%; top: 50%;
+  width: 50px; height: 50px; margin: -25px 0 0 -25px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.88);
+  border: 2px solid rgba(40,25,70,0.5);
+  box-shadow: 0 3px 0 rgba(0,0,0,0.25);
+}
+
+/* ═══════════════════════════════════════
    CONFETTI
 ═══════════════════════════════════════ */
 #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 1000; display: none; }
@@ -1248,8 +1316,14 @@ html, body {
   <div class="lock-card">
     <div class="lock-top">
       <div class="mode-toggle" id="mode-toggle">
-        <span class="mode-label" id="mode-label">자동 모드</span>
-        <div class="mode-switch" id="mode-switch"></div>
+        <div class="mode-row">
+          <span class="mode-label" id="mode-label">자동 모드</span>
+          <div class="mode-switch" id="mode-switch"></div>
+        </div>
+        <div class="mode-row">
+          <span class="mode-label" id="classic-label">카드 모드</span>
+          <div class="mode-switch" id="classic-switch"></div>
+        </div>
       </div>
       <div class="lock-mono" id="lock-mono">민소</div>
       <div class="lock-q">
@@ -1279,6 +1353,16 @@ html, body {
 </div>
 
 <!-- ══════════════════ LETTER 1 ══════════════════ -->
+<!-- ══════════════════ PIXEL WORLD ══════════════════ -->
+<div class="pg" id="pg-world">
+  <canvas id="world-canvas"></canvas>
+  <div id="world-hint">방향키를 움직여 장소를 찾아가 보세요</div>
+  <div id="world-prompt"><span id="world-prompt-name"></span><b>들어가기</b></div>
+  <div id="world-stick">
+    <div id="world-stick-knob"></div>
+  </div>
+</div>
+
 <!-- ══════════════════ CHAPTERS ══════════════════ -->
 <div class="pg" id="pg-chapters">
 
@@ -1681,6 +1765,13 @@ function initLock() {
     $('mode-switch').classList.toggle('on', isManualMode);
     $('mode-label').textContent = isManualMode ? '수동 모드' : '자동 모드';
   });
+
+  // Second switch: fall back to the old card carousel instead of the world
+  $('classic-switch').addEventListener('click', () => {
+    classicMode = !classicMode;
+    $('classic-switch').classList.toggle('on', classicMode);
+    $('classic-label').textContent = classicMode ? '카드 모드' : '월드 모드';
+  });
 }
 
 function syncDots(err = false) {
@@ -1739,7 +1830,7 @@ async function checkPin() {
       lockEl.style.transform  = '';
       lockEl.style.opacity    = '';
     });
-    startCosmicLetter(LETTER_INTRO, goToChapters);
+    startCosmicLetter(LETTER_INTRO, startJourney);
   } else {
     syncDots(true);
     $('lock-err').classList.add('show');
@@ -1951,6 +2042,12 @@ function initCarouselTouch() {
 /* ════════════════════════════════════
    CHAPTER FLOW
 ════════════════════════════════════ */
+/* After the opening letter: the pixel world by default, cards if switched */
+function startJourney() {
+  if (classicMode) goToChapters();
+  else             openWorld(true);
+}
+
 async function goToChapters() {
   await fadeTo('pg-chapters', buildCarousel);
 
@@ -1980,23 +2077,33 @@ async function enterChapter(idx) {
   // Ensure media is queued for download before any animation delay
   preloadChapterMedia(idx);
 
-  // Focus the card smoothly
-  if (activeCard !== idx) positionCards(idx, true);
-  await sleep(400);
-
-  // Dim non-active cards
-  CHAPTERS.forEach((_, i) => {
-    const c = $(`cc${i}`);
-    if (i !== idx) {
-      c.style.transition = 'transform 0.55s ease, opacity 0.55s ease';
-      c.style.transform  = `translateX(${(i - idx) * cardStep()}px) scale(0.72)`;
-      c.style.opacity    = '0.05';
-    } else {
-      c.style.transition = 'transform 0.55s cubic-bezier(0.16,1,0.3,1)';
-      c.style.transform  = 'translateX(0) scale(1.04)';
-    }
-  });
-  await sleep(450);
+  if ($('cc0')) {
+    // Coming from the card carousel — focus the card, dim the rest
+    if (activeCard !== idx) positionCards(idx, true);
+    await sleep(400);
+    CHAPTERS.forEach((_, i) => {
+      const c = $(`cc${i}`);
+      if (i !== idx) {
+        c.style.transition = 'transform 0.55s ease, opacity 0.55s ease';
+        c.style.transform  = `translateX(${(i - idx) * cardStep()}px) scale(0.72)`;
+        c.style.opacity    = '0.05';
+      } else {
+        c.style.transition = 'transform 0.55s cubic-bezier(0.16,1,0.3,1)';
+        c.style.transform  = 'translateX(0) scale(1.04)';
+      }
+    });
+    await sleep(450);
+  } else {
+    // Coming from the world — raise the title card behind the curtain so the
+    // empty carousel page is never seen
+    closeWorld();
+    await fadeTo('pg-chapters', () => {
+      $('ch-vt-num').textContent  = ch.num;
+      $('ch-vt-name').textContent = ch.name;
+      $('ch-vtitle').classList.remove('in', 'up');
+      $('ch-veil').classList.add('solid', 'show');
+    });
+  }
 
   // Show title veil
   const veil    = $('ch-veil');
@@ -2017,7 +2124,7 @@ async function enterChapter(idx) {
   // If future episode → special page, no detail grid
   if (ch.future) {
     await sleep(300);
-    veil.classList.remove('show');
+    veil.classList.remove('show','solid');
     await sleep(300);
     busy = false;
     openFuturePage();
@@ -2038,7 +2145,7 @@ async function enterChapter(idx) {
   await sleep(250);
 
   // Cross-fade: veil out, header slides in
-  veil.classList.remove('show');
+  veil.classList.remove('show','solid');
   hd.classList.add('in');
   await sleep(450);
 
@@ -2109,7 +2216,7 @@ async function exitChapter() {
   await sleep(700);
 
   // Veil fades out → carousel visible
-  veil.classList.remove('show');
+  veil.classList.remove('show','solid');
   await sleep(520);
 }
 
@@ -2179,6 +2286,7 @@ function loadDetail(idx) {
    PHOTO VIEWER & AUTO-PLAY
 ════════════════════════════════════ */
 let isManualMode = false; // set via secret triple-tap on 민소 circle
+let classicMode  = false; // ON → old card carousel; default is the pixel world
 let apChIdx      = -1;   // autoplay: current chapter
 let apPIdx       = 0;    // autoplay: current photo index
 let apRunning    = false;
@@ -2284,7 +2392,7 @@ async function openPhotoViewer(chIdx, pIdx, isAuto) {
   const alreadyOpen = pv.classList.contains('show');
   const isVideo = photo.src && /\.(mp4|mov|webm|m4v)$/i.test(photo.src);
 
-  let dur = 5000;
+  let dur = 6000;
 
   // Build the incoming shot in its own layer, so it can dissolve over the
   // outgoing one instead of the frame blinking to black between photos.
@@ -2506,7 +2614,16 @@ async function onChapterNext() {
       startAutoPlayFrom(currentCh, apPIdx + 1);
       return;
     }
-    // 마지막 사진 → 다음 에피소드로 끊김 없이 이어서 재생
+    // 마지막 사진 → 월드 모드면 캐릭터가 있던 자리로 돌아감
+    if (!classicMode) {
+      if (busy) return;
+      busy = true;
+      await returnToWorld();
+      busy = false;
+      return;
+    }
+
+    // 카드 모드: 다음 에피소드로 끊김 없이 이어서 재생
     if (!isManualMode && currentCh < CHAPTERS.length - 1) {
       if (busy) return;
       busy = true;
@@ -2906,6 +3023,508 @@ function initGridDismiss() {
 }
 
 /* ════════════════════════════════════
+   PIXEL WORLD — the default way into the episodes
+   A small overworld drawn entirely in code: no sprite sheets, so the page
+   stays self-contained. The girl walks to a place, steps to its door and
+   that episode's reel plays.
+════════════════════════════════════ */
+const WT = 16;   // tile size in world pixels
+
+/* . grass  , tuft  f flowers  p path  w water  T tree  H hedge  1-5 place */
+const WORLD_MAP = [
+  'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT',
+  'T..................................T',
+  'T....,.......f........,.......f....T',
+  'T...............55555..............T',
+  'T...............55555..............T',
+  'T....f..........55555.........f....T',
+  'T..11111..........p..........22222.T',
+  'T..11111..........p..........22222.T',
+  'T..11111..........p..........22222.T',
+  'T....p............p............p...T',
+  'T....p............p............p...T',
+  'T....ppppppppppppppppppppppppppp...T',
+  'T....p....wwwwwwwwww..........p....T',
+  'T....p...wwwwwwwwwwww.........p....T',
+  'T,...p...wwwwwwwwwwww.........p...,T',
+  'T....p...wwwwwwwwwwww.........p....T',
+  'T....p....wwwwwwwwww..........p....T',
+  'T....ppppppppppppppppppppppppppp...T',
+  'T..33333..........p..........44444.T',
+  'T..33333..........p..........44444.T',
+  'T..33333..........p..........44444.T',
+  'T....p............p............p...T',
+  'T....p............p............p...T',
+  'T....ppppppppppppppppppppppppppp...T',
+  'T....f.....,......f......,....f....T',
+  'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT',
+];
+const W_COLS = WORLD_MAP[0].length;
+const W_ROWS = WORLD_MAP.length;
+
+// Each place: footprint origin, the tile the girl stands on to enter, and look
+const W_PLACES = [
+  { ep:0, col:3,  row:6,  doorCol:5,  doorRow:9,  kind:'office', name:'회사' },
+  { ep:1, col:29, row:6,  doorCol:31, doorRow:9,  kind:'cafe',   name:'카페' },
+  { ep:2, col:3,  row:18, doorCol:5,  doorRow:21, kind:'house',  name:'우리 집' },
+  { ep:3, col:29, row:18, doorCol:31, doorRow:21, kind:'travel', name:'여행' },
+  { ep:4, col:16, row:3,  doorCol:18, doorRow:6,  kind:'chapel', name:'앞으로의 우리' },
+];
+
+const wSolid = ch => 'THw12345='.includes(ch);
+function wTileAt(c, r) {
+  if (c < 0 || r < 0 || c >= W_COLS || r >= W_ROWS) return 'T';
+  return WORLD_MAP[r][c];
+}
+
+const W = {
+  on:false, raf:0, last:0,
+  x:18*WT+8, y:11*WT+8,     // world pixels, girl's feet
+  dir:'down', step:0, walkT:0, moving:false,
+  vx:0, vy:0, scale:3,
+  visited:new Set(), near:null, locked:false, t:0,
+};
+
+/* ── deterministic per-tile noise so grass detail never flickers ── */
+function wHash(c, r) {
+  let h = (c * 374761393 + r * 668265263) ^ 0x5bf03635;
+  h = (h ^ (h >>> 13)) * 1274126177;
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+function wDrawTile(g, ch, c, r, S) {
+  const X = c * WT * S, Y = r * WT * S, T = WT * S;
+  const px = (ox, oy, w, h, col) => {
+    g.fillStyle = col;
+    g.fillRect(X + ox * S, Y + oy * S, w * S, h * S);
+  };
+  const n = wHash(c, r);
+
+  if (ch === 'w') {
+    px(0, 0, WT, WT, '#3fa9d8');
+    px(0, 0, WT, 6, '#4fb4e0');
+    const s = Math.floor(W.t / 420 + c * 0.7 + r * 1.3) % 4;
+    if (s < 2) px(2 + s * 3, 4 + (n * 6 | 0), 5, 1, '#a9e4f7');
+    if (s > 1) px(7 - s, 10 + (n * 4 | 0), 4, 1, '#8fd8f2');
+    // sandy shore wherever the pond meets land
+    if (wTileAt(c, r - 1) !== 'w') { px(0, 0, WT, 3, '#e8d9ac'); px(0, 3, WT, 1, '#7fcbe8'); }
+    if (wTileAt(c, r + 1) !== 'w') { px(0, WT - 3, WT, 3, '#e8d9ac'); }
+    if (wTileAt(c - 1, r) !== 'w') { px(0, 0, 3, WT, '#e8d9ac'); }
+    if (wTileAt(c + 1, r) !== 'w') { px(WT - 3, 0, 3, WT, '#e8d9ac'); }
+    return;
+  }
+
+  // grass base — near-uniform; strong per-tile shades read as a checkerboard,
+  // so the texture comes from scattered detail instead
+  px(0, 0, WT, WT, n > 0.84 ? '#79c162' : '#75be5e');
+  const n2 = wHash(c + 91, r + 17);
+  if (n2 > 0.72) {                       // blade tufts
+    const bx = 2 + ((n2 * 11) | 0), by = 3 + ((n * 10) | 0);
+    px(bx, by, 1, 3, '#5da548'); px(bx + 1, by + 1, 1, 2, '#68b152');
+  }
+  if (n2 < 0.14) { px(4 + (n * 7 | 0), 5 + (n2 * 40 % 8 | 0), 2, 1, '#8ad074'); }
+  if (n > 0.94) { px(11, 2, 2, 2, '#5da548'); px(3, 12, 2, 1, '#5da548'); }
+
+  if (ch === ',') {
+    px(4, 7, 1, 3, '#5da548'); px(5, 6, 1, 3, '#68b152');
+    px(10, 10, 1, 3, '#5da548'); px(11, 9, 1, 2, '#68b152');
+  } else if (ch === 'f') {
+    const cols = ['#ff8fb1', '#fff3a8', '#ffffff', '#c69bff'];
+    for (let i = 0; i < 3; i++) {
+      const fx = 2 + ((wHash(c + i * 7, r) * 11) | 0);
+      const fy = 3 + ((wHash(c, r + i * 5) * 10) | 0);
+      const fc = cols[(wHash(c + i, r + i) * 4) | 0];
+      px(fx, fy, 2, 2, fc); px(fx, fy + 2, 1, 1, '#5da548');
+    }
+  } else if (ch === 'p') {
+    px(0, 0, WT, WT, '#e6d3a8');
+    px(0, 0, WT, 2, '#efe0bd');
+    if (n > 0.7) px(4 + (n * 6 | 0), 6 + (n * 5 | 0), 2, 2, '#d8c092');
+    if (n < 0.2) px(10, 3, 1, 1, '#d8c092');
+    // soft grass edge where the path meets turf
+    if (wTileAt(c, r - 1) !== 'p') px(0, 0, WT, 1, '#cbb98d');
+    if (wTileAt(c, r + 1) !== 'p') px(0, WT - 1, WT, 1, '#cbb98d');
+    if (wTileAt(c - 1, r) !== 'p') px(0, 0, 1, WT, '#cbb98d');
+    if (wTileAt(c + 1, r) !== 'p') px(WT - 1, 0, 1, WT, '#cbb98d');
+  } else if (ch === 'H') {
+    px(1, 4, 14, 11, '#3f8f42'); px(2, 2, 12, 4, '#4da551');
+    px(3, 3, 4, 2, '#63bd66'); px(9, 6, 3, 2, '#63bd66');
+  } else if (ch === 'T') {
+    // trunk + layered canopy
+    px(6, 10, 4, 6, '#7a5230'); px(6, 10, 1, 6, '#8f6540');
+    px(2, 1, 12, 9, '#2f7a3b'); px(3, 0, 10, 2, '#378c44');
+    px(1, 4, 14, 4, '#378c44');
+    px(4, 2, 4, 3, '#4da551'); px(9, 5, 3, 2, '#4da551');
+    px(2, 8, 12, 2, '#276a33');
+  }
+}
+
+/* ── the five places, drawn as pixel buildings ── */
+function wDrawPlace(g, pl, S) {
+  const X = pl.col * WT * S, Y = (pl.row - 2) * WT * S;  // 2 rows of overhang
+  const px = (ox, oy, w, h, col) => {
+    g.fillStyle = col;
+    g.fillRect(X + ox * S, Y + oy * S, w * S, h * S);
+  };
+  const W5 = WT * 5;           // 5 tiles wide
+  const done = W.visited.has(pl.ep);
+
+  // Unvisited places get a soft halo — drawn first so it never washes out
+  // the building the way a flat overlay would
+  if (!done) {
+    const pulse = 0.5 + 0.5 * Math.sin(W.t / 520);
+    const cx = X + W5 / 2 * S, cy = Y + WT * 3 * S, rad = W5 * 0.95 * S;
+    const grd = g.createRadialGradient(cx, cy, rad * 0.15, cx, cy, rad);
+    grd.addColorStop(0, `rgba(255,246,190,${0.20 + pulse * 0.16})`);
+    grd.addColorStop(1, 'rgba(255,246,190,0)');
+    g.fillStyle = grd;
+    g.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+  }
+
+  // grounding shadow so nothing looks pasted onto the grass
+  g.fillStyle = 'rgba(0,0,0,0.16)';
+  g.fillRect(X + 4 * S, Y + 74 * S, (W5 - 8) * S, 8 * S);
+
+  // window with a frame and a glint, reused by every building
+  const win = (wx, wy, ww, wh, tint) => {
+    px(wx - 1, wy - 1, ww + 2, wh + 2, '#5b4a3a');
+    px(wx, wy, ww, wh, tint);
+    px(wx + 1, wy + 1, 2, Math.max(2, wh - 3), 'rgba(255,255,255,0.55)');
+  };
+  const door = (dx, dw, tone, dark) => {
+    px(dx - 1, 57, dw + 2, 23, dark);
+    px(dx, 58, dw, 22, tone);
+    px(dx + dw - 4, 68, 2, 2, '#ffd98a');
+    px(dx - 3, 79, dw + 6, 3, '#cfc4ad');       // step
+  };
+
+  if (pl.kind === 'chapel') {
+    px(10, 28, 60, 52, '#e6ddc9');                       // body (shaded)
+    px(13, 28, 54, 52, '#f8f4ea');
+    px(8, 24, 64, 5, '#cdbfa6'); px(8, 24, 64, 2, '#e8dfcc');  // eaves
+    px(22, 6, 36, 20, '#efe7d6'); px(25, 9, 30, 17, '#fbf7ee'); // gable
+    px(20, 24, 40, 3, '#cdbfa6');
+    px(38, -2, 4, 12, '#ffd98a'); px(34, 1, 12, 4, '#ffd98a');
+    px(38, -2, 2, 12, '#ffeab8');
+    win(32, 34, 16, 20, '#bfe6e0');
+    px(32, 34, 16, 4, '#f6b8cc');                        // rose window band
+    door(34, 12, '#a06e4c', '#6f4a2e');
+    px(12, 62, 10, 18, '#4da551'); px(58, 62, 10, 18, '#4da551');
+    px(14, 60, 6, 5, '#ff9ab5'); px(60, 60, 6, 5, '#ff9ab5');
+  } else if (pl.kind === 'office') {
+    px(8, 20, 64, 60, '#7d97b8');
+    px(11, 20, 58, 60, '#96afce');
+    px(4, 14, 72, 8, '#63799b'); px(4, 14, 72, 2, '#8298ba');
+    for (let r = 0; r < 3; r++) for (let c2 = 0; c2 < 4; c2++)
+      win(14 + c2 * 14, 26 + r * 14, 10, 9, (r + c2) % 3 ? '#cfe4f5' : '#ffe9a8');
+    door(33, 14, '#54688a', '#3d4d68');
+  } else if (pl.kind === 'cafe') {
+    px(8, 22, 64, 58, '#e2c8a8');
+    px(11, 22, 58, 58, '#f6e3ca');
+    px(4, 12, 72, 11, '#b85c5c');
+    for (let i = 0; i < 6; i++) px(5 + i * 12, 12, 6, 11, i % 2 ? '#f7f1e6' : '#c96b6b');
+    px(4, 23, 72, 2, '#8f4444');
+    win(15, 34, 18, 17, '#bfe2ea'); win(47, 34, 18, 17, '#bfe2ea');
+    px(15, 42, 18, 2, '#ffffff'); px(47, 42, 18, 2, '#ffffff');
+    door(33, 14, '#a06e4c', '#6f4a2e');
+    px(20, 4, 4, 9, '#9a6b4a'); px(12, -1, 20, 6, '#ff9ab5'); px(14, 0, 16, 2, '#ffc2d4');
+  } else if (pl.kind === 'house') {
+    px(10, 30, 60, 50, '#dfcaa9');
+    px(13, 30, 54, 50, '#f2e3c9');
+    px(2, 14, 76, 18, '#a84f42');                        // roof
+    px(5, 16, 70, 13, '#c96b5a');
+    px(2, 14, 76, 3, '#dd7f6d');
+    px(2, 29, 76, 3, '#8f4136');                         // eave shadow
+    px(33, 0, 9, 15, '#8f8a88'); px(31, -3, 13, 4, '#a8a2a0');
+    win(17, 40, 17, 15, '#bfe2ea'); win(48, 40, 17, 15, '#bfe2ea');
+    px(25, 40, 2, 15, '#f2e3c9'); px(56, 40, 2, 15, '#f2e3c9');
+    door(34, 13, '#a06e4c', '#6f4a2e');
+    px(10, 64, 11, 16, '#4da551'); px(59, 64, 11, 16, '#4da551');
+    px(12, 62, 6, 5, '#ffd7e4'); px(61, 62, 6, 5, '#ffd7e4');
+  } else {
+    px(8, 24, 64, 56, '#c6d2e0');
+    px(11, 24, 58, 56, '#e6edf5');
+    px(4, 16, 72, 9, '#6f9fc4'); px(4, 16, 72, 2, '#8fb8d8');
+    win(16, 32, 48, 19, '#bfe2ea');
+    px(32, 32, 2, 19, '#e6edf5'); px(48, 32, 2, 19, '#e6edf5');
+    door(33, 14, '#6f88a8', '#4d5f7c');
+    px(22, 2, 34, 4, '#ffffff'); px(35, -3, 9, 11, '#ffffff');
+    px(18, 6, 12, 3, '#dfe8f2'); px(46, 6, 10, 3, '#dfe8f2');
+    px(35, -3, 3, 11, '#e2ecf7');
+  }
+
+  // marker above the roof: bobbing pin while unvisited, small heart once seen
+  if (!done) {
+    const by = -14 - Math.round(Math.sin(W.t / 300) * 3);
+    px(33, by, 14, 10, '#ffffff'); px(35, by + 10, 10, 3, '#ffffff');
+    px(38, by + 12, 4, 3, '#ffffff');
+    px(37, by + 3, 6, 4, '#ff6b8f');
+  } else {
+    px(35, -13, 4, 3, '#ff6b8f'); px(41, -13, 4, 3, '#ff6b8f');
+    px(35, -10, 10, 3, '#ff6b8f'); px(37, -7, 6, 2, '#ff6b8f');
+    px(39, -5, 2, 2, '#ff6b8f');
+  }
+}
+
+/* ── the girl, drawn procedurally on a 16x20 unit grid ── */
+function wDrawGirl(g, sx, sy, dir, step, S) {
+  const p = (ox, oy, w, h, col) => {
+    g.fillStyle = col;
+    g.fillRect(sx + ox * S, sy + oy * S, w * S, h * S);
+  };
+  const HAIR='#4a2c1a', HAIR2='#6b4227', SKIN='#ffdcbc', SKIN2='#e8b894',
+        DRESS='#fdfbf3', DRESS2='#dceeea', MINT='#81D8D0', PINK='#ff9ab5',
+        EYE='#2b1b12', SHOE='#8a5a3c';
+  const la = step === 1 ? 1 : 0, ra = step === 2 ? 1 : 0;
+
+  // shadow
+  g.fillStyle = 'rgba(0,0,0,0.22)';
+  g.fillRect(sx + 3 * S, sy + 19 * S, 10 * S, 2 * S);
+
+  if (dir === 'up') {
+    p(3,1,10,9,HAIR); p(2,3,2,6,HAIR); p(12,3,2,6,HAIR);
+    p(4,2,8,3,HAIR2);
+    p(12,2,3,2,PINK); p(13,1,2,2,PINK);      // bow from behind
+    p(6,10,4,1,SKIN2);
+    p(4,11,8,5,DRESS); p(3,14,10,3,DRESS); p(3,16,10,1,DRESS2);
+    p(4,13,8,1,MINT);
+    p(2,11,2,4,SKIN); p(12,11,2,4,SKIN);
+  } else if (dir === 'down') {
+    p(3,1,10,9,HAIR);
+    p(4,3,8,7,SKIN);
+    p(3,1,10,3,HAIR); p(3,2,2,5,HAIR); p(11,2,2,5,HAIR);
+    p(5,1,6,1,HAIR2);
+    p(5,6,2,2,EYE); p(9,6,2,2,EYE);
+    p(5,6,1,1,'#ffffff'); p(9,6,1,1,'#ffffff');
+    p(4,8,1,1,PINK); p(11,8,1,1,PINK);
+    p(7,8,2,1,SKIN2);
+    p(12,2,3,2,PINK); p(13,1,2,2,PINK);
+    p(7,10,2,1,SKIN2);
+    p(4,11,8,5,DRESS); p(3,14,10,3,DRESS); p(3,16,10,1,DRESS2);
+    p(4,13,8,1,MINT);
+    p(2,11,2,4,SKIN); p(12,11,2,4,SKIN);
+  } else {
+    const flip = dir === 'left';
+    const q = (ox, oy, w, h, col) => p(flip ? 16 - ox - w : ox, oy, w, h, col);
+    q(3,1,10,9,HAIR);
+    q(6,3,6,7,SKIN);
+    q(3,1,9,3,HAIR); q(3,2,3,7,HAIR);
+    q(9,6,2,2,EYE); q(9,6,1,1,'#ffffff');
+    q(11,8,1,1,PINK);
+    q(3,2,3,3,PINK);
+    q(7,10,3,1,SKIN2);
+    q(5,11,7,5,DRESS); q(4,14,9,3,DRESS); q(4,16,9,1,DRESS2);
+    q(5,13,7,1,MINT);
+    q(10,11,2,4,SKIN);
+  }
+
+  // legs — alternate for the walk cycle
+  p(5, 17 - la, 2, 2, SKIN);  p(9, 17 - ra, 2, 2, SKIN);
+  p(5, 19 - la, 2, 1, SHOE);  p(9, 19 - ra, 2, 1, SHOE);
+}
+
+/* ── frame ── */
+function wRender() {
+  const cv = $('world-canvas'), g = cv.getContext('2d');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cw = cv.clientWidth, chh = cv.clientHeight;
+  if (cv.width !== (cw * dpr | 0) || cv.height !== (chh * dpr | 0)) {
+    cv.width = cw * dpr | 0; cv.height = chh * dpr | 0;
+  }
+  const S = W.scale = Math.max(2, Math.min(6, Math.floor(Math.min(cw, chh) / 224)));
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.imageSmoothingEnabled = false;
+
+  // camera — centred on the girl, clamped to the map
+  const mapW = W_COLS * WT * S, mapH = W_ROWS * WT * S;
+  let camX = W.x * S - cw / 2, camY = W.y * S - chh / 2;
+  camX = mapW <= cw ? (mapW - cw) / 2 : Math.max(0, Math.min(mapW - cw, camX));
+  camY = mapH <= chh ? (mapH - chh) / 2 : Math.max(0, Math.min(mapH - chh, camY));
+
+  g.fillStyle = '#74bd5d';
+  g.fillRect(0, 0, cw, chh);
+  g.save();
+  g.translate(-Math.round(camX), -Math.round(camY));
+
+  // only draw the tiles the camera can see
+  const c0 = Math.max(0, Math.floor(camX / (WT * S)) - 1);
+  const c1 = Math.min(W_COLS - 1, Math.ceil((camX + cw) / (WT * S)));
+  const r0 = Math.max(0, Math.floor(camY / (WT * S)) - 1);
+  const r1 = Math.min(W_ROWS - 1, Math.ceil((camY + chh) / (WT * S)));
+  for (let r = r0; r <= r1; r++)
+    for (let c = c0; c <= c1; c++) {
+      const ch = wTileAt(c, r);
+      wDrawTile(g, '12345'.includes(ch) ? '.' : ch, c, r, S);
+    }
+
+  // places and girl sorted by depth so she can walk behind a roof edge
+  const drawables = W_PLACES.map(pl => ({ y: (pl.row + 3) * WT, f: () => wDrawPlace(g, pl, S) }));
+  drawables.push({ y: W.y, f: () => wDrawGirl(g, Math.round(W.x * S) - 8 * S, Math.round(W.y * S) - 20 * S, W.dir, W.step, S) });
+  drawables.sort((a, b) => a.y - b.y).forEach(d => d.f());
+
+  g.restore();
+}
+
+function wCanMove(nx, ny) {
+  // feet box, a little narrower than the sprite
+  const pts = [[nx - 4, ny - 3], [nx + 4, ny - 3], [nx - 4, ny], [nx + 4, ny]];
+  return pts.every(([px2, py2]) =>
+    !wSolid(wTileAt(Math.floor(px2 / WT), Math.floor(py2 / WT))));
+}
+
+function wNearPlace() {
+  const c = Math.floor(W.x / WT), r = Math.floor(W.y / WT);
+  return W_PLACES.find(pl => Math.abs(pl.doorCol - c) <= 1 && Math.abs(pl.doorRow - r) <= 1) || null;
+}
+
+function wStep(dt) {
+  const sp = 52 / 1000 * dt;   // world px per frame
+  let dx = W.vx, dy = W.vy;
+  const mag = Math.hypot(dx, dy);
+  if (mag > 1) { dx /= mag; dy /= mag; }
+  W.moving = mag > 0.12 && !W.locked;
+  if (W.locked) { dx = dy = 0; }
+
+  if (W.moving) {
+    if (Math.abs(dx) > Math.abs(dy)) W.dir = dx < 0 ? 'left' : 'right';
+    else                             W.dir = dy < 0 ? 'up' : 'down';
+    const nx = W.x + dx * sp, ny = W.y + dy * sp;
+    if (wCanMove(nx, W.y)) W.x = nx;
+    if (wCanMove(W.x, ny)) W.y = ny;
+    W.walkT += dt;
+    if (W.walkT > 150) { W.walkT = 0; W.step = W.step === 1 ? 2 : 1; }
+  } else { W.step = 0; W.walkT = 0; }
+
+  // door prompt
+  const near = W.locked ? null : wNearPlace();
+  if (near !== W.near) {
+    W.near = near;
+    const el = $('world-prompt');
+    if (near) {
+      const locked = near.ep === 4 && W.visited.size < 4;
+      $('world-prompt-name').textContent = locked
+        ? `${near.name} · 아직이야` : near.name;
+      el.classList.toggle('show', !locked);
+    } else el.classList.remove('show');
+  }
+}
+
+function wLoop(ts) {
+  if (!W.on) return;
+  const dt = Math.min(48, ts - (W.last || ts));
+  W.last = ts; W.t += dt;
+  wStep(dt);
+  wRender();
+  W.raf = requestAnimationFrame(wLoop);
+}
+
+/* ── controls: on-screen stick + keyboard ── */
+function wInitControls() {
+  const stick = $('world-stick'), knob = $('world-stick-knob');
+  let id = null, cx = 0, cy = 0;
+  const R = 34;
+  const set = (dx, dy) => {
+    const m = Math.hypot(dx, dy) || 1;
+    const cl = Math.min(m, R);
+    knob.style.transform = `translate(${dx / m * cl}px, ${dy / m * cl}px)`;
+    W.vx = dx / R; W.vy = dy / R;
+  };
+  const reset = () => { knob.style.transform = ''; W.vx = W.vy = 0; id = null; };
+
+  stick.addEventListener('touchstart', e => {
+    const t = e.changedTouches[0]; id = t.identifier;
+    const r = stick.getBoundingClientRect();
+    cx = r.left + r.width / 2; cy = r.top + r.height / 2;
+    set(t.clientX - cx, t.clientY - cy);
+  }, { passive: true });
+  stick.addEventListener('touchmove', e => {
+    for (const t of e.changedTouches)
+      if (t.identifier === id) set(t.clientX - cx, t.clientY - cy);
+  }, { passive: true });
+  stick.addEventListener('touchend',    reset, { passive: true });
+  stick.addEventListener('touchcancel', reset, { passive: true });
+
+  // mouse drag, for desktop
+  stick.addEventListener('mousedown', e => {
+    const r = stick.getBoundingClientRect();
+    cx = r.left + r.width / 2; cy = r.top + r.height / 2;
+    id = 'm'; set(e.clientX - cx, e.clientY - cy);
+    const mv = ev => { if (id === 'm') set(ev.clientX - cx, ev.clientY - cy); };
+    const up = () => { reset(); window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); };
+    window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
+  });
+
+  const keys = {};
+  const apply = () => {
+    W.vx = (keys.ArrowRight || keys.d ? 1 : 0) - (keys.ArrowLeft || keys.a ? 1 : 0);
+    W.vy = (keys.ArrowDown  || keys.s ? 1 : 0) - (keys.ArrowUp   || keys.w ? 1 : 0);
+  };
+  window.addEventListener('keydown', e => {
+    if (!W.on) return;
+    if (e.key === 'Enter' || e.key === ' ') { wTryEnter(); return; }
+    keys[e.key] = true; apply();
+  });
+  window.addEventListener('keyup', e => { keys[e.key] = false; apply(); });
+
+  $('world-prompt').addEventListener('click', wTryEnter);
+}
+
+function wTryEnter() {
+  if (!W.on || W.locked || !W.near) return;
+  const pl = W.near;
+  if (pl.ep === 4 && W.visited.size < 4) return;
+  W.locked = true;
+  W.vx = W.vy = 0;
+  $('world-prompt').classList.remove('show');
+  $('world-stick').classList.remove('show');
+  $('world-hint').classList.remove('show');
+  W.visited.add(pl.ep);
+  enterChapter(pl.ep);
+}
+
+async function openWorld(firstTime) {
+  await fadeTo('pg-world');
+  W.on = true; W.locked = false; W.last = 0;
+  if (!W.raf) W.raf = requestAnimationFrame(wLoop);
+  CHAPTERS.forEach((_, i) => preloadChapterMedia(i));
+  await sleep(260);
+  $('world-stick').classList.add('show');
+  if (firstTime) {
+    $('world-hint').classList.add('show');
+    setTimeout(() => $('world-hint').classList.remove('show'), 5200);
+  }
+}
+
+/* Called when an episode's reel finishes — walk back out into the world */
+async function returnToWorld() {
+  stopAutoPlay();
+  await closePhotoViewer(true);
+  $('ch-detail').classList.remove('show');
+  $('ch-hd').classList.remove('in');
+  $('ch-scroll').classList.remove('show');
+  $('ch-foot').classList.remove('show');
+  await fadeTo('pg-world');
+  // step the girl back out in front of the door she came from
+  const pl = W.near;
+  if (pl) {
+    W.x = pl.doorCol * WT + 8;
+    W.y = (pl.doorRow + (pl.doorRow > pl.row ? 1 : 0)) * WT + 12;
+    W.dir = 'down';
+  }
+  W.on = true; W.locked = false; W.last = 0; W.near = null;
+  if (!W.raf) W.raf = requestAnimationFrame(wLoop);
+  $('world-stick').classList.add('show');
+}
+
+function closeWorld() {
+  W.on = false;
+  if (W.raf) { cancelAnimationFrame(W.raf); W.raf = 0; }
+  $('world-stick').classList.remove('show');
+  $('world-prompt').classList.remove('show');
+  $('world-hint').classList.remove('show');
+}
+
+/* ════════════════════════════════════
    ORIENTATION — re-layout anything positioned in JS pixels
 ════════════════════════════════════ */
 function relayoutForOrientation() {
@@ -2944,6 +3563,7 @@ window.addEventListener('resize', onViewportChange);
 window.addEventListener('DOMContentLoaded', () => {
   initLock();
   initGridDismiss();
+  wInitControls();
   $('btn-ch-next').addEventListener('click', onChapterNext);
   $('btn-yes').addEventListener('click', onYes);
   $('btn-no').addEventListener('click', dodgeNo);
