@@ -3104,7 +3104,7 @@ const W_ENTRY_FLOWERS = [
 const W_CHANDELIERS = (() => {
   const out = [];
   for (let r = 9; r <= 43; r += 3.4) {
-    out.push({ col: AISLE_MID + 0.5, row: r, big: 1 });
+    out.push({ col: AISLE_MID, row: r, big: 1 });
     out.push({ col: AISLE_L - 5.5, row: r + 1.7, big: 0 });
     out.push({ col: AISLE_R + 6.5, row: r + 1.7, big: 0 });
     out.push({ col: AISLE_L - 10,  row: r, big: 0 });
@@ -3122,7 +3122,7 @@ function wTileAt(c, r) {
 const W = {
   on:false, raf:0, last:0,
   x:AISLE_MID*WT+WT/2, y:41*WT+WT/2,   // just inside the gateway, facing the aisle
-  dir:'up', step:0, walkT:0, moving:false, hop:null, hopT:0,
+  dir:'up', step:0, walkT:0, moving:false,
   vx:0, vy:0, scale:3,
   visited:new Set(), near:null, locked:false, t:0,
 };
@@ -3790,30 +3790,22 @@ function wNearPlace() {
 }
 
 function wStep(dt) {
-  // She moves a whole tile at a time, like a character on a board.
-  const STEP_MS = 190;
-  if (W.hop) {
-    W.hopT += dt;
-    const k = Math.min(1, W.hopT / STEP_MS);
-    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;   // ease in-out
-    W.x = W.hop.x0 + (W.hop.x1 - W.hop.x0) * e;
-    W.y = W.hop.y0 + (W.hop.y1 - W.hop.y0) * e;
-    W.step = W.hopT % (STEP_MS / 1) < STEP_MS / 2 ? 1 : 2;
-    if (k >= 1) { W.x = W.hop.x1; W.y = W.hop.y1; W.hop = null; W.step = 0; }
-    W.moving = true;
-  } else {
-    W.moving = false; W.step = 0;
-    const dx = W.vx, dy = W.vy;
-    if (!W.locked && Math.hypot(dx, dy) > 0.35) {
-      let ax = 0, ay = 0;
-      if (Math.abs(dx) > Math.abs(dy)) { ax = dx < 0 ? -1 : 1; W.dir = ax < 0 ? 'left' : 'right'; }
-      else                             { ay = dy < 0 ? -1 : 1; W.dir = ay < 0 ? 'up' : 'down'; }
-      const cx = Math.round((W.x - WT / 2) / WT), cy = Math.round((W.y - WT / 2) / WT);
-      const nx = (cx + ax) * WT + WT / 2, ny = (cy + ay) * WT + WT / 2;
-      if (wCanMove(nx, ny))
-        W.hop = { x0: W.x, y0: W.y, x1: nx, y1: ny }, W.hopT = 0, W.moving = true;
-    }
-  }
+  const sp = 104 / 1000 * dt;   // world px this frame
+  let dx = W.vx, dy = W.vy;
+  const mag = Math.hypot(dx, dy);
+  if (mag > 1) { dx /= mag; dy /= mag; }
+  W.moving = mag > 0.12 && !W.locked;
+  if (W.locked) { dx = dy = 0; }
+
+  if (W.moving) {
+    if (Math.abs(dx) > Math.abs(dy)) W.dir = dx < 0 ? 'left' : 'right';
+    else                             W.dir = dy < 0 ? 'up' : 'down';
+    const nx = W.x + dx * sp, ny = W.y + dy * sp;
+    if (wCanMove(nx, W.y)) W.x = nx;
+    if (wCanMove(W.x, ny)) W.y = ny;
+    W.walkT += dt;
+    if (W.walkT > 150) { W.walkT = 0; W.step = W.step === 1 ? 2 : 1; }
+  } else { W.step = 0; W.walkT = 0; }
 
   // door prompt
   const near = W.locked ? null : wNearPlace();
@@ -3931,7 +3923,6 @@ async function returnToWorld() {
   if (pl) {
     W.x = AISLE_MID * WT + WT / 2;
     W.y = (pl.doorRow + 1) * WT + WT / 2;
-    W.hop = null;
     W.dir = 'up';
   }
   W.on = true; W.locked = false; W.last = 0; W.near = null;
