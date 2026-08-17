@@ -1076,8 +1076,6 @@ html, body {
 #world-canvas {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
   touch-action: none;
 }
 #world-hint {
@@ -3144,13 +3142,54 @@ function wHash(c, r) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-/* Pixel-art circle: quantised scanlines so it stays crisp, never smoothed */
-function pxDisc(g, cx, cy, rad, col, q) {
-  g.fillStyle = col;
-  for (let y = -rad; y < rad; y += q) {
-    const w = Math.sqrt(Math.max(0, rad * rad - y * y));
-    g.fillRect(Math.round(cx - w), Math.round(cy + y), Math.round(w * 2), q);
+const TAU = Math.PI * 2;
+
+/* Round shapes are drawn properly now — smooth edges, a lit side and a
+   shaded one — instead of the stepped scanlines this used to use. */
+function pxDisc(g, cx, cy, rad, col, _q) {
+  if (rad <= 0) return;
+  g.beginPath(); g.arc(cx, cy, rad, 0, TAU);
+  g.fillStyle = col; g.fill();
+}
+
+/* A single bloom: body, shaded underside, lit crown, and a bright centre. */
+function wBloom(g, cx, cy, rad, col) {
+  if (rad <= 0.4) { g.fillStyle = col; g.fillRect(cx - rad, cy - rad, rad * 2, rad * 2); return; }
+  g.beginPath(); g.arc(cx, cy, rad, 0, TAU); g.fillStyle = col; g.fill();
+  g.save();
+  g.beginPath(); g.arc(cx, cy, rad, 0, TAU); g.clip();
+  g.beginPath(); g.arc(cx + rad * 0.34, cy + rad * 0.38, rad * 0.92, 0, TAU);
+  g.fillStyle = 'rgba(60,20,50,0.20)'; g.fill();
+  g.beginPath(); g.arc(cx - rad * 0.3, cy - rad * 0.34, rad * 0.62, 0, TAU);
+  g.fillStyle = 'rgba(255,255,255,0.34)'; g.fill();
+  g.restore();
+  g.beginPath(); g.arc(cx - rad * 0.22, cy - rad * 0.26, rad * 0.24, 0, TAU);
+  g.fillStyle = 'rgba(255,255,255,0.72)'; g.fill();
+}
+
+/* Soft contact shadow — a real falloff rather than a flat grey ellipse. */
+function wShadow(g, cx, cy, rx, ry, strength) {
+  const gr = g.createRadialGradient(cx, cy, 0, cx, cy, rx);
+  gr.addColorStop(0, `rgba(0,0,0,${strength})`);
+  gr.addColorStop(0.6, `rgba(0,0,0,${strength * 0.5})`);
+  gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.save(); g.translate(cx, cy); g.scale(1, ry / rx); g.translate(-cx, -cy);
+  g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, rx, 0, TAU); g.fill();
+  g.restore();
+}
+
+/* A rounded, softly lit body — used for torsos, cloth and furniture. */
+function wSoftRect(g, x, y, w, h, col, r) {
+  const rr = Math.min(r === undefined ? Math.min(w, h) * 0.28 : r, w / 2, h / 2);
+  g.beginPath();
+  if (g.roundRect) g.roundRect(x, y, w, h, rr);
+  else {
+    g.moveTo(x + rr, y); g.lineTo(x + w - rr, y); g.quadraticCurveTo(x + w, y, x + w, y + rr);
+    g.lineTo(x + w, y + h - rr); g.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+    g.lineTo(x + rr, y + h); g.quadraticCurveTo(x, y + h, x, y + h - rr);
+    g.lineTo(x, y + rr); g.quadraticCurveTo(x, y, x + rr, y);
   }
+  g.fillStyle = col; g.fill();
 }
 
 function wDrawTile(g, ch, c, r, S) {
@@ -3220,8 +3259,11 @@ function wDrawTile(g, ch, c, r, S) {
     }
   } else if (ch === 'r') {
     // the runner — deep navy weave with a pale selvedge and fallen petals
-    px(0, 0, 16, 16, n > 0.55 ? '#1b1c30' : '#18192b');
-    for (let i = 0; i < 4; i++) px(0, i * 4 + (c % 2), 16, 0.5, '#1e1f36');
+    const gr = g.createLinearGradient(X, Y, X + 16 * U * S, Y);
+    if (c === AISLE_MID) { gr.addColorStop(0, '#20213a'); gr.addColorStop(0.5, '#262745'); gr.addColorStop(1, '#20213a'); }
+    else { gr.addColorStop(0, '#1a1b2e'); gr.addColorStop(1, '#1e1f36'); }
+    g.fillStyle = gr; g.fillRect(X, Y, 16 * U * S, 16 * U * S);
+    for (let i = 0; i < 4; i++) px(0, i * 4 + (c % 2), 16, 0.4, 'rgba(255,255,255,0.028)');
     if (c === AISLE_L) { px(0, 0, 1.5, 16, '#262742'); px(1, 0, 0.5, 16, '#4a4b6b'); }
     if (c === AISLE_R) { px(14.5, 0, 1.5, 16, '#262742'); px(14.5, 0, 0.5, 16, '#4a4b6b'); }
     if (n > 0.9) {
@@ -3230,21 +3272,31 @@ function wDrawTile(g, ch, c, r, S) {
     }
     if (n < 0.08) px(9, 11, 1, 1.5, '#e6bdd0');
   } else if (ch === 'F') {
-    // unbroken bank of pink blooms hugging the runner
+    // an unbroken bank of blooms hugging the runner
     px(0, 0, 16, 16, '#2b2534');
-    px(0, 6, 16, 10, '#2f4a33'); px(0, 4, 16, 4, '#3c5c40');
-    for (let i = 0; i < 4; i++) px(1 + i * 4, 9, 1, 6, '#27412c');
-    const pinks = ['#f7bfd2', '#f2a8c4', '#fbd3e0', '#e9b3d8', '#ffffff', '#f6c9b6'];
-    for (let i = 0; i < 16; i++) {
-      const bx = ((wHash(c + i * 5, r) * 15) | 0);
-      const by = ((wHash(c, r + i * 3) * 14) | 0);
-      const bs = 1.5 + (wHash(c + i, r + i) * 1.6);
-      pxDisc(g, X + (bx + bs / 2) * U * S, Y + (by + bs / 2) * U * S,
-             bs * U * S * 0.62, pinks[(wHash(c + i * 2, r + i) * 6) | 0], Math.max(1, S));
-      px(bx + 0.4, by + 0.4, 0.6, 0.6, '#ffffff');
+    const gy = g.createLinearGradient(X, Y, X, Y + 16 * U * S);
+    gy.addColorStop(0, '#3f6244'); gy.addColorStop(0.55, '#33523a'); gy.addColorStop(1, '#26402c');
+    g.fillStyle = gy; g.fillRect(X, Y + 3 * U * S, 16 * U * S, 13 * U * S);
+    for (let i = 0; i < 6; i++) {                       // foliage
+      const lx = wHash(c + i * 3, r) * 15, ly = 2 + wHash(c, r + i * 4) * 12;
+      g.save(); g.translate(X + lx * U * S, Y + ly * U * S);
+      g.rotate((wHash(c + i, r + i) - 0.5) * 2);
+      g.fillStyle = i % 2 ? '#4a7150' : '#2e4c34';
+      g.beginPath(); g.ellipse(0, 0, 2.6 * U * S, 1.1 * U * S, 0, 0, TAU); g.fill();
+      g.restore();
     }
-    px(2, 1, 0.7, 0.7, '#ffffff'); px(12, 2.5, 0.7, 0.7, '#ffffff');
-    px(6, 0.5, 0.7, 0.7, '#ffffff'); px(9, 5, 0.7, 0.7, '#ffffff');
+    const pinks = ['#f9c8d8','#f4aac6','#fde0ea','#eeb4dd','#ffffff','#f8cdb8','#e9bbe8'];
+    for (let i = 0; i < 15; i++) {
+      const bx = wHash(c + i * 5, r) * 15.5;
+      const by = wHash(c, r + i * 3) * 15;
+      const bs = (1.3 + wHash(c + i, r + i) * 1.7) * U * S;
+      wBloom(g, X + bx * U * S, Y + by * U * S, bs, pinks[(wHash(c + i * 2, r + i) * 7) | 0]);
+    }
+    for (let i = 0; i < 5; i++) {                       // baby's breath
+      const bx = wHash(c + i * 13, r + 2) * 15, by = wHash(c + 5, r + i * 7) * 15;
+      g.fillStyle = 'rgba(255,255,255,0.92)';
+      g.beginPath(); g.arc(X + bx * U * S, Y + by * U * S, 0.45 * U * S, 0, TAU); g.fill();
+    }
   } else if (ch === 'H') {
     // long head table in white linen
     px(0, 2, 16, 11, '#eee8de'); px(0, 2, 16, 1.5, '#fbf7f0');
@@ -3268,12 +3320,15 @@ function wDrawPerson(g, cx, cy, S, seed, faceX, standing) {
   const skin   = s3 > 0.55 ? '#ffdcbc' : (s3 > 0.25 ? '#f6d0ab' : '#e8bd97');
   const H = standing ? 1.15 : 1;
 
-  if (standing) pxDisc(g, cx, cy + 4.4 * u, 3 * u, 'rgba(0,0,0,0.30)', q);
+  if (standing) wShadow(g, cx, cy + 4.6 * u, 4.4 * u, 2 * u, 0.45);
 
-  // body
-  p(-3 * H, -1.4, 6 * H, 6.4 * H, wear);
-  p(-3 * H, -1.4, 6 * H, 0.8, 'rgba(255,255,255,0.12)');
-  p(-3 * H, 3.4 * H, 6 * H, 1.2, 'rgba(0,0,0,0.28)');
+  // body — rounded shoulders with a lit top edge
+  wSoftRect(g, cx - 3 * H * u, cy - 1.4 * u, 6 * H * u, 6.4 * H * u, wear, 2.1 * u);
+  const bg = g.createLinearGradient(cx, cy - 1.4 * u, cx, cy + 5 * u);
+  bg.addColorStop(0, 'rgba(255,244,220,0.18)'); bg.addColorStop(0.5, 'rgba(0,0,0,0)');
+  bg.addColorStop(1, 'rgba(0,0,0,0.32)');
+  g.save(); wSoftRect(g, cx - 3 * H * u, cy - 1.4 * u, 6 * H * u, 6.4 * H * u, 'rgba(0,0,0,0)', 2.1 * u);
+  g.clip(); g.fillStyle = bg; g.fillRect(cx - 4 * u, cy - 2 * u, 8 * u, 8 * u); g.restore();
   if (fem) {                                   // a wrap or shawl
     p(-3 * H, -1.4, 6 * H, 2.2, 'rgba(255,255,255,0.10)');
     if (s2 > 0.78) p(-1, -1.2, 2, 4.2, '#e6dfe8');
@@ -3282,11 +3337,17 @@ function wDrawPerson(g, cx, cy, S, seed, faceX, standing) {
     p(-0.45, -1.1, 0.9, 3, ['#7a2f3a','#2f3f6b','#4a3a2a','#3f5a4a'][(s3 * 4) | 0]);
   }
   // arms
-  p(-4.2 * H, -1, 1.3, 4.6, wear); p(2.9 * H, -1, 1.3, 4.6, wear);
-  // head
-  pxDisc(g, cx, cy - 3.2 * u, 2.35 * u, skin, q);
-  pxDisc(g, cx, cy - 4 * u, 2.5 * u, hairC, q);
-  p(-2.5, -5.3, 5, 1.8, hairC);
+  wSoftRect(g, cx - 4.2 * H * u, cy - u, 1.4 * u, 4.6 * u, wear, 0.7 * u);
+  wSoftRect(g, cx + 2.9 * H * u, cy - u, 1.4 * u, 4.6 * u, wear, 0.7 * u);
+  // head — hair behind, then a lit face
+  pxDisc(g, cx, cy - 3.9 * u, 2.55 * u, hairC);
+  if (fem) { pxDisc(g, cx - 1.9 * u, cy - 2.5 * u, 1.5 * u, hairC); pxDisc(g, cx + 1.9 * u, cy - 2.5 * u, 1.5 * u, hairC); }
+  const hg = g.createRadialGradient(cx - 0.9 * u, cy - 4.1 * u, 0.2 * u, cx, cy - 3.3 * u, 2.5 * u);
+  hg.addColorStop(0, skin); hg.addColorStop(0.72, skin); hg.addColorStop(1, 'rgba(150,95,60,0.55)');
+  g.beginPath(); g.arc(cx, cy - 3.2 * u, 2.3 * u, 0, TAU); g.fillStyle = hg; g.fill();
+  g.beginPath(); g.arc(cx, cy - 4.2 * u, 2.45 * u, Math.PI * 1.02, Math.PI * 1.98);
+  g.lineTo(cx + 2.45 * u, cy - 3.4 * u); g.lineTo(cx - 2.45 * u, cy - 3.4 * u);
+  g.closePath(); g.fillStyle = hairC; g.fill();
   if (fem) {                                   // longer hair falling past the shoulders
     p(-2.9, -3.9, 5.8, 3.2, hairC);
     if (s2 > 0.7) { p(-3.2, -3.6, 0.9, 4.4, hairC); p(2.3, -3.6, 0.9, 4.4, hairC); }
@@ -3313,8 +3374,9 @@ function wDrawTable(g, tb, S) {
   for (let i = 0; i < tb.seats; i++) {
     const a = i / tb.seats * Math.PI * 2 + 0.4;
     const chx = cx + Math.cos(a) * rad * 1.42, chy = cy + Math.sin(a) * rad * 1.42;
-    pxDisc(g, chx, chy, 0.42 * WT * S, '#1a1622', Math.max(1, S));
-    pxDisc(g, chx, chy - 0.1 * WT * S, 0.34 * WT * S, '#241f30', Math.max(1, S));
+    wShadow(g, chx, chy + 0.18 * WT * S, 0.6 * WT * S, 0.32 * WT * S, 0.42);
+    pxDisc(g, chx, chy, 0.42 * WT * S, '#1c1826');
+    pxDisc(g, chx, chy - 0.09 * WT * S, 0.34 * WT * S, '#2b2438');
   }
   // guests, back rows drawn first
   const order = [...Array(tb.seats).keys()].sort((i, j) =>
@@ -3325,11 +3387,13 @@ function wDrawTable(g, tb, S) {
                 S, wHash(tb.col + i * 7, tb.row + i * 3), toAisle, false);
   }
   // cloth, then the top
-  pxDisc(g, cx, cy + 0.16 * WT * S, rad * 1.06, '#14111c', Math.max(1, S));
-  pxDisc(g, cx, cy, rad, '#241f31', Math.max(1, S));
-  pxDisc(g, cx, cy - 0.06 * WT * S, rad * 0.92, '#2e2740', Math.max(1, S));
-  g.fillStyle = 'rgba(255,255,255,0.07)';
-  g.fillRect(cx - rad * 0.7, cy - rad * 0.72, rad * 1.4, 0.16 * WT * S);
+  wShadow(g, cx, cy + rad * 0.34, rad * 1.5, rad * 0.9, 0.5);
+  pxDisc(g, cx, cy + 0.16 * WT * S, rad * 1.06, '#14111c');
+  const tg = g.createRadialGradient(cx - rad * 0.35, cy - rad * 0.4, rad * 0.1, cx, cy, rad);
+  tg.addColorStop(0, '#3b3350'); tg.addColorStop(0.65, '#2a2438'); tg.addColorStop(1, '#1b1725');
+  g.beginPath(); g.arc(cx, cy, rad, 0, TAU); g.fillStyle = tg; g.fill();
+  g.beginPath(); g.arc(cx, cy, rad * 0.98, Math.PI * 1.12, Math.PI * 1.78);
+  g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = rad * 0.07; g.stroke();
   // a full centrepiece of blooms — no plates, no food
   const q = Math.max(1, S);
   pxDisc(g, cx, cy, rad * 0.56, '#33523a', q);
@@ -3337,9 +3401,9 @@ function wDrawTable(g, tb, S) {
   for (let i = 0; i < 16; i++) {
     const a = i / 16 * Math.PI * 2 + tb.row;
     const rr = rad * (0.18 + wHash(tb.col + i, tb.row + i * 3) * 0.44);
-    pxDisc(g, cx + Math.cos(a) * rr, cy + Math.sin(a) * rr,
+    wBloom(g, cx + Math.cos(a) * rr, cy + Math.sin(a) * rr,
            rad * (0.11 + wHash(tb.col + i * 2, tb.row) * 0.08),
-           petals[(wHash(tb.col + i * 5, tb.row + i) * 7) | 0], q);
+           petals[(wHash(tb.col + i * 5, tb.row + i) * 7) | 0]);
   }
   pxDisc(g, cx, cy - rad * 0.06, rad * 0.17, '#fdf3f7', q);
 }
@@ -3351,8 +3415,9 @@ function wDrawParent(g, pr, S) {
   const p = (ox, oy, w, h, col) => { g.fillStyle = col; g.fillRect(cx + ox * u, cy + oy * u, w * u, h * u); };
   const faceX = pr.col < AISLE_L ? 1 : -1;
 
-  pxDisc(g, cx, cy + 5.5 * u, 5 * u, 'rgba(0,0,0,0.30)', Math.max(1, S));
-  pxDisc(g, cx, cy + 4.6 * u, 3.4 * u, '#1a1622', Math.max(1, S));   // chair
+  wShadow(g, cx, cy + 5.6 * u, 6.4 * u, 2.6 * u, 0.45);
+  pxDisc(g, cx, cy + 4.6 * u, 3.4 * u, '#241d2f');                   // chair back
+  pxDisc(g, cx, cy + 4.2 * u, 2.9 * u, '#31283f');
 
   if (pr.who === 'father') {
     p(-3.4, -1, 6.8, 7, '#171420');                    // suit
@@ -3387,7 +3452,7 @@ function wDrawEntryFlowers(g, fl, S) {
   const U = WT / 16, u = U * S, q = Math.max(1, S);
   const cx = (fl.col + 0.5) * WT * S, cy = (fl.row + 0.5) * WT * S;
   const R  = (fl.big ? 1.55 : 1.1) * WT * S;
-  pxDisc(g, cx, cy + R * 0.72, R * 0.8, 'rgba(0,0,0,0.34)', q);
+  wShadow(g, cx, cy + R * 0.72, R * 1.15, R * 0.55, 0.5);
   pxDisc(g, cx, cy + R * 0.3, R * 0.66, '#2b4530', q);     // greenery mound
   pxDisc(g, cx, cy, R * 0.74, '#33523a', q);
   const petals = ['#f7bfd2','#f2a8c4','#e9b3d8','#fbe4ee','#ffffff','#f6c9b6','#dcb4e8','#fdd7e4'];
@@ -3397,9 +3462,7 @@ function wDrawEntryFlowers(g, fl, S) {
     const rr = R * (0.1 + wHash(fl.col + i, fl.row + i * 5) * 0.86);
     const sz = R * (0.11 + wHash(fl.col + i * 7, fl.row) * 0.1);
     const px2 = cx + Math.cos(a2) * rr, py2 = cy + Math.sin(a2) * rr * 0.92;
-    pxDisc(g, px2, py2, sz, petals[(wHash(fl.col + i * 2, fl.row + i * 3) * 8) | 0], q);
-    g.fillStyle = 'rgba(255,255,255,0.75)';
-    g.fillRect(px2 - sz * 0.25, py2 - sz * 0.25, u, u);
+    wBloom(g, px2, py2, sz, petals[(wHash(fl.col + i * 2, fl.row + i * 3) * 8) | 0]);
   }
   for (let i = 0; i < 8; i++) {                            // baby's breath
     const a2 = wHash(fl.col + i * 11, fl.row + 4) * Math.PI * 2;
@@ -3427,7 +3490,7 @@ function wDrawPlace(g, pl, S) {
     // Groom: black tux, white shirt and tie, waiting at the head of the aisle
     const sway = Math.sin(W.t / 900) * 0.35;
     const gx = 8, gy = 30 + sway;
-    pxDisc(g, X + gx * u, Y + (gy + 21) * u, 6 * u, 'rgba(0,0,0,0.35)', Math.max(1, S));
+    wShadow(g, X + gx * u, Y + (gy + 21.5) * u, 8 * u, 3 * u, 0.5);
     px(gx - 4.2, gy, 8.4, 12.5, '#141119');                    // jacket
     px(gx - 4.2, gy, 8.4, 1, '#1e1a26');
     px(gx - 1.6, gy - 0.4, 3.2, 9, '#f6f2ea');                 // shirt
@@ -3470,7 +3533,7 @@ function wDrawPlace(g, pl, S) {
     g.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
   }
 
-  pxDisc(g, X + 8 * u, Y + 45 * u, 6 * u, 'rgba(0,0,0,0.42)', Math.max(1, S));
+  wShadow(g, X + 8 * u, Y + 45.5 * u, 8 * u, 3 * u, 0.55);
   px(6.4, 33, 3.2, 12, '#7a6436'); px(6.4, 33, 1, 12, '#c9a961');
   px(3.5, 43.5, 9, 1.6, '#6d5a33');
   px(0.6, 13, 14.8, 21, '#8d7440');                    // frame
@@ -3490,9 +3553,8 @@ function wDrawPlace(g, pl, S) {
   for (let i = 0; i < 11; i++) {
     const bx = ((wHash(pl.col + i * 3, pl.row) * 14) | 0);
     const by = 33 + ((wHash(pl.col, pl.row + i * 4) * 10) | 0);
-    pxDisc(g, X + (bx + 1.4) * u, Y + (by + 1.4) * u, 1.5 * u,
-           blooms[(wHash(pl.col + i, pl.row + i) * 5) | 0], Math.max(1, S));
-    px(bx + 0.6, by + 0.6, 0.7, 0.7, '#ffffff');
+    wBloom(g, X + (bx + 1.4) * u, Y + (by + 1.4) * u, 1.6 * u,
+           blooms[(wHash(pl.col + i, pl.row + i) * 5) | 0]);
   }
   const cx2 = pl.side < 0 ? 13.2 : 0.6;
   px(cx2, 39, 2.4, 6, '#efe6d6'); px(cx2, 36.8, 2.4, 2.2, '#ffd98a');
@@ -3520,7 +3582,7 @@ function wDrawGirl(g, sx, sy, dir, step, S) {
   const la = step === 1 ? 1 : 0, ra = step === 2 ? 1 : 0;
   const sway = step ? 0.6 : 0;
 
-  pxDisc(g, sx + 8 * u, sy + 21 * u, 6.5 * u, 'rgba(0,0,0,0.32)', Math.max(1, S));
+  wShadow(g, sx + 8 * u, sy + 21 * u, 8 * u, 3.4 * u, 0.5);
 
   /* Veil and train always fall away from the way she is facing: behind her
      back when she walks up the aisle, and above her when she turns round. */
@@ -3589,6 +3651,16 @@ function wDrawGirl(g, sx, sy, dir, step, S) {
     q(9,13,5,4,LEAF); q(9,13,3,3,PINK); q(11,14,3,3,LILAC);
   }
 
+  // satin sheen down the gown
+  const sg = g.createLinearGradient(sx + 2 * u, sy, sx + 14 * u, sy);
+  sg.addColorStop(0, 'rgba(120,110,130,0.22)'); sg.addColorStop(0.34, 'rgba(255,255,255,0.30)');
+  sg.addColorStop(0.62, 'rgba(255,255,255,0.06)'); sg.addColorStop(1, 'rgba(110,100,120,0.26)');
+  g.save(); g.beginPath();
+  g.moveTo(sx + 5 * u, sy + 11 * u); g.lineTo(sx + 11 * u, sy + 11 * u);
+  g.lineTo(sx + 13.6 * u, sy + 21.4 * u); g.lineTo(sx + 2.4 * u, sy + 21.4 * u);
+  g.closePath(); g.clip(); g.fillStyle = sg;
+  g.fillRect(sx, sy + 10 * u, 16 * u, 12 * u); g.restore();
+
   // hem shifts a touch as she walks — a gown shows no stride
   p(3 + sway, 21.4, 4, 0.8, GOWN2);
   p(9 - sway, 21.4, 4, 0.8, GOWN2);
@@ -3606,7 +3678,8 @@ function wRender() {
   }
   const S = W.scale = Math.max(1, Math.min(3, Math.round(Math.min(cw, chh) / 300)));
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.imageSmoothingEnabled = false;
+  g.imageSmoothingEnabled = true;
+  g.imageSmoothingQuality = 'high';
 
   // camera — centred on the girl, clamped to the map
   const mapW = W_COLS * WT * S, mapH = W_ROWS * WT * S;
