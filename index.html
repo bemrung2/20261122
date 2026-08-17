@@ -3152,19 +3152,31 @@ function pxDisc(g, cx, cy, rad, col, _q) {
   g.fillStyle = col; g.fill();
 }
 
-/* A single bloom: body, shaded underside, lit crown, and a bright centre. */
+/* A bloom: petal lobes around a shaded body, lit from above-left. */
 function wBloom(g, cx, cy, rad, col) {
-  if (rad <= 0.4) { g.fillStyle = col; g.fillRect(cx - rad, cy - rad, rad * 2, rad * 2); return; }
-  g.beginPath(); g.arc(cx, cy, rad, 0, TAU); g.fillStyle = col; g.fill();
+  if (rad <= 0.9) { g.fillStyle = col; g.beginPath(); g.arc(cx, cy, Math.max(0.4, rad), 0, TAU); g.fill(); return; }
+  g.fillStyle = col;
+  if (rad > 2) {                                   // petals break the circle
+    const n = rad > 4 ? 6 : 5, ph = cx * 0.07 + cy * 0.05;
+    for (let i = 0; i < n; i++) {
+      const a2 = i / n * TAU + ph;
+      g.beginPath();
+      g.arc(cx + Math.cos(a2) * rad * 0.44, cy + Math.sin(a2) * rad * 0.44, rad * 0.6, 0, TAU);
+      g.fill();
+    }
+  }
+  g.beginPath(); g.arc(cx, cy, rad * 0.82, 0, TAU); g.fill();
   g.save();
-  g.beginPath(); g.arc(cx, cy, rad, 0, TAU); g.clip();
-  g.beginPath(); g.arc(cx + rad * 0.34, cy + rad * 0.38, rad * 0.92, 0, TAU);
-  g.fillStyle = 'rgba(60,20,50,0.20)'; g.fill();
-  g.beginPath(); g.arc(cx - rad * 0.3, cy - rad * 0.34, rad * 0.62, 0, TAU);
-  g.fillStyle = 'rgba(255,255,255,0.34)'; g.fill();
+  g.beginPath(); g.arc(cx, cy, rad * 1.08, 0, TAU); g.clip();
+  g.beginPath(); g.arc(cx + rad * 0.4, cy + rad * 0.46, rad * 0.95, 0, TAU);
+  g.fillStyle = 'rgba(70,25,60,0.22)'; g.fill();
+  g.beginPath(); g.arc(cx - rad * 0.34, cy - rad * 0.38, rad * 0.6, 0, TAU);
+  g.fillStyle = 'rgba(255,255,255,0.30)'; g.fill();
   g.restore();
-  g.beginPath(); g.arc(cx - rad * 0.22, cy - rad * 0.26, rad * 0.24, 0, TAU);
-  g.fillStyle = 'rgba(255,255,255,0.72)'; g.fill();
+  g.beginPath(); g.arc(cx, cy, rad * 0.2, 0, TAU);
+  g.fillStyle = 'rgba(120,60,90,0.30)'; g.fill();          // seed centre
+  g.beginPath(); g.arc(cx - rad * 0.24, cy - rad * 0.28, rad * 0.2, 0, TAU);
+  g.fillStyle = 'rgba(255,255,255,0.78)'; g.fill();
 }
 
 /* Soft contact shadow — a real falloff rather than a flat grey ellipse. */
@@ -3201,11 +3213,22 @@ function wDrawTile(g, ch, c, r, S) {
   };
   const n = wHash(c, r);
 
-  // polished dark stone floor
-  px(0, 0, 16, 16, n > 0.5 ? '#2f2939' : '#2b2534');
-  if (n > 0.86) px(2 + (n * 9 | 0), 3 + (n * 9 | 0), 3, 1, '#3a3346');
-  if (r % 2 === 0) px(0, 0, 16, 0.5, '#241f2d');
-  if (c % 2 === 0) px(0, 0, 0.5, 16, '#241f2d');
+  // polished stone floor — graded slab with faint veining
+  const fg = g.createLinearGradient(X, Y, X + 16 * U * S, Y + 16 * U * S);
+  fg.addColorStop(0, n > 0.5 ? '#342d3f' : '#312a3b');
+  fg.addColorStop(1, n > 0.5 ? '#292332' : '#26202e');
+  g.fillStyle = fg; g.fillRect(X, Y, 16 * U * S, 16 * U * S);
+  if (n > 0.42) {                                   // vein
+    g.save(); g.beginPath(); g.rect(X, Y, 16 * U * S, 16 * U * S); g.clip();
+    g.beginPath();
+    g.moveTo(X + n * 16 * U * S, Y);
+    g.quadraticCurveTo(X + (1 - n) * 18 * U * S, Y + 8 * U * S, X + n * 12 * U * S, Y + 16 * U * S);
+    g.strokeStyle = 'rgba(255,255,255,0.045)'; g.lineWidth = Math.max(1, 0.5 * U * S); g.stroke();
+    g.restore();
+  }
+  if (r % 2 === 0) px(0, 0, 16, 0.35, 'rgba(0,0,0,0.30)');
+  if (c % 2 === 0) px(0, 0, 0.35, 16, 'rgba(0,0,0,0.30)');
+  px(0, 0.35, 16, 0.3, 'rgba(255,255,255,0.035)');
 
   if (ch === '#') {
     // pleated drapery wall, gold sconce every few tiles
@@ -3715,6 +3738,17 @@ function wRender() {
     g.fillRect(gx - rad, gy - rad, rad * 2, rad * 2);
   }
 
+  // the floor is polished, so the fixtures streak back down it
+  for (const ch2 of W_CHANDELIERS) {
+    if (!ch2.big) continue;
+    const gx = (ch2.col + 0.5) * WT * S, gy = (ch2.row + 0.5) * WT * S;
+    const h = 3.6 * WT * S, w = 0.9 * WT * S;
+    const refl = g.createLinearGradient(gx, gy, gx, gy + h);
+    refl.addColorStop(0, 'rgba(255,232,180,0.16)');
+    refl.addColorStop(1, 'rgba(255,232,180,0)');
+    g.fillStyle = refl; g.fillRect(gx - w / 2, gy, w, h);
+  }
+
   // depth sort so she passes in front of a stand she has walked past
   const inView = (col, row, pad = 4) =>
     col > c0 - pad && col < c1 + pad && row > r0 - pad && row < r1 + pad;
@@ -3742,7 +3776,7 @@ function wRender() {
   for (const ch2 of W_CHANDELIERS) {
     const gx = (ch2.col + 0.5) * WT * S, gy = (ch2.row + 0.5) * WT * S;
     const tw = 0.88 + 0.12 * Math.sin(W.t / 640 + ch2.col * 1.7 + ch2.row);
-    const R  = (ch2.big ? 0.92 : 0.6) * WT * S;
+    const R  = (ch2.big ? 0.66 : 0.44) * WT * S;
     const q  = Math.max(1, S);
     // a soft square of light, like the coffered crystal panels overhead
     g.fillStyle = `rgba(255,238,198,${0.10 * tw})`;
@@ -3752,18 +3786,33 @@ function wRender() {
     core.addColorStop(1, 'rgba(255,232,180,0)');
     g.fillStyle = core;
     g.fillRect(gx - R * 1.7, gy - R * 1.7, R * 3.4, R * 3.4);
-    for (const [ring, cnt, al] of [[1, 12, 0.9], [0.62, 8, 0.75], [0.3, 5, 0.6]]) {
-      g.fillStyle = `rgba(255,249,231,${al * tw})`;
+    // a couple of tiers of crystal drops, kept small so the fixture reads as
+    // a light rather than a ring of dots
+    for (const [ring, cnt, al] of [[1, 9, 0.5], [0.58, 6, 0.8]]) {
       for (let k = 0; k < cnt; k++) {
-        const ang = k / cnt * Math.PI * 2 + ring * 2 + ch2.row;
-        g.fillRect(gx + Math.cos(ang) * R * ring - q * 0.5,
-                   gy + Math.sin(ang) * R * ring - q * 0.5, q, q);
+        const ang = k / cnt * Math.PI * 2 + ring * 3 + ch2.row;
+        const dx2 = gx + Math.cos(ang) * R * ring, dy2 = gy + Math.sin(ang) * R * ring;
+        g.fillStyle = `rgba(255,250,232,${al * tw})`;
+        g.beginPath(); g.arc(dx2, dy2, R * 0.07, 0, TAU); g.fill();
       }
     }
-    pxDisc(g, gx, gy, R * 0.2, '#fffdf4', q);
+    // bright body of the fixture
+    const halo = g.createRadialGradient(gx, gy, 0, gx, gy, R * 0.95);
+    halo.addColorStop(0, `rgba(255,254,248,${0.98 * tw})`);
+    halo.addColorStop(0.25, `rgba(255,246,214,${0.72 * tw})`);
+    halo.addColorStop(0.6, `rgba(255,232,178,${0.26 * tw})`);
+    halo.addColorStop(1, 'rgba(255,228,170,0)');
+    g.fillStyle = halo; g.beginPath(); g.arc(gx, gy, R * 0.95, 0, TAU); g.fill();
   }
 
   g.restore();
+
+  // warm grade: candlelight up the middle, cool in the corners
+  const grade = g.createLinearGradient(0, 0, 0, chh);
+  grade.addColorStop(0, 'rgba(255,214,150,0.07)');
+  grade.addColorStop(0.5, 'rgba(255,226,180,0.04)');
+  grade.addColorStop(1, 'rgba(90,80,150,0.07)');
+  g.fillStyle = grade; g.fillRect(0, 0, cw, chh);
 
   // hall vignette — the room is lit only where it matters
   const vig = g.createRadialGradient(cw / 2, chh * 0.46, Math.min(cw, chh) * 0.22,
