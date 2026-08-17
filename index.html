@@ -3035,7 +3035,6 @@ const WT = 32;   // tile size in world pixels — finer art than the old 16
 const W_COLS = 29, W_ROWS = 46;
 const AISLE_L = 13, AISLE_R = 15;      // a narrower runner, 3 tiles across
 const AISLE_MID = 14;
-const W_CHANDELIERS = [12, 20, 27, 34, 41];
 
 const WORLD_MAP = (() => {
   const m = Array.from({ length: W_ROWS }, () => new Array(W_COLS).fill('.'));
@@ -3046,40 +3045,77 @@ const WORLD_MAP = (() => {
   box(0, W_ROWS - 1, 0, 1, '#'); box(0, W_ROWS - 1, W_COLS - 2, W_COLS - 1, '#');
   box(0, 1, 0, W_COLS - 1, '#'); box(W_ROWS - 1, W_ROWS - 1, 0, W_COLS - 1, '#');
 
-  box(2, 7, 2, W_COLS - 3, 's');        // stage
-  box(4, 4, 11, 17, 'H');               // head table
-  box(8, 9, 11, 17, 'S');               // steps
-  box(10, W_ROWS - 2, AISLE_L, AISLE_R, 'r');
-  // pink florals run the whole length of the runner, unbroken
-  box(10, W_ROWS - 2, AISLE_L - 1, AISLE_L - 1, 'F');
-  box(10, W_ROWS - 2, AISLE_R + 1, AISLE_R + 1, 'F');
+  box(2, 7, 2, W_COLS - 3, 's');          // stage floor
+  box(3, 6, 11, 17, 'd');                 // the narrow dais the groom stands on
+  box(4, 4, 12, 16, 'H');                 // head table
+  box(8, 42, AISLE_L, AISLE_R, 'r');      // runner — no steps at its head
+  box(8, 42, AISLE_L - 1, AISLE_L - 1, 'F');
+  box(8, 42, AISLE_R + 1, AISLE_R + 1, 'F');
+  box(43, 43, AISLE_L - 1, AISLE_R + 1, 'P');   // the little podium
+  box(44, 44, AISLE_L - 2, AISLE_R + 2, 'G');   // gateway behind it
   return m.map(row => row.join(''));
 })();
 
 /* Memory stands sit just outside the flower line, episode 1 nearest the doors */
 const W_PLACES = [
-  { ep:0, col:AISLE_L-2, row:37, side:-1, doorCol:AISLE_MID, doorRow:37, name:'회사 동기' },
-  { ep:1, col:AISLE_R+2, row:30, side: 1, doorCol:AISLE_MID, doorRow:30, name:'연인' },
-  { ep:2, col:AISLE_L-2, row:23, side:-1, doorCol:AISLE_MID, doorRow:23, name:'일상' },
-  { ep:3, col:AISLE_R+2, row:16, side: 1, doorCol:AISLE_MID, doorRow:16, name:'여행' },
-  { ep:4, col:AISLE_MID, row:5,  side: 0, doorCol:AISLE_MID, doorRow:11, name:'앞으로의 우리', groom:true },
+  { ep:0, col:AISLE_L-2, row:36, side:-1, doorCol:AISLE_MID, doorRow:36, name:'회사 동기' },
+  { ep:1, col:AISLE_R+2, row:29, side: 1, doorCol:AISLE_MID, doorRow:29, name:'연인' },
+  { ep:2, col:AISLE_L-2, row:22, side:-1, doorCol:AISLE_MID, doorRow:22, name:'일상' },
+  { ep:3, col:AISLE_R+2, row:15, side: 1, doorCol:AISLE_MID, doorRow:15, name:'여행' },
+  { ep:4, col:AISLE_MID, row:5,  side: 0, doorCol:AISLE_MID, doorRow:8,  name:'앞으로의 우리', groom:true },
 ];
 
-/* Round banquet tables, every seat taken, angled to face the runner */
+/* Round banquet tables, every seat taken */
 const W_TABLES = (() => {
   const out = [];
-  for (const r of [15, 21, 27, 33, 39])
+  for (const r of [14, 20, 26, 32, 38])
     for (const c of [4, 8, 19, 23]) out.push({ col: c, row: r, seats: 8 });
   return out;
 })();
 
-/* 혼주석 — the parents, seated at the front either side of the aisle */
+/* 혼주석 — two parents seated either side, right at the head of the aisle */
 const W_PARENTS = [
-  { col: AISLE_L - 3, row: 11, who: 'father' },
-  { col: AISLE_R + 1, row: 11, who: 'mother' },
+  { col: AISLE_L - 2.6, row: 9,    who: 'father' },
+  { col: AISLE_L - 2.6, row: 10.6, who: 'mother' },
+  { col: AISLE_R + 1.6, row: 9,    who: 'father' },
+  { col: AISLE_R + 1.6, row: 10.6, who: 'mother' },
 ];
 
-const wSolid = ch => '#FtHBc'.includes(ch);
+/* Guests standing along the flower line, turned in to watch her pass */
+const W_STANDING = (() => {
+  const out = [];
+  for (let r = 12; r <= 41; r += 1.7) {
+    out.push({ col: AISLE_L - 1.75, row: r, face: 1,  seed: wHash(r * 3, 1) });
+    out.push({ col: AISLE_R + 1.75, row: r + 0.8, face: -1, seed: wHash(r * 5, 7) });
+    if (r % 5 < 1.7) {
+      out.push({ col: AISLE_L - 2.7, row: r + 0.5, face: 1,  seed: wHash(r * 7, 3) });
+      out.push({ col: AISLE_R + 2.7, row: r + 1.2, face: -1, seed: wHash(r * 11, 9) });
+    }
+  }
+  return out;
+})();
+
+/* Big pillar arrangements massed at the mouth of the aisle */
+const W_ENTRY_FLOWERS = [
+  { col: AISLE_L - 1, row: 41.4, big: 1 }, { col: AISLE_R + 1, row: 41.4, big: 1 },
+  { col: AISLE_L - 2, row: 42.2, big: 0 }, { col: AISLE_R + 2, row: 42.2, big: 0 },
+  { col: AISLE_L - 1, row: 39.6, big: 0 }, { col: AISLE_R + 1, row: 39.6, big: 0 },
+];
+
+/* Chandeliers: a dense run down the aisle plus rows either side, as the hall has */
+const W_CHANDELIERS = (() => {
+  const out = [];
+  for (let r = 9; r <= 43; r += 3.4) {
+    out.push({ col: AISLE_MID + 0.5, row: r, big: 1 });
+    out.push({ col: AISLE_L - 5.5, row: r + 1.7, big: 0 });
+    out.push({ col: AISLE_R + 6.5, row: r + 1.7, big: 0 });
+    out.push({ col: AISLE_L - 10,  row: r, big: 0 });
+    out.push({ col: AISLE_R + 11,  row: r, big: 0 });
+  }
+  return out;
+})();
+
+const wSolid = ch => '#FtHBcdG'.includes(ch);
 function wTileAt(c, r) {
   if (c < 0 || r < 0 || c >= W_COLS || r >= W_ROWS) return 'T';
   return WORLD_MAP[r][c];
@@ -3087,8 +3123,8 @@ function wTileAt(c, r) {
 
 const W = {
   on:false, raf:0, last:0,
-  x:AISLE_MID*WT+WT/2, y:(W_ROWS-4)*WT+WT/2,   // at the doors, facing up the aisle
-  dir:'up', step:0, walkT:0, moving:false,
+  x:AISLE_MID*WT+WT/2, y:41*WT+WT/2,   // just inside the gateway, facing the aisle
+  dir:'up', step:0, walkT:0, moving:false, hop:null, hopT:0,
   vx:0, vy:0, scale:3,
   visited:new Set(), near:null, locked:false, t:0,
 };
@@ -3155,11 +3191,33 @@ function wDrawTile(g, ch, c, r, S) {
       px(5, 4, 2, 2, '#ffffff'); px(9.5, 6, 1.5, 1.5, '#fdeaf0');
     }
     if (r === 7) { px(0, 13.5, 16, 2.5, '#8d7440'); px(0, 13.5, 16, 0.6, '#e0c07a'); }
-  } else if (ch === 'S') {
-    px(0, 0, 16, 16, '#252030');
-    px(0, 0, 16, 1.5, '#332b3d');
-    px(0, 14, 16, 2, '#191524');
-    px(0, 13.5, 16, 0.6, '#8d7440');
+  } else if (ch === 'd') {
+    // the narrow dais the couple stand on
+    px(0, 0, 16, 16, '#3a3143');
+    px(0, 0, 16, 1, '#463c52');
+    if (r === 6) { px(0, 13, 16, 3, '#241e2c'); px(0, 13, 16, 0.7, '#c9a961'); }
+    if (c === 11) { px(0, 0, 1, 16, '#2c2536'); px(0.6, 0, 0.5, 16, '#c9a961'); }
+    if (c === 17) { px(15, 0, 1, 16, '#2c2536'); px(14.9, 0, 0.5, 16, '#c9a961'); }
+  } else if (ch === 'P') {
+    // low podium at the mouth of the aisle
+    px(0, 0, 16, 16, '#332c3d');
+    px(0, 0, 16, 1.2, '#41384d');
+    px(0, 14.4, 16, 1.6, '#231e2c');
+    px(0, 13.8, 16, 0.6, '#c9a961');
+    if (n > 0.6) px(3 + (n * 8 | 0), 5, 2, 1, '#3c3448');
+  } else if (ch === 'G') {
+    // the gateway she comes through
+    px(0, 0, 16, 16, '#15111d');
+    px(0, 0, 16, 6, '#241d2e');
+    px(0, 0, 16, 1.2, '#c9a961');
+    px(0, 5.2, 16, 0.8, '#8d7440');
+    for (let i = 0; i < 4; i++) px(i * 4 + 1, 6.5, 2, 9.5, '#2e2740');
+    for (let i = 0; i < 4; i++) px(i * 4 + 1.4, 6.9, 1.2, 8.7, '#1c1728');
+    if (c === AISLE_L - 2 || c === AISLE_R + 2) {
+      px(c === AISLE_L - 2 ? 0 : 12, 0, 4, 16, '#2a2337');
+      px(c === AISLE_L - 2 ? 1 : 13, 1, 2, 14, '#c9a961');
+      px(c === AISLE_L - 2 ? 1 : 13, 1, 1, 14, '#f0dcae');
+    }
   } else if (ch === 'r') {
     // the runner — deep navy weave with a pale selvedge and fallen petals
     px(0, 0, 16, 16, n > 0.55 ? '#1b1c30' : '#18192b');
@@ -3196,23 +3254,52 @@ function wDrawTile(g, ch, c, r, S) {
   }
 }
 
-/* ── a seated guest, facing the aisle ── */
-function wDrawGuest(g, cx, cy, S, seed, faceX) {
+/* ── a guest: seated at a table, or standing along the aisle ── */
+function wDrawPerson(g, cx, cy, S, seed, faceX, standing) {
   const U = WT / 16, u = U * S;
   const p = (ox, oy, w, h, col) => { g.fillStyle = col; g.fillRect(cx + ox * u, cy + oy * u, w * u, h * u); };
-  const wear  = ['#2b2536','#3a2b3d','#28303f','#3d2f2b','#31283a','#243040'][(seed * 6) | 0];
-  const hairC = ['#2a1c12','#3d2a18','#1e1610','#4a3320'][(seed * 4) | 0];
-  const skin  = seed > 0.5 ? '#ffdcbc' : '#f4ceac';
-  p(-2.6, -1.2, 5.2, 4.6, wear);                       // shoulders
-  p(-2.6, -1.2, 5.2, 0.8, 'rgba(255,255,255,0.10)');
-  if (seed > 0.72) p(-0.8, -0.6, 1.6, 3.4, '#e8e2ea'); // a lighter blouse
-  pxDisc(g, cx, cy - 3.1 * u, 2.3 * u, skin, Math.max(1, S));
-  pxDisc(g, cx, cy - 3.8 * u, 2.4 * u, hairC, Math.max(1, S));
-  p(-2.4, -4.6, 4.8, 1.6, hairC);
-  if (seed > 0.55) p(-2.6, -3.6, 5.2, 2.2, hairC);     // longer hair
-  // eyes, looking toward the runner
-  p(-1.1 + faceX * 0.5, -3.2, 0.7, 0.7, '#241a14');
-  p(0.5 + faceX * 0.5, -3.2, 0.7, 0.7, '#241a14');
+  const q = Math.max(1, S);
+  const s2 = wHash(seed * 977, 31), s3 = wHash(seed * 613, 57);
+  const fem = s2 > 0.46;
+  const suits  = ['#232032','#2e2438','#1d2433','#33283a','#262d3c','#2b2129'];
+  const dress  = ['#5b3f56','#3f4d63','#6b4a52','#45385c','#7a5a63','#3d5052','#5d4a6e'];
+  const wear   = fem ? dress[(s2 * 7) | 0] : suits[(s2 * 6) | 0];
+  const hairC  = ['#241810','#3a2717','#171009','#4a3320','#2b2028'][(s3 * 5) | 0];
+  const skin   = s3 > 0.55 ? '#ffdcbc' : (s3 > 0.25 ? '#f6d0ab' : '#e8bd97');
+  const H = standing ? 1.15 : 1;
+
+  if (standing) pxDisc(g, cx, cy + 4.4 * u, 3 * u, 'rgba(0,0,0,0.30)', q);
+
+  // body
+  p(-3 * H, -1.4, 6 * H, 6.4 * H, wear);
+  p(-3 * H, -1.4, 6 * H, 0.8, 'rgba(255,255,255,0.12)');
+  p(-3 * H, 3.4 * H, 6 * H, 1.2, 'rgba(0,0,0,0.28)');
+  if (fem) {                                   // a wrap or shawl
+    p(-3 * H, -1.4, 6 * H, 2.2, 'rgba(255,255,255,0.10)');
+    if (s2 > 0.78) p(-1, -1.2, 2, 4.2, '#e6dfe8');
+  } else {
+    p(-0.9, -1.4, 1.8, 4.6, '#efeae2');        // shirt
+    p(-0.45, -1.1, 0.9, 3, ['#7a2f3a','#2f3f6b','#4a3a2a','#3f5a4a'][(s3 * 4) | 0]);
+  }
+  // arms
+  p(-4.2 * H, -1, 1.3, 4.6, wear); p(2.9 * H, -1, 1.3, 4.6, wear);
+  // head
+  pxDisc(g, cx, cy - 3.2 * u, 2.35 * u, skin, q);
+  pxDisc(g, cx, cy - 4 * u, 2.5 * u, hairC, q);
+  p(-2.5, -5.3, 5, 1.8, hairC);
+  if (fem) {                                   // longer hair falling past the shoulders
+    p(-2.9, -3.9, 5.8, 3.2, hairC);
+    if (s2 > 0.7) { p(-3.2, -3.6, 0.9, 4.4, hairC); p(2.3, -3.6, 0.9, 4.4, hairC); }
+    if (s3 > 0.8) p(-1, -5.6, 2, 0.9, '#e6b8cc');   // a small clip
+  }
+  // face, turned toward the runner
+  const fx = faceX * 0.55;
+  p(-1.25 + fx, -3.45, 0.75, 0.85, '#241a14');
+  p(0.5 + fx, -3.45, 0.75, 0.85, '#241a14');
+  p(-1.35 + fx, -4.1, 0.95, 0.4, hairC);
+  p(0.4 + fx, -4.1, 0.95, 0.4, hairC);
+  p(-0.35 + fx, -2.3, 0.8, 0.35, '#d9a184');
+  if (s3 > 0.62) { p(-1.9 + fx, -2.6, 0.6, 0.5, '#f0b2b8'); p(1.3 + fx, -2.6, 0.6, 0.5, '#f0b2b8'); }
 }
 
 /* ── round banquet table, every seat taken ── */
@@ -3234,8 +3321,8 @@ function wDrawTable(g, tb, S) {
     Math.sin(i / tb.seats * Math.PI * 2 + 0.4) - Math.sin(j / tb.seats * Math.PI * 2 + 0.4));
   for (const i of order) {
     const a = i / tb.seats * Math.PI * 2 + 0.4;
-    wDrawGuest(g, cx + Math.cos(a) * rad * 1.42, cy + Math.sin(a) * rad * 1.42,
-               S, wHash(tb.col + i * 7, tb.row + i * 3), toAisle);
+    wDrawPerson(g, cx + Math.cos(a) * rad * 1.42, cy + Math.sin(a) * rad * 1.42,
+                S, wHash(tb.col + i * 7, tb.row + i * 3), toAisle, false);
   }
   // cloth, then the top
   pxDisc(g, cx, cy + 0.16 * WT * S, rad * 1.06, '#14111c', Math.max(1, S));
@@ -3243,18 +3330,18 @@ function wDrawTable(g, tb, S) {
   pxDisc(g, cx, cy - 0.06 * WT * S, rad * 0.92, '#2e2740', Math.max(1, S));
   g.fillStyle = 'rgba(255,255,255,0.07)';
   g.fillRect(cx - rad * 0.7, cy - rad * 0.72, rad * 1.4, 0.16 * WT * S);
-  // centrepiece: blossom and candlelight
-  pxDisc(g, cx, cy - 0.1 * WT * S, rad * 0.36, '#f7bfd2', Math.max(1, S));
-  pxDisc(g, cx - rad * 0.2, cy - rad * 0.28, rad * 0.2, '#fbe4ee', Math.max(1, S));
-  pxDisc(g, cx + rad * 0.22, cy - rad * 0.05, rad * 0.18, '#e9b3d8', Math.max(1, S));
-  g.fillStyle = '#efe6d6'; g.fillRect(cx + rad * 0.45, cy - rad * 0.1, 1.2 * u, 3 * u);
-  g.fillStyle = '#ffd98a'; g.fillRect(cx + rad * 0.45, cy - rad * 0.1 - 1.6 * u, 1.2 * u, 1.6 * u);
-  // place settings
-  for (let i = 0; i < tb.seats; i++) {
-    const a = i / tb.seats * Math.PI * 2 + 0.4;
-    pxDisc(g, cx + Math.cos(a) * rad * 0.74, cy + Math.sin(a) * rad * 0.74,
-           0.16 * WT * S, '#d9d2c6', Math.max(1, S));
+  // a full centrepiece of blooms — no plates, no food
+  const q = Math.max(1, S);
+  pxDisc(g, cx, cy, rad * 0.56, '#33523a', q);
+  const petals = ['#f7bfd2','#e9b3d8','#fbe4ee','#f2a8c4','#ffffff','#f6c9b6','#dcb4e8'];
+  for (let i = 0; i < 16; i++) {
+    const a = i / 16 * Math.PI * 2 + tb.row;
+    const rr = rad * (0.18 + wHash(tb.col + i, tb.row + i * 3) * 0.44);
+    pxDisc(g, cx + Math.cos(a) * rr, cy + Math.sin(a) * rr,
+           rad * (0.11 + wHash(tb.col + i * 2, tb.row) * 0.08),
+           petals[(wHash(tb.col + i * 5, tb.row + i) * 7) | 0], q);
   }
+  pxDisc(g, cx, cy - rad * 0.06, rad * 0.17, '#fdf3f7', q);
 }
 
 /* ── 혼주석: father in a suit, mother in hanbok ── */
@@ -3293,6 +3380,37 @@ function wDrawParent(g, pr, S) {
   p(-1.3 + faceX * 0.4, -3.7, 0.8, 0.8, '#241a14');
   p(0.5 + faceX * 0.4, -3.7, 0.8, 0.8, '#241a14');
   p(-0.4, -2.5, 0.8, 0.4, '#d9a184');
+}
+
+/* ── massed pillar arrangement at the mouth of the aisle ── */
+function wDrawEntryFlowers(g, fl, S) {
+  const U = WT / 16, u = U * S, q = Math.max(1, S);
+  const cx = (fl.col + 0.5) * WT * S, cy = (fl.row + 0.5) * WT * S;
+  const R  = (fl.big ? 1.55 : 1.1) * WT * S;
+  pxDisc(g, cx, cy + R * 0.72, R * 0.8, 'rgba(0,0,0,0.34)', q);
+  pxDisc(g, cx, cy + R * 0.3, R * 0.66, '#2b4530', q);     // greenery mound
+  pxDisc(g, cx, cy, R * 0.74, '#33523a', q);
+  const petals = ['#f7bfd2','#f2a8c4','#e9b3d8','#fbe4ee','#ffffff','#f6c9b6','#dcb4e8','#fdd7e4'];
+  const N = fl.big ? 34 : 22;
+  for (let i = 0; i < N; i++) {
+    const a2 = wHash(fl.col + i * 3, fl.row + i) * Math.PI * 2;
+    const rr = R * (0.1 + wHash(fl.col + i, fl.row + i * 5) * 0.86);
+    const sz = R * (0.11 + wHash(fl.col + i * 7, fl.row) * 0.1);
+    const px2 = cx + Math.cos(a2) * rr, py2 = cy + Math.sin(a2) * rr * 0.92;
+    pxDisc(g, px2, py2, sz, petals[(wHash(fl.col + i * 2, fl.row + i * 3) * 8) | 0], q);
+    g.fillStyle = 'rgba(255,255,255,0.75)';
+    g.fillRect(px2 - sz * 0.25, py2 - sz * 0.25, u, u);
+  }
+  for (let i = 0; i < 8; i++) {                            // baby's breath
+    const a2 = wHash(fl.col + i * 11, fl.row + 4) * Math.PI * 2;
+    const rr = R * (0.5 + wHash(fl.col, fl.row + i) * 0.6);
+    g.fillStyle = '#ffffff';
+    g.fillRect(cx + Math.cos(a2) * rr, cy + Math.sin(a2) * rr, u, u);
+  }
+  if (fl.big) {                                            // candle lanterns at its foot
+    g.fillStyle = '#efe6d6'; g.fillRect(cx - R * 0.75, cy + R * 0.5, 2.4 * u, 5 * u);
+    g.fillStyle = '#ffd98a'; g.fillRect(cx - R * 0.75, cy + R * 0.5 - 2 * u, 2.4 * u, 2 * u);
+  }
 }
 
 /* ── memory stands down the aisle, and the groom at the top of it ── */
@@ -3404,20 +3522,30 @@ function wDrawGirl(g, sx, sy, dir, step, S) {
 
   pxDisc(g, sx + 8 * u, sy + 21 * u, 6.5 * u, 'rgba(0,0,0,0.32)', Math.max(1, S));
 
-  // the train — sheer layers spilling a long way behind her
-  p(6.2, 46, 3.6, 6, 'rgba(252,249,244,0.16)');
-  p(5.2, 39, 5.6, 8, 'rgba(252,249,244,0.26)');
-  p(4.2, 32, 7.6, 8, 'rgba(252,249,244,0.38)');
-  p(3.2, 26, 9.6, 7, 'rgba(252,249,244,0.50)');
-  p(2.2, 20, 11.6, 7, 'rgba(252,249,244,0.62)');
-  p(1.6, 15, 12.8, 6, 'rgba(252,249,244,0.74)');
-  p(3.8, 28, 1.2, 18, 'rgba(255,255,255,0.16)');
-  p(11, 28, 1.2, 18, 'rgba(255,255,255,0.16)');
-  p(7.4, 24, 1.2, 26, 'rgba(255,255,255,0.10)');
-  // veil over the shoulders
-  p(2, 10, 12, 8, 'rgba(255,253,250,0.30)');
-  p(2.4, 2.6, 11.2, 11, 'rgba(255,253,250,0.42)');
-  p(3.2, 1.6, 9.6, 4, 'rgba(255,255,255,0.34)');
+  /* Veil and train always fall away from the way she is facing: behind her
+     back when she walks up the aisle, and above her when she turns round. */
+  const tiers = [[6.2, 3.6, 0.16], [5.2, 5.6, 0.26], [4.2, 7.6, 0.38],
+                 [3.2, 9.6, 0.50], [2.2, 11.6, 0.62], [1.6, 12.8, 0.74]];
+  const veilAt = (ox, ow, len, al) => {
+    if (dir === 'down')       p(ox, 4 - len, ow, len, `rgba(252,249,244,${al})`);
+    else if (dir === 'up')    p(ox, 17, ow, len, `rgba(252,249,244,${al})`);
+    else if (dir === 'left')  p(11, 6, len, ow, `rgba(252,249,244,${al})`);
+    else                      p(5 - len, 6, len, ow, `rgba(252,249,244,${al})`);
+  };
+  let off = 0;
+  for (let i = tiers.length - 1; i >= 0; i--) {
+    const [ox, ow, al] = tiers[i];
+    const len = 6 + i * 1.4;
+    if (dir === 'down')      p(ox, -off - len + 4, ow, len, `rgba(252,249,244,${al})`);
+    else if (dir === 'up')   p(ox, 15 + off, ow, len, `rgba(252,249,244,${al})`);
+    else if (dir === 'left') p(9 + off, 4 + (16 - ow) / 2 - 2, len, ow, `rgba(252,249,244,${al})`);
+    else                     p(7 - off - len, 4 + (16 - ow) / 2 - 2, len, ow, `rgba(252,249,244,${al})`);
+    off += len * 0.72;
+  }
+  // veil over the shoulders, and its cap on the back of her head
+  if (dir === 'up')        { p(2, 10, 12, 8, 'rgba(255,253,250,0.30)'); p(2.4, 2.6, 11.2, 11, 'rgba(255,253,250,0.42)'); p(3.2, 1.6, 9.6, 4, 'rgba(255,255,255,0.34)'); }
+  else if (dir === 'down') { p(2.6, 1, 10.8, 4, 'rgba(255,253,250,0.34)'); p(3.4, 0.4, 9.2, 2, 'rgba(255,255,255,0.40)'); }
+  else                     { p(dir === 'left' ? 7 : 2.2, 2, 6.8, 12, 'rgba(255,253,250,0.30)'); }
 
   if (dir === 'up') {
     p(3,1,10,9,HAIR); p(2,3,2,6,HAIR); p(12,3,2,6,HAIR);
@@ -3501,17 +3629,17 @@ function wRender() {
       wDrawTile(g, wTileAt(c, r), c, r, S);
     }
 
-  // pools of warm light from the chandeliers hanging down the aisle
-  const aisleMid = (AISLE_L + AISLE_R + 1) / 2 * WT * S;
-  for (const r of W_CHANDELIERS) {
-    const cy = r * WT * S, rad = 5.4 * WT * S;
-    const glow = g.createRadialGradient(aisleMid, cy, 0, aisleMid, cy, rad);
-    const flick = 0.86 + 0.14 * Math.sin(W.t / 700 + r);
-    glow.addColorStop(0, `rgba(255,226,170,${0.26 * flick})`);
-    glow.addColorStop(0.55, `rgba(255,214,150,${0.10 * flick})`);
+  // pools of warm light under every fixture
+  for (const ch2 of W_CHANDELIERS) {
+    const gx = (ch2.col + 0.5) * WT * S, gy = (ch2.row + 0.5) * WT * S;
+    const rad = (ch2.big ? 5.2 : 3.4) * WT * S;
+    const glow = g.createRadialGradient(gx, gy, 0, gx, gy, rad);
+    const flick = 0.86 + 0.14 * Math.sin(W.t / 700 + ch2.row);
+    glow.addColorStop(0, `rgba(255,226,170,${(ch2.big ? 0.24 : 0.15) * flick})`);
+    glow.addColorStop(0.5, `rgba(255,214,150,${0.07 * flick})`);
     glow.addColorStop(1, 'rgba(255,214,150,0)');
     g.fillStyle = glow;
-    g.fillRect(aisleMid - rad, cy - rad, rad * 2, rad * 2);
+    g.fillRect(gx - rad, gy - rad, rad * 2, rad * 2);
   }
 
   // depth sort so she passes in front of a stand she has walked past
@@ -3527,26 +3655,39 @@ function wRender() {
   for (const pr of W_PARENTS)
     if (inView(pr.col, pr.row))
       drawables.push({ y: (pr.row + 1) * WT, f: () => wDrawParent(g, pr, S) });
+  for (const st of W_STANDING)
+    if (inView(st.col, st.row, 3))
+      drawables.push({ y: (st.row + 0.6) * WT,
+        f: () => wDrawPerson(g, (st.col + 0.5) * WT * S, (st.row + 0.5) * WT * S, S, st.seed, st.face, true) });
+  for (const fl of W_ENTRY_FLOWERS)
+    if (inView(fl.col, fl.row, 3))
+      drawables.push({ y: (fl.row + 0.8) * WT, f: () => wDrawEntryFlowers(g, fl, S) });
   drawables.push({ y: W.y, f: () => wDrawGirl(g, Math.round(W.x * S) - WT / 2 * S, Math.round(W.y * S) - 21 * (WT / 16) * S, W.dir, W.step, S) });
   drawables.sort((a, b) => a.y - b.y).forEach(d => d.f());
 
-  // crystal chandeliers, seen from below — they hang over everything
-  for (const r of W_CHANDELIERS) {
-    const cy = r * WT * S, tw = 0.9 + 0.1 * Math.sin(W.t / 700 + r);
-    const arm = 11 * S;
-    const core = g.createRadialGradient(aisleMid, cy, 0, aisleMid, cy, arm);
-    core.addColorStop(0, `rgba(255,244,214,${0.42 * tw})`);
+  // crystal chandeliers, seen from below — tiered drops around a bright core
+  for (const ch2 of W_CHANDELIERS) {
+    const gx = (ch2.col + 0.5) * WT * S, gy = (ch2.row + 0.5) * WT * S;
+    const tw = 0.88 + 0.12 * Math.sin(W.t / 640 + ch2.col * 1.7 + ch2.row);
+    const R  = (ch2.big ? 0.92 : 0.6) * WT * S;
+    const q  = Math.max(1, S);
+    // a soft square of light, like the coffered crystal panels overhead
+    g.fillStyle = `rgba(255,238,198,${0.10 * tw})`;
+    g.fillRect(gx - R * 1.5, gy - R * 1.5, R * 3, R * 3);
+    const core = g.createRadialGradient(gx, gy, 0, gx, gy, R * 1.7);
+    core.addColorStop(0, `rgba(255,246,220,${0.55 * tw})`);
     core.addColorStop(1, 'rgba(255,232,180,0)');
     g.fillStyle = core;
-    g.fillRect(aisleMid - arm, cy - arm, arm * 2, arm * 2);
-    g.fillStyle = `rgba(255,248,226,${0.85 * tw})`;
-    for (let k = 0; k < 8; k++) {
-      const ang = k / 8 * Math.PI * 2 + r * 0.3;
-      const rr = (k % 2 ? 8 : 5) * S;
-      g.fillRect(aisleMid + Math.cos(ang) * rr - S * 0.5, cy + Math.sin(ang) * rr - S * 0.5, S, S);
+    g.fillRect(gx - R * 1.7, gy - R * 1.7, R * 3.4, R * 3.4);
+    for (const [ring, cnt, al] of [[1, 12, 0.9], [0.62, 8, 0.75], [0.3, 5, 0.6]]) {
+      g.fillStyle = `rgba(255,249,231,${al * tw})`;
+      for (let k = 0; k < cnt; k++) {
+        const ang = k / cnt * Math.PI * 2 + ring * 2 + ch2.row;
+        g.fillRect(gx + Math.cos(ang) * R * ring - q * 0.5,
+                   gy + Math.sin(ang) * R * ring - q * 0.5, q, q);
+      }
     }
-    g.fillStyle = '#fffdf4';
-    g.fillRect(aisleMid - 1.5 * S, cy - 1.5 * S, 3 * S, 3 * S);
+    pxDisc(g, gx, gy, R * 0.2, '#fffdf4', q);
   }
 
   g.restore();
@@ -3563,8 +3704,10 @@ function wRender() {
 /* She stays on the runner — the aisle is the only ground she walks. */
 function wCanMove(nx, ny) {
   const pts = [[nx - 9, ny - 5], [nx + 9, ny - 5], [nx - 9, ny], [nx + 9, ny]];
-  return pts.every(([px2, py2]) =>
-    wTileAt(Math.floor(px2 / WT), Math.floor(py2 / WT)) === 'r');
+  return pts.every(([px2, py2]) => {
+    const t = wTileAt(Math.floor(px2 / WT), Math.floor(py2 / WT));
+    return t === 'r' || t === 'P';
+  });
 }
 
 function wNearPlace() {
@@ -3574,22 +3717,30 @@ function wNearPlace() {
 }
 
 function wStep(dt) {
-  const sp = 104 / 1000 * dt;   // world px per frame (tiles are 32 now)
-  let dx = W.vx, dy = W.vy;
-  const mag = Math.hypot(dx, dy);
-  if (mag > 1) { dx /= mag; dy /= mag; }
-  W.moving = mag > 0.12 && !W.locked;
-  if (W.locked) { dx = dy = 0; }
-
-  if (W.moving) {
-    if (Math.abs(dx) > Math.abs(dy)) W.dir = dx < 0 ? 'left' : 'right';
-    else                             W.dir = dy < 0 ? 'up' : 'down';
-    const nx = W.x + dx * sp, ny = W.y + dy * sp;
-    if (wCanMove(nx, W.y)) W.x = nx;
-    if (wCanMove(W.x, ny)) W.y = ny;
-    W.walkT += dt;
-    if (W.walkT > 150) { W.walkT = 0; W.step = W.step === 1 ? 2 : 1; }
-  } else { W.step = 0; W.walkT = 0; }
+  // She moves a whole tile at a time, like a character on a board.
+  const STEP_MS = 190;
+  if (W.hop) {
+    W.hopT += dt;
+    const k = Math.min(1, W.hopT / STEP_MS);
+    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;   // ease in-out
+    W.x = W.hop.x0 + (W.hop.x1 - W.hop.x0) * e;
+    W.y = W.hop.y0 + (W.hop.y1 - W.hop.y0) * e;
+    W.step = W.hopT % (STEP_MS / 1) < STEP_MS / 2 ? 1 : 2;
+    if (k >= 1) { W.x = W.hop.x1; W.y = W.hop.y1; W.hop = null; W.step = 0; }
+    W.moving = true;
+  } else {
+    W.moving = false; W.step = 0;
+    const dx = W.vx, dy = W.vy;
+    if (!W.locked && Math.hypot(dx, dy) > 0.35) {
+      let ax = 0, ay = 0;
+      if (Math.abs(dx) > Math.abs(dy)) { ax = dx < 0 ? -1 : 1; W.dir = ax < 0 ? 'left' : 'right'; }
+      else                             { ay = dy < 0 ? -1 : 1; W.dir = ay < 0 ? 'up' : 'down'; }
+      const cx = Math.round((W.x - WT / 2) / WT), cy = Math.round((W.y - WT / 2) / WT);
+      const nx = (cx + ax) * WT + WT / 2, ny = (cy + ay) * WT + WT / 2;
+      if (wCanMove(nx, ny))
+        W.hop = { x0: W.x, y0: W.y, x1: nx, y1: ny }, W.hopT = 0, W.moving = true;
+    }
+  }
 
   // door prompt
   const near = W.locked ? null : wNearPlace();
@@ -3707,6 +3858,7 @@ async function returnToWorld() {
   if (pl) {
     W.x = AISLE_MID * WT + WT / 2;
     W.y = (pl.doorRow + 1) * WT + WT / 2;
+    W.hop = null;
     W.dir = 'up';
   }
   W.on = true; W.locked = false; W.last = 0; W.near = null;
