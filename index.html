@@ -3049,7 +3049,7 @@ const WORLD_MAP = (() => {
   box(0, 1, 0, W_COLS - 1, '#'); box(W_ROWS - 1, W_ROWS - 1, 0, W_COLS - 1, '#');
 
   box(2, 7, 2, W_COLS - 3, 's');          // stage floor
-  box(3, 7, 10, 18, 'd');                 // dais, open to the runner below
+  box(2, 7, 10, 18, 'd');                 // dais, deep enough to stand on
   box(8, 42, AISLE_L, AISLE_R, 'r');      // the runner
   box(8, 42, AISLE_L - 1, AISLE_L - 1, 'F');
   box(8, 42, AISLE_R + 1, AISLE_R + 1, 'F');
@@ -3058,51 +3058,59 @@ const WORLD_MAP = (() => {
   return m.map(row => row.join(''));
 })();
 
+/* The hall is symmetrical about the runner, so every pair either side is
+   placed through one mirror: whatever sits at column c has its twin at
+   MIR(c), and nothing is ever nudged on one side only. */
+const MIR = c => (W_COLS - 1) - c;
+const PAIR = (c, make) => [make(c), make(MIR(c))];
+
 /* Memory stands sit just outside the flower line, episode 1 nearest the doors */
 const W_PLACES = [
   { ep:0, col:AISLE_L-2, row:36, side:-1, doorCol:AISLE_MID, doorRow:36, name:'회사 동기' },
   { ep:1, col:AISLE_R+2, row:29, side: 1, doorCol:AISLE_MID, doorRow:29, name:'연인' },
   { ep:2, col:AISLE_L-2, row:22, side:-1, doorCol:AISLE_MID, doorRow:22, name:'일상' },
   { ep:3, col:AISLE_R+2, row:15, side: 1, doorCol:AISLE_MID, doorRow:15, name:'여행' },
-  { ep:4, col:AISLE_MID, row:5,  side: 0, doorCol:AISLE_MID, doorRow:8,  name:'앞으로의 우리', groom:true },
+  { ep:4, col:AISLE_MID, row:4,  side: 0, doorCol:AISLE_MID, doorRow:8,  name:'앞으로의 우리', groom:true },
 ];
 
-/* Long black banquet tables running the length of the aisle, guests on the
-   inner side turned toward the runner — the hall's main seating */
-const W_LONG_TABLES = [
-  { col: AISLE_L - 3, row0: 13, row1: 41, side: -1 },
-  { col: AISLE_R + 3, row0: 13, row1: 41, side:  1 },
-];
-
-/* Round tables out towards the walls */
+/* Round guest tables, two ranks either side and staggered between the
+   ranks so no two line up down the hall */
 const W_TABLES = (() => {
   const out = [];
-  for (const r of [15, 21, 27, 33, 39])
-    for (const c of [6, 20]) out.push({ col: c, row: r, seats: 8 });
+  for (const r of [14, 20, 26, 32, 38]) out.push(...PAIR(9, c => ({ col: c, row: r })));
+  for (const r of [17, 23, 29, 35, 41]) out.push(...PAIR(4, c => ({ col: c, row: r })));
+  return out;
+})();
+
+/* A row of chairs just outside the flowers, turned to face the runner */
+const W_AISLE_SEATS = (() => {
+  const out = [];
+  for (let r = 12.6; r <= 41; r += 1.9) {
+    // leave a gap wherever a memory stand is planted in the flowers
+    if (W_PLACES.some(pl => !pl.groom && Math.abs(pl.row + 0.5 - r) < 1.6)) continue;
+    out.push(...PAIR(AISLE_L - 2.1, c => ({ col: c, row: r })));
+  }
   return out;
 })();
 
 /* 혼주석 — a pair of upholstered armchairs each side, no table */
 const W_PARENTS = [
-  { col: AISLE_L - 2.7, row: 10.2, who: 'father' },
-  { col: AISLE_L - 1.5, row: 10.2, who: 'mother' },
-  { col: AISLE_R + 1.5, row: 10.2, who: 'mother' },
-  { col: AISLE_R + 2.7, row: 10.2, who: 'father' },
+  ...PAIR(AISLE_L - 2.7, c => ({ col: c, row: 10.2, who: 'father' })),
+  ...PAIR(AISLE_L - 1.5, c => ({ col: c, row: 10.2, who: 'mother' })),
 ];
 
 /* Tall candelabra standing along the flower line, as in the photos */
 const W_CANDELABRA = (() => {
   const out = [];
-  for (let r = 11; r <= 41; r += 4.5) {
-    out.push({ col: AISLE_L - 1.15, row: r });
-    out.push({ col: AISLE_R + 1.15, row: r + 1.2 });
-  }
+  for (let r = 11; r <= 41; r += 4.5) out.push(...PAIR(AISLE_L - 1.15, c => ({ col: c, row: r })));
   return out;
 })();
 
 /* Big pillar arrangements massed at the mouth of the aisle */
 const W_ENTRY_FLOWERS = [
-  { col: AISLE_L - 2, row: 42.4, big: 0 }, { col: AISLE_R + 2, row: 42.4, big: 0 },
+  ...PAIR(AISLE_L - 2.2, c => ({ col: c, row: 42.8, big: 1 })),
+  ...PAIR(AISLE_L - 4.0, c => ({ col: c, row: 43.8, big: 0 })),
+  ...PAIR(AISLE_L - 1.0, c => ({ col: c, row: 40.6, big: 0 })),
 ];
 
 /* Chandeliers hung down the aisle and in banks either side — spaced
@@ -3164,7 +3172,7 @@ const w2ay = y => y * AH / WT;
 
 /* ── palette ──────────────────────────────────────────────── */
 const C = {
-  carpet:'#2c2133', carpetL:'#342839', carpetD:'#221a29', damask:'#3d2d46',
+  carpet:'#2e2029', carpetL:'#3a2831', carpetD:'#241a21', damask:'#402c38',
   stage :'#5a4750', stageL:'#6d5763', stageD:'#3c2f37',
   dais  :'#7d5c49', daisL:'#956f58',  daisD:'#54382c',
   wall  :'#1d1725', wallL:'#2a2133',  wallH:'#372b42', wallD:'#141019',
@@ -3342,16 +3350,20 @@ function bakeBackdrop() {
   /* ---- flower beds either side of the runner ---- */
   for (const col of [AISLE_L - 1, AISLE_R + 1]) {
     const x = col * AW;
+    // both beds grow from the same seed, mirrored, so the two sides of the
+    // runner match bloom for bloom
+    const seedCol = Math.min(col, MIR(col)), flip = col > AISLE_MID;
+    const px2 = dx => x + (flip ? AW - 1 - dx : dx);
     for (let r = 8; r <= 42; r++) {
       const y = oy + r * AH;
       R(p, x, y, AW, AH, C.gr4);
-      const g = mulberry(col * 977 + r * 31);
+      const g = mulberry(seedCol * 977 + r * 31);
       for (let k = 0; k < 22; k++) {
-        const bx = x + Math.floor(g() * AW), by = y + Math.floor(g() * AH);
+        const bx = px2(Math.floor(g() * AW)), by = y + Math.floor(g() * AH);
         D(p, bx, by, g() > 0.5 ? C.gr2 : C.gr1);
       }
       for (let k = 0; k < 13; k++) {
-        const bx = x + 1 + Math.floor(g() * (AW - 2)), by = y + 1 + Math.floor(g() * (AH - 2));
+        const bx = px2(1 + Math.floor(g() * (AW - 2))), by = y + 1 + Math.floor(g() * (AH - 2));
         const u = g();
         const col2 = u > 0.76 ? C.wh1 : u > 0.5 ? C.pk1 : u > 0.24 ? C.pk2 : C.pk3;
         BLOB(p, bx, by, 1.4, 1.2, col2);
@@ -3369,14 +3381,14 @@ function bakeBackdrop() {
     R(p, 2 * AW, y, (W_COLS - 4) * AW, 1, '#4e4149');
     R(p, 2 * AW, y + 1, (W_COLS - 4) * AW, 1, '#63505b');
   }
-  for (let y = oy + 3 * AH; y < sy; y += 8) {
+  for (let y = oy + 2 * AH; y < sy; y += 8) {
     R(p, dx0, y, dx1 - dx0, 1, '#6d5040');
     R(p, dx0, y + 1, dx1 - dx0, 1, '#8a6752');
   }
-  SPEC(p, dx0, oy + 3 * AH, dx1 - dx0, 5 * AH, C.daisL, 0.1, 616);
+  SPEC(p, dx0, oy + 2 * AH, dx1 - dx0, 6 * AH, C.daisL, 0.1, 616);
   // the dais sits proud of the stage on three sides
-  R(p, dx0 - 2, oy + 3 * AH - 2, dx1 - dx0 + 4, 2, C.daisD);
-  R(p, dx0 - 2, oy + 3 * AH - 2, dx1 - dx0 + 4, 1, C.gold);
+  R(p, dx0 - 2, oy + 2 * AH - 2, dx1 - dx0 + 4, 2, C.daisD);
+  R(p, dx0 - 2, oy + 2 * AH - 2, dx1 - dx0 + 4, 1, C.gold);
   // stage riser, facing the hall
   R(p, 2 * AW, sy, (W_COLS - 4) * AW, 6, C.stageD);
   SPEC(p, 2 * AW, sy, (W_COLS - 4) * AW, 6, C.stage, 0.2, 617);
@@ -3730,6 +3742,100 @@ function pxSeatedSide(p, cx, b, o) {
   pxHeadSide(p, cx, seat - 19, sk, o.hair, o);
 }
 
+/* the head at three-quarters, turned toward +x — the far cheek falls into
+   shade, the near one carries the nose */
+function pxHeadQ(p, cx, ty, sk, hr, o) {
+  const [s1, s2, s3] = sk, [h1, h2, h3] = hr;
+  BLOB(p, cx, ty + 5, 4, 4.6, s1);
+  R(p, cx - 4, ty + 2, 2, 7, s2);                    // the far side of the face
+  D(p, cx - 4, ty + 6, s3);
+  D(p, cx + 4, ty + 5, s1); D(p, cx + 4, ty + 6, s2);
+  D(p, cx - 1, ty + 5, h2); D(p, cx + 2, ty + 5, h2);
+  D(p, cx - 1, ty + 4, '#ffffff40'); D(p, cx + 2, ty + 4, '#ffffff40');
+  D(p, cx + 3, ty + 7, s3);                          // nose, catching the edge
+  D(p, cx + 4, ty + 7, s3);
+  R(p, cx + 1, ty + 8, 2, 1, '#a8564d');             // mouth
+  if (o.blush) { D(p, cx - 2, ty + 7, '#e8927f60'); D(p, cx + 3, ty + 8, '#e8927f60'); }
+  D(p, cx - 3, ty + 6, s2);                          // the far ear
+  // hair, massed away from the turn
+  R(p, cx - 5, ty + 1, 9, 3, h1);
+  R(p, cx - 4, ty, 8, 1, h1);
+  R(p, cx - 5, ty + 2, 2, 6, h1);
+  R(p, cx + 4, ty + 2, 1, 3, h1);
+  R(p, cx - 4, ty, 5, 1, h3);
+  const st = o.hairStyle || 0;
+  if (st === 0)      BLOB(p, cx - 5, ty + 6, 2.4, 2.2, h3);
+  else if (st === 1) { R(p, cx - 6, ty + 3, 3, 10, h1); R(p, cx + 4, ty + 4, 1, 7, h2); }
+  else if (st === 2)   R(p, cx - 5, ty + 1, 4, 5, h1);
+  else if (st === 3) { BLOB(p, cx - 5, ty + 2, 2.4, 2, h3); D(p, cx - 4, ty + 1, C.goldL); }
+  else                 R(p, cx - 5, ty + 1, 5, 3, h1);
+}
+
+/* seated at three-quarters, turned toward +x — the pose the 혼주 hold,
+   angled off the runner so they can watch her come up it */
+function pxSeatedQ(p, cx, b, o) {
+  const sk = o.skin, [w1, w2, w3] = o.wear;
+  const seat = b - 9;
+  ELL(p, cx, b - 1, 7, 2.2, '#00000038');
+  const g1 = o.chair ? o.chair[0] : C.gold, g2 = o.chair ? o.chair[1] : C.goldL,
+        g3 = o.chair ? o.chair[2] : C.goldD;
+  // chair seen at an angle: the back panel behind, one side turned to us
+  R(p, cx - 5, seat - 14, 1, 14, g1); R(p, cx + 4, seat - 14, 1, 14, g3);
+  R(p, cx - 5, seat - 14, 10, 1, g2);
+  R(p, cx - 5, seat - 10, 10, 1, g1); R(p, cx - 5, seat - 6, 10, 1, g1);
+  R(p, cx - 5, seat - 1, 11, 2, o.chairPad || C.ivory);
+  R(p, cx - 5, seat - 1, 11, 1, C.ivoryL);
+  R(p, cx - 5, seat + 1, 11, 1, g3);
+  R(p, cx - 4, seat + 2, 1, 7, g1); R(p, cx + 5, seat + 2, 1, 7, g1);
+  // lap and knees, swung toward the turn
+  const lap = o.lap || w1;
+  if (o.skirt) {
+    R(p, cx - 4, seat - 4, 10, 5, lap);
+    R(p, cx - 4, seat - 4, 10, 1, o.lapL || w3);
+    for (let j = 0; j < 6; j++) R(p, cx - 3 + j * 0.4, seat + 1 + j, 9 - j * 0.5, 1, j > 3 ? (o.lapD || w2) : lap);
+    R(p, cx - 2, b - 2, 8, 1, '#00000030');
+  } else {
+    const [t1, t2] = o.trouser;
+    R(p, cx - 4, seat - 4, 10, 5, t1);
+    R(p, cx - 4, seat - 4, 10, 1, C.blkL);
+    R(p, cx - 3, seat + 1, 4, 8, t1); R(p, cx + 2, seat + 1, 4, 8, t1);
+    R(p, cx - 3, seat + 1, 1, 8, t2); R(p, cx + 2, seat + 1, 1, 8, t2);
+    R(p, cx - 3, b - 2, 5, 2, C.blkD); R(p, cx + 2, b - 2, 5, 2, C.blkD);
+    R(p, cx - 3, b - 2, 5, 1, C.blkL); R(p, cx + 2, b - 2, 5, 1, C.blkL);
+  }
+  // torso, square to us but narrowed on the far shoulder
+  R(p, cx - 4, seat - 13, 9, 10, w1);
+  R(p, cx - 4, seat - 13, 9, 1, w3);
+  R(p, cx - 4, seat - 13, 2, 10, w2);
+  R(p, cx + 4, seat - 12, 1, 9, w3);
+  if (o.jacket) {
+    R(p, cx, seat - 13, 3, 7, C.ivoryL);
+    R(p, cx, seat - 12, 2, 4, o.tie || C.ivoryS);
+    D(p, cx - 1, seat - 12, w3); D(p, cx + 3, seat - 12, w3);
+    if (o.pocket) D(p, cx + 3, seat - 11, C.wh1);
+  } else if (o.neckline) {
+    R(p, cx - 1, seat - 13, 4, 2, sk[0]);
+    if (o.necklace) { D(p, cx, seat - 12, C.goldL); D(p, cx + 1, seat - 12, C.gold); }
+  }
+  if (o.hanbok) {
+    R(p, cx - 4, seat - 6, 10, 1, o.lapL || C.wh1);
+    R(p, cx + 1, seat - 12, 1, 6, o.sash || C.pk3);
+    D(p, cx + 2, seat - 12, C.pk1);
+  }
+  const ar = o.arms || 0;
+  if (ar === 1) {                                    // applauding
+    R(p, cx - 6, seat - 12, 2, 4, w1); R(p, cx + 5, seat - 12, 2, 4, w1);
+    R(p, cx - 4, seat - 9, 3, 2, sk[0]); R(p, cx + 2, seat - 9, 3, 2, sk[0]);
+    R(p, cx - 4, seat - 9, 3, 1, sk[1]);
+  } else {                                           // hands folded in the lap
+    R(p, cx - 6, seat - 12, 2, 5, w1); R(p, cx + 5, seat - 12, 2, 5, w1);
+    R(p, cx - 5, seat - 8, 4, 2, w2); R(p, cx + 2, seat - 8, 4, 2, w2);
+    BLOB(p, cx, seat - 6, 2.6, 1.6, sk[0]); D(p, cx, seat - 7, sk[1]);
+  }
+  R(p, cx - 1, seat - 14, 3, 2, sk[1]);
+  pxHeadQ(p, cx, seat - 19, sk, o.hair, o);
+}
+
 /* seated seen from the front or the back */
 function pxSeatedFront(p, cx, b, o) {
   const sk = o.skin, [w1, w2, w3] = o.wear;
@@ -3936,43 +4042,6 @@ function pxFlowers(p, cx, by, rw, rh, seed, pink) {
   }
 }
 
-/* the long banquet tables running the length of the aisle */
-function texLongTable(rows) {
-  const w = 34, h = rows * AH + 16;
-  return TEX('lt' + rows, w, h, p => {
-    const cx = 17, top = 8, bot = h - 6;
-    ELL(p, cx, bot + 2, 14, 4, '#00000040');
-    R(p, cx - 11, top, 22, bot - top, C.blkD);          // floor-length black cloth
-    SPEC(p, cx - 11, top, 22, bot - top, C.blk, 0.2, rows * 3 + 1);
-    R(p, cx - 11, top, 22, 2, C.blkL);                  // the lit far edge
-    R(p, cx + 8, top, 3, bot - top, '#0e0d13');         // the near edge falls away
-    R(p, cx - 11, top, 2, bot - top, C.blk);
-    R(p, cx - 5, top + 2, 11, bot - top - 4, C.ivoryL); // cream runner down the middle
-    R(p, cx - 5, top + 2, 1, bot - top - 4, C.wh1);
-    R(p, cx + 5, top + 2, 1, bot - top - 4, C.ivoryD);
-    const g = mulberry(rows * 71 + 5);
-    let k = 0;
-    for (let y = top + 8; y < bot - 8; y += 12, k++) {
-      // charger plate with cutlery laid either side, turned toward the aisle
-      ELL(p, cx + 1, y + 2, 3.4, 2.2, C.gold);
-      ELL(p, cx + 1, y + 2, 2.6, 1.5, C.wh1);
-      D(p, cx + 1, y + 2, C.ivoryS);
-      R(p, cx - 3, y + 1, 1, 3, C.goldL); R(p, cx + 5, y + 1, 1, 3, C.goldL);
-      // two glasses, catching the candlelight
-      R(p, cx - 3, y - 2, 1, 2, C.glass); D(p, cx - 3, y - 3, C.ivoryL);
-      R(p, cx - 1, y - 3, 1, 3, C.glass); D(p, cx - 1, y - 4, C.wh1);
-      // a candlestick or a low bowl of blooms between the settings
-      if (k % 2 === 0) {
-        R(p, cx + 3, y - 8, 1, 5, C.goldL);
-        R(p, cx + 2, y - 3, 3, 1, C.gold);
-        D(p, cx + 3, y - 9, C.flame); D(p, cx + 3, y - 10, C.flameL);
-      } else {
-        pxFlowers(p, cx + 2, y - 3, 5, 4, y * 13 + rows, g() > 0.4);
-      }
-    }
-  });
-}
-
 /* round tables out towards the walls */
 function texRoundTable() {
   return TEX('rt', 60, 48, p => {
@@ -4036,20 +4105,36 @@ function texCandelabra(f) {
   });
 }
 
-/* the big pillar arrangements at the mouth of the aisle */
-function texEntryFlowers() {
-  return TEX('ef', 36, 60, p => {
-    const cx = 18, b = 58;
-    ELL(p, cx, b, 9, 3, '#00000045');
-    R(p, cx - 6, b - 4, 13, 4, C.marbleD);              // plinth
-    R(p, cx - 6, b - 4, 13, 1, C.marbleL);
-    R(p, cx - 4, b - 26, 9, 22, C.marble);
-    R(p, cx - 4, b - 26, 2, 22, C.marbleL);
-    R(p, cx + 3, b - 26, 2, 22, C.marbleD);
-    R(p, cx - 6, b - 29, 13, 3, C.marbleL);
-    R(p, cx - 6, b - 29, 13, 1, C.ivoryS);
-    pxFlowers(p, cx, b - 30, 14, 12, 7717, true);
-    pxFlowers(p, cx, b - 42, 9, 7, 2233, false);
+/* the pillar arrangements massed at the mouth of the aisle */
+function texEntryFlowers(big) {
+  const w = big ? 54 : 40, h = big ? 82 : 62;
+  return TEX('ef' + big, w, h, p => {
+    const cx = w >> 1, b = h - 2, ph = big ? 32 : 24;
+    ELL(p, cx, b, big ? 13 : 10, 3.5, '#00000045');
+    R(p, cx - 7, b - 4, 15, 4, C.marbleD);              // plinth
+    R(p, cx - 7, b - 4, 15, 1, C.marbleL);
+    R(p, cx - 5, b - ph - 4, 11, ph, C.marble);         // column
+    R(p, cx - 5, b - ph - 4, 2, ph, C.marbleL);
+    R(p, cx + 4, b - ph - 4, 2, ph, C.marbleD);
+    SPEC(p, cx - 5, b - ph - 4, 11, ph, C.marbleL, 0.1, big ? 71 : 73);
+    R(p, cx - 7, b - ph - 7, 15, 3, C.marbleL);         // capital
+    R(p, cx - 7, b - ph - 7, 15, 1, C.ivoryS);
+    R(p, cx - 7, b - ph - 8, 15, 1, C.gold);
+    // a full arrangement spilling over the rim
+    const rw = big ? 24 : 17, rh = big ? 20 : 14;
+    pxFlowers(p, cx, b - ph - 8, rw, rh, 7717 + big, true);
+    pxFlowers(p, cx, b - ph - 8 - rh, rw * 0.62, rh * 0.7, 2233 + big, false);
+    pxFlowers(p, cx - rw * 0.6, b - ph - 6, rw * 0.5, rh * 0.5, 3311 + big, true);
+    pxFlowers(p, cx + rw * 0.6, b - ph - 6, rw * 0.5, rh * 0.5, 3312 + big, true);
+    // greenery trailing down the column
+    const g = mulberry(9090 + big);
+    for (let k = 0; k < (big ? 9 : 6); k++) {
+      const x = cx - 6 + ((g() * 13) | 0);
+      const len = 6 + g() * ph * 0.7;
+      for (let j = 0; j < len; j++)
+        D(p, Math.round(x + Math.sin(j * 0.5 + k) * 2), Math.round(b - ph - 6 + j), g() > 0.75 ? C.gr1 : C.gr3);
+      if (g() > 0.4) BLOB(p, x, b - ph - 6 + len, 1.6, 1.4, g() > 0.5 ? C.pk1 : C.wh1);
+    }
   });
 }
 
@@ -4366,7 +4451,7 @@ function texParent(who, arms, v) {
           wear: [hb[0], hb[1], hb[2]], trouser: [hb[3], hb[4]],
           skirt: 1, lap: hb[3], lapD: hb[4], lapL: hb[5],
           neckline: 1, necklace: 1, sash: hb[5], hanbok: 1, chair, chairPad };
-    pxSeatedSide(p, 11, 32, o);
+    pxSeatedQ(p, 11, 32, o);
   });
 }
 
@@ -4426,18 +4511,31 @@ function wBuildScene() {
   PX.glowL.addChild(spot2);
 
   const daisY = 8 * AH - 8;
-  add(props, texBackdrop(), (AISLE_MID + 0.5) * AW, 3 * AH + 4, -60);
+  add(props, texBackdrop(), (AISLE_MID + 0.5) * AW, 2 * AH + 3, -60);
   add(props, texStageFlowers(), (AISLE_MID + 0.5) * AW, daisY + 4, -40);
-  add(props, texPodium(), ...(() => { const [x, y] = T(12, 6); return [x, y, y]; })());
-  add(props, texMcStand(), ...(() => { const [x, y] = T(17.4, 6.4); return [x, y, y]; })());
-
-  /* ── banquet tables ── */
-  for (const lt of W_LONG_TABLES) {
-    const rows = lt.row1 - lt.row0 + 1;
-    const t = texLongTable(rows);
-    const s = add(props, t, (lt.col + 0.5) * AW, (lt.row1 + 1) * AH + 6, -30);
+  // the officiant's podium balances the 사회자's lectern on the far side
+  const [pdx, pdy] = T(MIR(11.6), 6.2);
+  add(props, texPodium(), pdx, pdy, pdy);
+  // 사회자 stands at his own lectern, downstage on the left where he is in
+  // frame on a phone as well as a television
+  const [mcx, mcy] = T(8.2, 8.7);
+  add(props, texMcStand(), mcx, mcy, mcy);
+  // tall urns dressing the outer stage, as in the venue's own photos
+  for (const c of [3.2, MIR(3.2), 6.4, MIR(6.4)]) {
+    const [ux, uy] = T(c, 4.4);
+    add(props, texEntryFlowers(c < 5 || c > MIR(5) ? 1 : 0), ux, uy, uy);
   }
-  /* ── round tables ── */
+
+  const mc = add(props, TEX('mc-person', 22, 34, p => {
+    pxPersonSide(p, 11, 32, {
+      skin: SKIN[1], hair: HAIR[0], hairStyle: 4, view: 'side', arms: 2,
+      wear: ['#2b2838', '#191722', '#3d3950'], trouser: ['#2b2838', '#191722'],
+      jacket: 1, tie: '#8a2f46', pocket: 1,
+    });
+  }), mcx + 9, mcy + 1, mcy + 1);
+  mc.scale.x = 1;                       // turned in toward the aisle
+
+  /* ── round guest tables ── */
   for (const tb of W_TABLES) {
     const [x, y] = T(tb.col, tb.row);
     add(props, texRoundTable(), x, y + 18, y + 11);
@@ -4445,36 +4543,35 @@ function wBuildScene() {
 
   /* ── the congregation ── */
   PX.guests = [];
-  const seatGuest = (ax, ay, faceRight, seated, kind, seed) => {
+  const seatGuest = (ax, ay, faceRight, kind, seed) => {
     const g = mulberry(seed);
     const beh = g();
     const gu = {
-      kind, seated, view: 'side', flip: !faceRight,
-      beh: beh > 0.62 ? 'clap' : beh > 0.3 ? 'clasp' : 'rest',
+      kind, view: 'side', flip: !faceRight,
+      beh: beh > 0.6 ? 'clap' : beh > 0.28 ? 'clasp' : 'rest',
       phase: (g() * 6000) | 0, period: 4200 + ((g() * 3600) | 0), frame: -1,
     };
-    const sp = add(props, texGuest(kind, 'side', seated ? 1 : 0, 0), ax, ay, ay + 0.4);
+    const sp = add(props, texGuest(kind, 'side', 1, 0), Math.round(ax), Math.round(ay), ay + 0.4);
     sp.scale.x = faceRight ? 1 : -1;
-    gu.sp = sp; gu.ax = ax; gu.ay = ay;
+    gu.sp = sp;
     PX.guests.push(gu);
     return gu;
   };
 
   let gseed = 7;
-  for (const lt of W_LONG_TABLES) {
-    const cx = (lt.col + 0.5) * AW;
-    const ax = cx + (lt.side < 0 ? 17 : -17);
-    for (let r = lt.row0 + 0.6; r <= lt.row1; r += 2) {
-      seatGuest(ax, (r + 0.5) * AH, lt.side < 0, true, (gseed * 7) % GUEST_KINDS, gseed++);
-    }
+  // the front row: chairs turned to face the runner, either side of the flowers
+  for (const st of W_AISLE_SEATS) {
+    const [x, y] = T(st.col, st.row);
+    seatGuest(x, y, st.col < AISLE_MID, (gseed * 7) % GUEST_KINDS, gseed++);
   }
+  // and the tables behind them
   for (const tb of W_TABLES) {
     const [cx, cy] = T(tb.col, tb.row);
     const toAisle = tb.col < AISLE_MID;
     for (let k = 0; k < 6; k++) {
       const a = k / 6 * TAU + 0.52;
       seatGuest(cx + Math.cos(a) * 21, cy + Math.sin(a) * 15,
-                toAisle, true, (gseed * 5 + 3) % GUEST_KINDS, gseed++);
+                toAisle, (gseed * 5 + 3) % GUEST_KINDS, gseed++);
     }
   }
 
@@ -4499,7 +4596,7 @@ function wBuildScene() {
   /* ── the entrance ── */
   for (const fl of W_ENTRY_FLOWERS) {
     const [x, y] = T(fl.col, fl.row);
-    add(props, texEntryFlowers(), x, y + 4, y + 4);
+    add(props, texEntryFlowers(fl.big), x, y + 4, y + 4);
   }
   add(props, texGate(), (AISLE_MID + 0.5) * AW, 45 * AH + 4, 45 * AH + 4);
 
@@ -4510,7 +4607,7 @@ function wBuildScene() {
     if (pl.groom) {
       const sp = add(props, TEX('groom', 24, 34, p => pxGroom(p, 12, 32, 0)),
                      (AISLE_MID + 0.5) * AW, y + 6, y + 6);
-      PX.groom = sp;
+      PX.groom = sp; PX.groomY = sp.y;
       continue;
     }
     const x = (pl.side < 0 ? AISLE_L - 0.5 : AISLE_R + 1.5) * AW;
@@ -4551,9 +4648,9 @@ function wBuildScene() {
   /* ── grade and vignette, over everything ── */
   const grade = PX.grade = new PIXI.Sprite(TEXS('grade', 4, 64, p => {
     const gr = p.g.createLinearGradient(0, 0, 0, 64);
-    gr.addColorStop(0, 'rgba(255,206,140,0.13)');
-    gr.addColorStop(0.45, 'rgba(255,224,182,0.05)');
-    gr.addColorStop(1, 'rgba(64,56,124,0.16)');
+    gr.addColorStop(0, 'rgba(255,204,138,0.15)');
+    gr.addColorStop(0.42, 'rgba(255,222,178,0.06)');
+    gr.addColorStop(1, 'rgba(56,34,58,0.18)');
     p.g.fillStyle = gr; p.g.fillRect(0, 0, 4, 64);
   }));
   app.stage.addChild(grade);
@@ -4633,7 +4730,7 @@ function wRender() {
     }
     if (arms !== gu.frame) {
       gu.frame = arms;
-      gu.sp.texture = texGuest(gu.kind, 'side', gu.seated ? 1 : 0, arms);
+      gu.sp.texture = texGuest(gu.kind, 'side', 1, arms);
     }
   }
   for (const pa of PX.parents) {
@@ -4678,7 +4775,7 @@ function wRender() {
   }
   if (PX.groom) {
     const ready = W.visited.size >= 4;
-    PX.groom.y = Math.round((5 + 0.5) * AH + 6 - (ready ? (Math.sin(t / 420) > 0 ? 1 : 0) : 0));
+    PX.groom.y = PX.groomY - (ready && Math.sin(t / 420) > 0 ? 1 : 0);
   }
 
   /* the bride */
