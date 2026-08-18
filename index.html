@@ -3026,12 +3026,13 @@ function initGridDismiss() {
    stays self-contained. The girl walks to a place, steps to its door and
    that episode's reel plays.
 ════════════════════════════════════ */
-const WT = 32;   // tile size in world pixels — finer art than the old 16
+const WT = 32;   // tile size in world pixels
 
-/* The hall, laid out in code.
-   # wall  . floor  r runner  F floral border  s stage  S step  H head table */
+/* The hall, laid out from the venue's own photos.
+   # wall  . carpet  r runner  F floral border  s stage  d dais  L long table
+   P podium at the doors  G gateway */
 const W_COLS = 29, W_ROWS = 46;
-const AISLE_L = 13, AISLE_R = 15;      // a narrower runner, 3 tiles across
+const AISLE_L = 13, AISLE_R = 15;
 const AISLE_MID = 14;
 
 const WORLD_MAP = (() => {
@@ -3044,13 +3045,12 @@ const WORLD_MAP = (() => {
   box(0, 1, 0, W_COLS - 1, '#'); box(W_ROWS - 1, W_ROWS - 1, 0, W_COLS - 1, '#');
 
   box(2, 7, 2, W_COLS - 3, 's');          // stage floor
-  box(3, 7, 11, 17, 'd');                 // the dais, open to the runner below
-  box(4, 4, 12, 16, 'H');                 // head table
-  box(8, 42, AISLE_L, AISLE_R, 'r');      // runner — no steps at its head
+  box(3, 7, 10, 18, 'd');                 // dais, open to the runner below
+  box(8, 42, AISLE_L, AISLE_R, 'r');      // the runner
   box(8, 42, AISLE_L - 1, AISLE_L - 1, 'F');
   box(8, 42, AISLE_R + 1, AISLE_R + 1, 'F');
-  box(43, 43, AISLE_L - 1, AISLE_R + 1, 'P');   // the little podium
-  box(44, 44, AISLE_L - 2, AISLE_R + 2, 'G');   // gateway behind it
+  box(43, 43, AISLE_L - 1, AISLE_R + 1, 'P');
+  box(44, 44, AISLE_L - 3, AISLE_R + 3, 'G');
   return m.map(row => row.join(''));
 })();
 
@@ -3063,55 +3063,58 @@ const W_PLACES = [
   { ep:4, col:AISLE_MID, row:5,  side: 0, doorCol:AISLE_MID, doorRow:8,  name:'앞으로의 우리', groom:true },
 ];
 
-/* Round banquet tables, every seat taken */
+/* Long black banquet tables running the length of the aisle, guests on the
+   inner side turned toward the runner — the hall's main seating */
+const W_LONG_TABLES = [
+  { col: AISLE_L - 3, row0: 13, row1: 41, side: -1 },
+  { col: AISLE_R + 3, row0: 13, row1: 41, side:  1 },
+];
+
+/* Round tables out towards the walls */
 const W_TABLES = (() => {
   const out = [];
-  for (const r of [14, 20, 26, 32, 38])
-    for (const c of [4, 8, 19, 23]) out.push({ col: c, row: r, seats: 8 });
+  for (const r of [15, 21, 27, 33, 39])
+    for (const c of [4, 21]) out.push({ col: c, row: r, seats: 8 });
   return out;
 })();
 
-/* 혼주석 — two parents seated either side, right at the head of the aisle */
+/* 혼주석 — a pair of upholstered armchairs each side, no table */
 const W_PARENTS = [
-  { col: AISLE_L - 2.9, row: 8.4,  who: 'father' },
-  { col: AISLE_L - 2.9, row: 10.1, who: 'mother' },
-  { col: AISLE_R + 2.9, row: 8.4,  who: 'mother' },
-  { col: AISLE_R + 2.9, row: 10.1, who: 'father' },
+  { col: AISLE_L - 2.6, row: 9.4,  who: 'father' },
+  { col: AISLE_L - 1.5, row: 9.4,  who: 'mother' },
+  { col: AISLE_R + 1.5, row: 9.4,  who: 'mother' },
+  { col: AISLE_R + 2.6, row: 9.4,  who: 'father' },
 ];
 
-/* Guests standing along the flower line, turned in to watch her pass */
-const W_STANDING = (() => {
+/* Tall candelabra standing along the flower line, as in the photos */
+const W_CANDELABRA = (() => {
   const out = [];
-  for (let r = 12; r <= 41; r += 1.6) {
-    out.push({ col: AISLE_L - 2.3, row: r,       face: 1,  seed: wHash(r * 3, 1) });
-    out.push({ col: AISLE_R + 2.3, row: r + 0.7, face: -1, seed: wHash(r * 5, 7) });
-    out.push({ col: AISLE_L - 3.3, row: r + 0.9, face: 1,  seed: wHash(r * 7, 3) });
-    out.push({ col: AISLE_R + 3.3, row: r + 1.4, face: -1, seed: wHash(r * 11, 9) });
+  for (let r = 11; r <= 41; r += 4.5) {
+    out.push({ col: AISLE_L - 1.15, row: r });
+    out.push({ col: AISLE_R + 1.15, row: r + 1.2 });
   }
   return out;
 })();
 
 /* Big pillar arrangements massed at the mouth of the aisle */
 const W_ENTRY_FLOWERS = [
-  { col: AISLE_L - 1, row: 41.4, big: 1 }, { col: AISLE_R + 1, row: 41.4, big: 1 },
-  { col: AISLE_L - 2, row: 42.2, big: 0 }, { col: AISLE_R + 2, row: 42.2, big: 0 },
-  { col: AISLE_L - 1, row: 39.6, big: 0 }, { col: AISLE_R + 1, row: 39.6, big: 0 },
+  { col: AISLE_L - 2, row: 42.4, big: 0 }, { col: AISLE_R + 2, row: 42.4, big: 0 },
 ];
 
-/* Chandeliers: a dense run down the aisle plus rows either side, as the hall has */
+/* Chandeliers hung down the aisle and in banks either side */
 const W_CHANDELIERS = (() => {
   const out = [];
   for (let r = 9; r <= 43; r += 3.4) {
     out.push({ col: AISLE_MID, row: r, big: 1 });
     out.push({ col: AISLE_L - 5.5, row: r + 1.7, big: 0 });
-    out.push({ col: AISLE_R + 6.5, row: r + 1.7, big: 0 });
+    out.push({ col: AISLE_R + 5.5, row: r + 1.7, big: 0 });
     out.push({ col: AISLE_L - 10,  row: r, big: 0 });
-    out.push({ col: AISLE_R + 11,  row: r, big: 0 });
+    out.push({ col: AISLE_R + 10,  row: r, big: 0 });
   }
   return out;
 })();
 
-const wSolid = ch => '#FtHBcG'.includes(ch);
+const wSolid = ch => '#FtHBcGL'.includes(ch);
 function wTileAt(c, r) {
   if (c < 0 || r < 0 || c >= W_COLS || r >= W_ROWS) return 'T';
   return WORLD_MAP[r][c];
@@ -3203,17 +3206,17 @@ function wBloom(g, cx, cy, rad, col) {
 }
 /* a mass of blooms with foliage — used for every arrangement in the hall */
 function wArrangement(g, cx, baseY, w, h, seed, dense) {
-  const N = Math.max(10, Math.round(w * h / (dense ? 26 : 46)));
+  const N = Math.max(5, Math.round(w * h / (dense ? 78 : 130)));
   wEllipse(g, cx, baseY, w * 0.52, w * 0.17, 'rgba(0,0,0,0.34)');
-  for (let i = 0; i < N * 0.5; i++) {                       // foliage behind
+  for (let i = 0; i < N * 0.8; i++) {                       // foliage behind
     const a = wHash(seed + i * 3, 11), b = wHash(seed + 7, i * 5);
     g.save();
     g.translate(cx + (a - 0.5) * w * 1.05, baseY - b * h * 0.95);
     g.rotate((wHash(seed + i, 3) - 0.5) * 2.2);
-    wEllipse(g, 0, 0, w * 0.15, w * 0.05, i % 2 ? '#4c7454' : '#2f4d37');
+    wEllipse(g, 0, 0, w * 0.17, w * 0.055, i % 2 ? '#8faa79' : '#5c7a52');
     g.restore();
   }
-  const pinks = ['#f9c8d8','#f4aac6','#fde0ea','#eeb4dd','#ffffff','#f8cdb8','#e9bbe8','#fbd7e3'];
+  const pinks = ['#ffffff','#fdf7ef','#f8e2d2','#f2c6ae','#f7dade','#eec2c6','#fbeade','#e9dcc6'];
   for (let i = 0; i < N; i++) {
     const a = wHash(seed + i * 5, 17), b = wHash(seed + 13, i * 3);
     const bx = cx + (a - 0.5) * w;
@@ -3431,21 +3434,23 @@ function wDrawTile(g, ch, c, r, S) {
     return;
   }
 
-  // polished stone floor
+  // patterned blue-grey carpet, as laid through the hall
   const fg = g.createLinearGradient(X, Y, X + TW, Y + TH);
-  fg.addColorStop(0, n > 0.5 ? '#352e40' : '#322b3c');
-  fg.addColorStop(1, n > 0.5 ? '#2a2433' : '#27212f');
+  fg.addColorStop(0, n > 0.5 ? '#2c3040' : '#292d3a');
+  fg.addColorStop(1, n > 0.5 ? '#232634' : '#20232f');
   g.fillStyle = fg; g.fillRect(X, Y, TW, TH);
-  if (n > 0.45) {
-    g.save(); g.beginPath(); g.rect(X, Y, TW, TH); g.clip();
-    g.beginPath(); g.moveTo(X + n * TW, Y);
-    g.quadraticCurveTo(X + (1 - n) * TW * 1.2, Y + TH * 0.5, X + n * TW * 0.7, Y + TH);
-    g.strokeStyle = 'rgba(255,255,255,0.05)'; g.lineWidth = Math.max(1, S * 0.5); g.stroke();
-    g.restore();
+  g.save(); g.beginPath(); g.rect(X, Y, TW, TH); g.clip();
+  for (let i = 0; i < 3; i++) {
+    const h2 = wHash(c * 7 + i, r * 3);
+    g.beginPath();
+    g.moveTo(X + h2 * TW, Y - TH * 0.2);
+    g.bezierCurveTo(X + (1 - h2) * TW * 1.3, Y + TH * 0.35,
+                    X + h2 * TW * 0.4,       Y + TH * 0.7,
+                    X + (1 - h2) * TW,       Y + TH * 1.2);
+    g.strokeStyle = i % 2 ? 'rgba(150,170,200,0.055)' : 'rgba(90,110,150,0.07)';
+    g.lineWidth = Math.max(1, S * (1 + h2 * 2)); g.stroke();
   }
-  g.fillStyle = 'rgba(0,0,0,0.26)'; g.fillRect(X, Y, TW, Math.max(1, S * 0.5));
-  g.fillStyle = 'rgba(0,0,0,0.26)'; g.fillRect(X, Y, Math.max(1, S * 0.5), TH);
-  g.fillStyle = 'rgba(255,255,255,0.03)'; g.fillRect(X, Y + S * 0.5, TW, Math.max(1, S * 0.4));
+  g.restore();
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -3526,28 +3531,122 @@ function wDrawTable(g, tb, S) {
 }
 
 /* a guest standing along the aisle */
+function wDrawLongTable(g, lt, S) {
+  const TW = WT * S, TH = WT * PY * S;
+  const cx = (lt.col + 0.5) * TW;
+  const w  = TW * 1.55;
+  const y0 = lt.row0 * TH, y1 = (lt.row1 + 1) * TH;
+  const top = TW * 0.42;                      // apparent height of the table top
+
+  // chairs and guests behind the table (outer side)
+  for (let r = lt.row0 + 0.4; r < lt.row1; r += 1.9) {
+    const gy = r * TH;
+    wChair(g, cx - lt.side * w * 0.62, gy, S, -1);
+    wFigure(g, cx - lt.side * w * 0.62, gy + TH * 0.1, TW * 1.12,
+            wGuestOpts(wHash(lt.col * 3 + r * 7, 11)));
+  }
+
+  // the table: black cloth to the floor, with a lit top edge
+  const cg = g.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
+  cg.addColorStop(0, '#0b0a0f'); cg.addColorStop(0.45, '#17161d'); cg.addColorStop(1, '#0a090e');
+  g.fillStyle = cg;
+  g.fillRect(cx - w / 2, y0, w, y1 - y0);
+  const tg = g.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
+  tg.addColorStop(0, '#1c1b24'); tg.addColorStop(0.4, '#2a2833'); tg.addColorStop(1, '#151419');
+  g.fillStyle = tg;
+  g.fillRect(cx - w / 2, y0 - top, w, y1 - y0);
+  g.fillStyle = 'rgba(255,255,255,0.10)';
+  g.fillRect(cx - w / 2, y0 - top, w, Math.max(1, S));
+
+  // a low run of blooms and glass down the middle of the cloth
+  for (let r = lt.row0 + 0.6; r < lt.row1; r += 2.1) {
+    const gy = r * TH - top * 0.5;
+    wArrangement(g, cx, gy, w * 0.66, TW * 0.3, lt.col * 61 + r * 13, true);
+    if ((r * 10 | 0) % 3 === 0) {
+      const vx = cx + (wHash(r, lt.col) - 0.5) * w * 0.5;
+      g.fillStyle = 'rgba(220,235,240,0.30)';
+      g.fillRect(vx - S * 2, gy - TW * 0.55, S * 4, TW * 0.55);
+      wBloom(g, vx, gy - TW * 0.58, S * 4, '#f6dade');
+    }
+  }
+
+  // chairs and guests on the aisle side, drawn over the table
+  for (let r = lt.row0 + 1.35; r < lt.row1; r += 1.9) {
+    const gy = r * TH + TH * 0.55;
+    wChair(g, cx + lt.side * w * 0.62, gy, S, 1);
+    wFigure(g, cx + lt.side * w * 0.62, gy, TW * 1.12,
+            wGuestOpts(wHash(lt.col * 5 + r * 11, 23)));
+  }
+}
+
+/* a black banquet chair */
+function wChair(g, cx, by, S, front) {
+  const TW = WT * S;
+  const w = TW * 0.5, h = TW * 0.62;
+  wShadow(g, cx, by, w * 0.7, 0.4);
+  if (front < 0) {                            // seen from behind: tall back
+    wRound(g, cx - w / 2, by - h, w, h, '#141319', w * 0.3);
+    wRound(g, cx - w / 2 + S, by - h + S, w - S * 2, h * 0.66, '#20202a', w * 0.26);
+  } else {
+    wRound(g, cx - w / 2, by - h * 0.55, w, h * 0.55, '#141319', w * 0.22);
+    wEllipse(g, cx, by - h * 0.52, w * 0.46, w * 0.16, '#26252f');
+  }
+}
+
+/* tall gold candelabrum with glass hurricanes */
+function wCandelabra(g, cd, S) {
+  const b = baseOf(cd.col, cd.row, S);
+  const TW = WT * S, H = TW * 1.25;
+  wShadow(g, b.x, b.y, TW * 0.3, 0.45);
+  wEllipse(g, b.x, b.y, TW * 0.24, TW * 0.09, '#7a6436');
+  const sg = g.createLinearGradient(b.x - S * 3, 0, b.x + S * 3, 0);
+  sg.addColorStop(0, '#6d5a33'); sg.addColorStop(0.4, '#e0c07a'); sg.addColorStop(1, '#6d5a33');
+  g.fillStyle = sg; g.fillRect(b.x - S * 2.4, b.y - H, S * 4.8, H);
+  // glass hurricane
+  g.fillStyle = 'rgba(226,240,245,0.22)';
+  g.fillRect(b.x - S * 5, b.y - H - TW * 0.5, S * 10, TW * 0.5);
+  g.fillStyle = 'rgba(255,255,255,0.30)';
+  g.fillRect(b.x - S * 5, b.y - H - TW * 0.5, S * 2, TW * 0.5);
+  g.fillStyle = '#f6efdf';
+  g.fillRect(b.x - S * 2.2, b.y - H - TW * 0.34, S * 4.4, TW * 0.34);
+  const fl = g.createRadialGradient(b.x, b.y - H - TW * 0.42, 0, b.x, b.y - H - TW * 0.42, TW * 0.55);
+  fl.addColorStop(0, 'rgba(255,236,180,0.95)');
+  fl.addColorStop(0.35, 'rgba(255,220,150,0.45)');
+  fl.addColorStop(1, 'rgba(255,214,150,0)');
+  g.fillStyle = fl;
+  g.beginPath(); g.arc(b.x, b.y - H - TW * 0.42, TW * 0.55, 0, TAU); g.fill();
+}
+
 function wDrawStanding(g, st, S) {
   const b = baseOf(st.col, st.row, S);
   wFigure(g, b.x, b.y, WT * S * 1.5, wGuestOpts(st.seed));
 }
 
-/* 혼주 — a parent on a chair */
+/* 혼주석 — a parent in an upholstered tub armchair */
 function wDrawParent(g, pr, S) {
   const b = baseOf(pr.col, pr.row, S);
-  const H = WT * S * 1.45;
-  // chair
-  wShadow(g, b.x, b.y, H * 0.3, 0.45);
-  wRound(g, b.x - H * 0.19, b.y - H * 0.62, H * 0.38, H * 0.62, '#241d2f', H * 0.06);
-  wRound(g, b.x - H * 0.17, b.y - H * 0.60, H * 0.34, H * 0.5, '#33293f', H * 0.05);
+  const TW = WT * S;
+  const w = TW * 1.02, h = TW * 0.92;
+
+  wShadow(g, b.x, b.y, w * 0.62, 0.5);
+  // wooden legs
+  g.fillStyle = '#8a5f3a';
+  for (const dx of [-0.34, 0.34])
+    g.fillRect(b.x + w * dx - S, b.y - h * 0.22, S * 2.2, h * 0.22);
+  // curved back and arms
+  wRound(g, b.x - w / 2, b.y - h, w, h * 0.86, '#5f5a54', w * 0.3);
+  wRound(g, b.x - w / 2 + S * 1.5, b.y - h + S * 1.5, w - S * 3, h * 0.7, '#6d6862', w * 0.28);
+  // the person sits in it
   const o = pr.who === 'father'
     ? { kind:'suit', wear:'#1a1622', wear2:'#12101a', trouser:'#141119', tie:'#7a2f3a',
         hair:'#3a3438', skin:'#f6d0ab' }
-    : { kind:'hanbok', wear:'#c98fb4', wear2:'#a9739a', jeogori:'#f6efe4', goreum:'#9c3f52',
+    : { kind:'hanbok', wear:'#d79ec0', wear2:'#b57aa2', jeogori:'#f8f2e8', goreum:'#9c3f52',
         hair:'#2c2028', skin:'#ffdcbc', updo:true, blush:true };
-  wFigure(g, b.x, b.y - H * 0.10, H, o);
+  wFigure(g, b.x, b.y - h * 0.30, TW * 1.34, o);
+  // seat cushion in front of them
+  wRound(g, b.x - w * 0.36, b.y - h * 0.42, w * 0.72, h * 0.3, '#7b756e', w * 0.16);
+  wRound(g, b.x - w * 0.3, b.y - h * 0.44, w * 0.6, h * 0.2, '#8a847c', w * 0.12);
 }
-
-/* the tall pillar arrangements at the mouth of the aisle */
 function wDrawEntryFlowers(g, fl, S) {
   const b = baseOf(fl.col, fl.row, S);
   const w = (fl.big ? 2.3 : 1.6) * WT * S;
@@ -3569,7 +3668,7 @@ function wDrawEntryFlowers(g, fl, S) {
 /* the unbroken flower border either side of the runner */
 function wDrawBorderTile(g, c, r, S) {
   const b = baseOf(c, r, S);
-  wArrangement(g, b.x, b.y + WT * PY * S * 0.1, WT * S * 1.15, WT * S * 0.95,
+  wArrangement(g, b.x, b.y + WT * PY * S * 0.1, WT * S * 0.98, WT * S * 0.62,
                c * 97 + r * 7, true);
 }
 
@@ -3634,57 +3733,130 @@ function wDrawPlace(g, pl, S) {
   }
 }
 
-/* the head table on the dais */
-function wDrawHeadTable(g, S) {
+/* the long low floral wall running across the back of the stage */
+function wDrawStageFlowers(g, S) {
+  const TW = WT * S;
   const b = baseOf(14, 4, S);
-  const w = 7 * WT * S, h = WT * S * 0.62;
-  const x = b.x - w / 2, y = b.y - h;
-  wShadow(g, b.x, b.y + S * 2, w * 0.55, 0.45);
-  const gr = g.createLinearGradient(0, y, 0, y + h);
-  gr.addColorStop(0, '#fbf7f0'); gr.addColorStop(0.5, '#eee8de'); gr.addColorStop(1, '#c3b9ad');
-  g.fillStyle = gr; g.fillRect(x, y, w, h);
-  g.fillStyle = '#fdfbf6'; g.fillRect(x, y, w, S * 2);
-  g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x, y + h - S * 2, w, S * 2);
-  for (let i = 0; i < 6; i++) {
-    const px2 = x + w * (0.1 + i * 0.16);
-    g.fillStyle = '#efe6d6'; g.fillRect(px2 - S * 1.4, y - S * 9, S * 2.8, S * 9);
-    const fl = g.createRadialGradient(px2, y - S * 10.6, 0, px2, y - S * 10.6, S * 5);
-    fl.addColorStop(0, 'rgba(255,240,190,0.95)'); fl.addColorStop(1, 'rgba(255,220,150,0)');
-    g.fillStyle = fl; g.beginPath(); g.arc(px2, y - S * 10.6, S * 5, 0, TAU); g.fill();
+  const w = 9.2 * TW;
+  // slim gold frame behind it
+  g.strokeStyle = 'rgba(141,116,64,0.55)'; g.lineWidth = Math.max(1, S);
+  g.strokeRect(b.x - w * 0.42, b.y - TW * 2.0, w * 0.84, TW * 1.6);
+  // the arrangement itself, built from overlapping clusters
+  for (let i = -6; i <= 6; i++) {
+    const cx = b.x + i * w * 0.078;
+    const hgt = TW * (1.25 + wHash(i + 30, 5) * 0.85);
+    wArrangement(g, cx, b.y - TW * 0.1, TW * 1.5, hgt, i * 71 + 3, true);
   }
-  for (const t of [0.28, 0.72])
-    wArrangement(g, x + w * t, y + S * 1, w * 0.2, h * 1.5, t * 977, true);
+  // gold pillar stands with candles either side
+  for (const dx of [-0.34, -0.12, 0.12, 0.34]) {
+    const px2 = b.x + w * dx;
+    const ph = TW * (dx === -0.34 || dx === 0.34 ? 1.5 : 1.15);
+    const pg = g.createLinearGradient(px2 - S * 4, 0, px2 + S * 4, 0);
+    pg.addColorStop(0, '#6d5a33'); pg.addColorStop(0.4, '#d8bb7c'); pg.addColorStop(1, '#6d5a33');
+    g.fillStyle = pg; g.fillRect(px2 - S * 4, b.y - ph, S * 8, ph);
+    g.fillStyle = '#f6efdf'; g.fillRect(px2 - S * 2.6, b.y - ph - TW * 0.42, S * 5.2, TW * 0.42);
+    const fl = g.createRadialGradient(px2, b.y - ph - TW * 0.5, 0, px2, b.y - ph - TW * 0.5, TW * 0.6);
+    fl.addColorStop(0, 'rgba(255,238,190,0.95)'); fl.addColorStop(1, 'rgba(255,220,150,0)');
+    g.fillStyle = fl;
+    g.beginPath(); g.arc(px2, b.y - ph - TW * 0.5, TW * 0.6, 0, TAU); g.fill();
+  }
 }
+/* 주례단상 — the brass lectern, stage-left of the couple */
+function wDrawPodium(g, S) {
+  const TW = WT * S;
+  const b = baseOf(11.5, 5.8, S);
+  const H = TW * 1.85, w = TW * 0.62;
 
-/* the gateway she walks in through */
+  wFigure(g, b.x, b.y - H * 0.06, TW * 1.5, {
+    kind:'suit', wear:'#232636', wear2:'#161825', trouser:'#151722',
+    tie:'#5a3a52', hair:'#585055', skin:'#f6d0ab',
+  });
+
+  wShadow(g, b.x, b.y, w * 0.85, 0.5);
+  // slim gold column
+  const cg = g.createLinearGradient(b.x - w / 2, 0, b.x + w / 2, 0);
+  cg.addColorStop(0, '#6d5a33'); cg.addColorStop(0.35, '#e0c07a');
+  cg.addColorStop(0.6, '#c9a961'); cg.addColorStop(1, '#5d4c2c');
+  g.fillStyle = cg; g.fillRect(b.x - w / 2, b.y - H, w, H);
+  // open front, so it reads as a lectern rather than a post
+  g.fillStyle = 'rgba(20,16,10,0.55)';
+  g.fillRect(b.x - w * 0.28, b.y - H * 0.86, w * 0.56, H * 0.66);
+  // slanted reading top
+  g.beginPath();
+  g.moveTo(b.x - w * 0.68, b.y - H * 0.97);
+  g.lineTo(b.x + w * 0.68, b.y - H * 1.05);
+  g.lineTo(b.x + w * 0.68, b.y - H * 0.95);
+  g.lineTo(b.x - w * 0.68, b.y - H * 0.87);
+  g.closePath();
+  g.fillStyle = '#e0c07a'; g.fill();
+  g.fillStyle = '#fdf3d8';
+  g.fillRect(b.x - w * 0.5, b.y - H * 1.0, w, S * 1.4);
+  // floral cluster at its foot
+  wArrangement(g, b.x - w * 0.1, b.y, TW * 1.5, TW * 0.85, 8123, true);
+}
+/* the entrance: a gold frame carrying an arch of flowers over the aisle */
 function wDrawGate(g, S) {
+  const TW = WT * S;
   const b = baseOf(AISLE_MID, 44, S);
-  const w = 6.4 * WT * S, h = 3.1 * WT * S;
+  const w = 8.6 * TW, h = 5.4 * TW;
   const x = b.x - w / 2, y = b.y - h;
-  g.fillStyle = '#15111d'; g.fillRect(x, y, w, h);
-  const gr = g.createLinearGradient(0, y, 0, y + h * 0.3);
-  gr.addColorStop(0, '#2f2740'); gr.addColorStop(1, '#1b1626');
-  g.fillStyle = gr; g.fillRect(x, y, w, h * 0.3);
-  g.fillStyle = '#8d7440'; g.fillRect(x, y, w, S * 4);
-  g.fillStyle = '#e0c07a'; g.fillRect(x, y, w, S * 1.5);
-  for (const sx of [x + S * 4, x + w - S * 10]) {
-    g.fillStyle = '#2a2337'; g.fillRect(sx, y, S * 6, h);
-    g.fillStyle = '#c9a961'; g.fillRect(sx + S * 1.4, y + S * 5, S * 3.2, h - S * 8);
-    g.fillStyle = '#f0dcae'; g.fillRect(sx + S * 1.4, y + S * 5, S * 1.1, h - S * 8);
-  }
-  const open = w - S * 26;
-  const og = g.createLinearGradient(0, y + h * 0.28, 0, y + h);
-  og.addColorStop(0, '#0c0a12'); og.addColorStop(1, '#191324');
-  g.fillStyle = og; g.fillRect(b.x - open / 2, y + h * 0.28, open, h * 0.72);
-  for (let i = 0; i < 6; i++) {
-    g.fillStyle = i % 2 ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.3)';
-    g.fillRect(b.x - open / 2 + i * open / 6, y + h * 0.28, open / 12, h * 0.72);
-  }
-}
 
-/* ══════════════════════════════════════════════════════════════
-   THE BRIDE
-══════════════════════════════════════════════════════════════ */
+  // dark wall the doorway sits in
+  const wg = g.createLinearGradient(0, y, 0, b.y);
+  wg.addColorStop(0, '#0a0810'); wg.addColorStop(0.6, '#141020'); wg.addColorStop(1, '#1d1729');
+  g.fillStyle = wg; g.fillRect(x, y, w, h);
+
+  // warm light spilling from the lobby beyond
+  const open = w * 0.40, oy = y + h * 0.30, oh = h * 0.70;
+  const og = g.createLinearGradient(0, oy, 0, oy + oh);
+  og.addColorStop(0, '#3a2f1c'); og.addColorStop(0.5, '#5f4b2d'); og.addColorStop(1, '#241c14');
+  g.fillStyle = og; g.fillRect(b.x - open / 2, oy, open, oh);
+  const spill = g.createRadialGradient(b.x, oy + oh, 0, b.x, oy + oh, open * 1.2);
+  spill.addColorStop(0, 'rgba(255,224,168,0.34)');
+  spill.addColorStop(1, 'rgba(255,224,168,0)');
+  g.fillStyle = spill;
+  g.fillRect(b.x - open, oy + oh - open, open * 2, open * 1.4);
+
+  // the gold frame: uprights, lintel and the arc between them
+  const fx0 = b.x - open * 0.86, fx1 = b.x + open * 0.86;
+  const fTop = oy - TW * 0.6;
+  g.strokeStyle = '#c9a961'; g.lineWidth = Math.max(1.6, S * 2);
+  g.strokeRect(fx0, fTop, fx1 - fx0, b.y - fTop);
+  g.beginPath();
+  g.moveTo(fx0, b.y - h * 0.30);
+  g.quadraticCurveTo(b.x, fTop - TW * 1.5, fx1, b.y - h * 0.30);
+  g.strokeStyle = '#e0c07a'; g.lineWidth = Math.max(1.6, S * 2.4); g.stroke();
+
+  // flowers smothering the arc and both uprights
+  for (let i = 0; i <= 26; i++) {
+    const t = i / 26;
+    const px2 = fx0 + (fx1 - fx0) * t;
+    const py2 = (1 - t) * t * 4 * (fTop - TW * 1.2 - (b.y - h * 0.30)) + (b.y - h * 0.30);
+    wArrangement(g, px2, py2 + TW * 0.35, TW * 1.5, TW * 1.0, i * 37 + 5, true);
+  }
+  for (const fx of [fx0, fx1]) {
+    for (let yy = b.y; yy > b.y - h * 0.34; yy -= TW * 0.5)
+      wArrangement(g, fx, yy, TW * 1.9, TW * 1.5, fx * 0.3 + yy * 0.11, true);
+    wArrangement(g, fx, b.y + TW * 0.1, TW * 2.4, TW * 1.1, fx * 0.7, true);
+  }
+
+  // stanchions and the tape across the threshold
+  for (const dx of [-0.30, 0.30]) {
+    const sx = b.x + w * dx;
+    wShadow(g, sx, b.y + TW * 0.5, TW * 0.22, 0.4);
+    const pg = g.createLinearGradient(sx - S * 2, 0, sx + S * 2, 0);
+    pg.addColorStop(0, '#8e8e94'); pg.addColorStop(0.4, '#e6e6ea'); pg.addColorStop(1, '#76767c');
+    g.fillStyle = pg; g.fillRect(sx - S * 1.6, b.y + TW * 0.5 - TW * 1.5, S * 3.2, TW * 1.5);
+    wEllipse(g, sx, b.y + TW * 0.5, TW * 0.2, TW * 0.07, '#5c5c62');
+    pxDisc(g, sx, b.y + TW * 0.5 - TW * 1.55, S * 2.4, '#e6e6ea');
+  }
+  g.fillStyle = '#14131a';
+  g.fillRect(b.x - w * 0.30, b.y + TW * 0.5 - TW * 1.42, w * 0.60, TW * 0.24);
+  g.fillStyle = 'rgba(255,255,255,0.75)';
+  g.font = `${Math.max(6, S * 5)}px sans-serif`; g.textAlign = 'center';
+  g.fillText('THE LINK', b.x, b.y + TW * 0.5 - TW * 1.25);
+  g.textAlign = 'left';
+}
 function wDrawGirl(g, bx, by, dir, step, S) {
   const H = WT * S * 1.62;
   const sway = step ? Math.sin(W.t / 90) * H * 0.012 : 0;
@@ -3789,11 +3961,14 @@ function wRender() {
     for (let c = c0; c <= c1; c++)
       if (wTileAt(c, r) === 'F') push(r + 0.9, () => wDrawBorderTile(g, c, r, S));
 
-  push(4.9, () => wDrawHeadTable(g, S));
-  push(44.9, () => wDrawGate(g, S));
+  push(3.6, () => wDrawStageFlowers(g, S));
+  push(6.0, () => wDrawPodium(g, S));
+  push(45.4, () => wDrawGate(g, S));
+  for (const lt of W_LONG_TABLES)
+    if (inView(lt.col, W.y / WT, 40)) push(lt.row0 + 0.5, () => wDrawLongTable(g, lt, S));
   for (const tb of W_TABLES) if (inView(tb.col, tb.row)) push(tb.row + 2, () => wDrawTable(g, tb, S));
   for (const pr of W_PARENTS) if (inView(pr.col, pr.row)) push(pr.row + 1, () => wDrawParent(g, pr, S));
-  for (const st of W_STANDING) if (inView(st.col, st.row, 4)) push(st.row + 1, () => wDrawStanding(g, st, S));
+  for (const cd of W_CANDELABRA) if (inView(cd.col, cd.row, 4)) push(cd.row + 0.95, () => wCandelabra(g, cd, S));
   for (const fl of W_ENTRY_FLOWERS) if (inView(fl.col, fl.row, 4)) push(fl.row + 1, () => wDrawEntryFlowers(g, fl, S));
   for (const pl of W_PLACES) push(pl.groom ? pl.row + 1.2 : pl.row + 1, () => wDrawPlace(g, pl, S));
   push(W.y / WT, () => wDrawGirl(g, Math.round(W.x * S), Math.round(W.y * PY * S), W.dir, W.step, S));
