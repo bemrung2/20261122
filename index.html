@@ -1305,6 +1305,9 @@ html, body {
 </head>
 <body>
 
+<!-- PixiJS 7 (MIT) — vendored so the page has no network dependency -->
+<script src="vendor/pixi.min.js"></script>
+
 <div id="curtain"></div>
 <canvas id="confetti"></canvas>
 
@@ -3081,10 +3084,10 @@ const W_TABLES = (() => {
 
 /* 혼주석 — a pair of upholstered armchairs each side, no table */
 const W_PARENTS = [
-  { col: AISLE_L - 2.6, row: 9.4,  who: 'father' },
-  { col: AISLE_L - 1.5, row: 9.4,  who: 'mother' },
-  { col: AISLE_R + 1.5, row: 9.4,  who: 'mother' },
-  { col: AISLE_R + 2.6, row: 9.4,  who: 'father' },
+  { col: AISLE_L - 2.7, row: 10.2, who: 'father' },
+  { col: AISLE_L - 1.5, row: 10.2, who: 'mother' },
+  { col: AISLE_R + 1.5, row: 10.2, who: 'mother' },
+  { col: AISLE_R + 2.7, row: 10.2, who: 'father' },
 ];
 
 /* Tall candelabra standing along the flower line, as in the photos */
@@ -3102,20 +3105,19 @@ const W_ENTRY_FLOWERS = [
   { col: AISLE_L - 2, row: 42.4, big: 0 }, { col: AISLE_R + 2, row: 42.4, big: 0 },
 ];
 
-/* Chandeliers hung down the aisle and in banks either side */
+/* Chandeliers hung down the aisle and in banks either side — spaced
+   well apart and clear of the dais, so they light the hall without
+   hanging in front of anyone */
 const W_CHANDELIERS = (() => {
   const out = [];
-  for (let r = 9; r <= 43; r += 3.4) {
+  for (let r = 13; r <= 41; r += 7) {
     out.push({ col: AISLE_MID, row: r, big: 1 });
-    out.push({ col: AISLE_L - 5.5, row: r + 1.7, big: 0 });
-    out.push({ col: AISLE_R + 5.5, row: r + 1.7, big: 0 });
-    out.push({ col: AISLE_L - 10,  row: r, big: 0 });
-    out.push({ col: AISLE_R + 10,  row: r, big: 0 });
+    out.push({ col: AISLE_L - 6, row: r + 3.5, big: 0 });
+    out.push({ col: AISLE_R + 6, row: r + 3.5, big: 0 });
   }
   return out;
 })();
 
-const wSolid = ch => '#FtHBcGL'.includes(ch);
 function wTileAt(c, r) {
   if (c < 0 || r < 0 || c >= W_COLS || r >= W_ROWS) return 'T';
   return WORLD_MAP[r][c];
@@ -3144,1508 +3146,1557 @@ function wHash(c, r) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   PIXEL-ART RENDERER  ·  PixiJS
+   The hall is drawn as true pixel art: every sprite is painted once
+   into a small offscreen canvas at art resolution and uploaded as a
+   NEAREST-filtered texture, so scaling it up keeps hard pixel edges.
+   Nothing is fetched — the whole tileset and cast are generated in
+   code, which keeps the page a single self-contained file.
+══════════════════════════════════════════════════════════════ */
 const TAU = Math.PI * 2;
-const PY  = 0.62;          // vertical squash — the hall is seen at an angle,
-                           // not straight down, so we see the front of things
-const WALL_H = 132;        // how tall the back wall stands, in world units
+const PY  = 0.62;                 // floor squash: we look at the hall from an angle
+const AW  = 16, AH = 10;          // art pixels per tile — 16 across, 10 deep
+const WALLA = 60;                 // how tall the back wall stands, in art pixels
+const MAPW = W_COLS * AW, MAPH = W_ROWS * AH;
+const w2ax = x => x * AW / WT;    // world px → art px
+const w2ay = y => y * AH / WT;
 
-/* ── small drawing helpers ── */
-function pxDisc(g, cx, cy, rad, col) {
-  if (rad <= 0) return;
-  g.beginPath(); g.arc(cx, cy, rad, 0, TAU); g.fillStyle = col; g.fill();
+/* ── palette ──────────────────────────────────────────────── */
+const C = {
+  carpet:'#2c2133', carpetL:'#342839', carpetD:'#221a29', damask:'#3d2d46',
+  stage :'#5a4750', stageL:'#6d5763', stageD:'#3c2f37',
+  dais  :'#7d5c49', daisL:'#956f58',  daisD:'#54382c',
+  wall  :'#1d1725', wallL:'#2a2133',  wallH:'#372b42', wallD:'#141019',
+  gold  :'#d4ab5a', goldL:'#f2dc9c',  goldD:'#8a6a34',
+  ivory :'#efe4d4', ivoryL:'#f9f1e4', ivoryS:'#ddcfbc', ivoryD:'#bfae98',
+  marble:'#6c5e6b', marbleL:'#82737f', marbleD:'#4e4351',
+  pk1:'#ffc0d8', pk2:'#f791b8', pk3:'#d76a94', pk4:'#a94b70',
+  wh1:'#fff9f4', wh2:'#eddfd6', cr1:'#f7d9a8',
+  gr1:'#57935f', gr2:'#3d7049', gr3:'#295336', gr4:'#1c3c27',
+  blk:'#23212c', blkL:'#332f3f', blkD:'#15131b',
+  glass:'#cfe4ee', flame:'#ffd98a', flameL:'#fff6d8',
+  wood:'#6b4c39', woodL:'#84604a', woodD:'#48332680',
+};
+const SKIN = [
+  ['#f8d8ba','#e6bd99','#c69269'],
+  ['#f2c9a3','#dcae83','#b8825c'],
+  ['#e5b489','#cc9a6d','#a87a4f'],
+  ['#d59a70','#b97f57','#94603c'],
+];
+const HAIR = [
+  ['#2a1c18','#170f0d','#43302a'],
+  ['#40291f','#261811','#5c4030'],
+  ['#1c1a20','#0e0d11','#332f39'],
+  ['#5a4030','#3a2a1e','#7a5b44'],
+  ['#6b5344','#48372c','#8c7160'],
+];
+const DRESSY = [   // guest dresses / hanbok
+  ['#8e4f74','#6d3a58','#b06f94'],
+  ['#3f5f8a','#2c4566','#5f81ad'],
+  ['#4c7a5f','#365a45','#6d9c80'],
+  ['#a55b52','#7f423c','#c47c72'],
+  ['#5b4c86','#413566','#7d6ba8'],
+  ['#a8874a','#806634','#c8a868'],
+  ['#7b5a86','#5b4064','#9d79a8'],
+  ['#3f6f78','#2c5158','#5f9199'],
+];
+const SUITS = [
+  ['#23212c','#15131b','#3a3646'],
+  ['#2c3040','#1a1d28','#43485c'],
+  ['#38333a','#221f24','#4d4750'],
+  ['#2a3535','#1a2222','#3f4d4d'],
+];
+
+/* ── tiny pixel canvas ────────────────────────────────────── */
+function pxc(w, h) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, w | 0); c.height = Math.max(1, h | 0);
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  return { c, g, w: c.width, h: c.height };
 }
-function wEllipse(g, cx, cy, rx, ry, col) {
-  g.beginPath(); g.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, TAU);
-  g.fillStyle = col; g.fill();
-}
-function wRound(g, x, y, w, h, col, r) {
+function R(p, x, y, w, h, col) {
   if (w <= 0 || h <= 0) return;
-  const rr = Math.min(r === undefined ? Math.min(w, h) * 0.3 : r, w / 2, h / 2);
-  g.beginPath();
-  if (g.roundRect) g.roundRect(x, y, w, h, rr);
-  else {
-    g.moveTo(x + rr, y); g.lineTo(x + w - rr, y); g.quadraticCurveTo(x + w, y, x + w, y + rr);
-    g.lineTo(x + w, y + h - rr); g.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
-    g.lineTo(x + rr, y + h); g.quadraticCurveTo(x, y + h, x, y + h - rr);
-    g.lineTo(x, y + rr); g.quadraticCurveTo(x, y, x + rr, y);
-  }
-  g.fillStyle = col; g.fill();
+  p.g.fillStyle = col; p.g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
 }
-/* soft ground shadow beneath anything standing on the floor */
-function wShadow(g, cx, cy, rx, strength) {
-  const gr = g.createRadialGradient(cx, cy, 0, cx, cy, rx);
-  gr.addColorStop(0, `rgba(0,0,0,${strength})`);
-  gr.addColorStop(0.55, `rgba(0,0,0,${strength * 0.45})`);
-  gr.addColorStop(1, 'rgba(0,0,0,0)');
-  g.save(); g.translate(cx, cy); g.scale(1, 0.42); g.translate(-cx, -cy);
-  g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, rx, 0, TAU); g.fill();
-  g.restore();
+const D = (p, x, y, col) => R(p, x, y, 1, 1, col);
+/* filled ellipse, rasterised onto the pixel grid */
+function ELL(p, cx, cy, rx, ry, col) {
+  if (rx <= 0 || ry <= 0) return;
+  p.g.fillStyle = col;
+  for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
+    const dy = (y + 0.5 - cy) / ry;
+    if (dy * dy > 1) continue;
+    const half = rx * Math.sqrt(1 - dy * dy);
+    const x0 = Math.round(cx - half), x1 = Math.round(cx + half);
+    if (x1 > x0) p.g.fillRect(x0, y, x1 - x0, 1);
+  }
 }
-/* a bloom: petal lobes, shaded underside, lit crown */
-function wBloom(g, cx, cy, rad, col) {
-  if (rad <= 0.9) { pxDisc(g, cx, cy, Math.max(0.4, rad), col); return; }
-  g.fillStyle = col;
-  if (rad > 2) {
-    const n = rad > 4 ? 6 : 5, ph = cx * 0.07 + cy * 0.05;
-    for (let i = 0; i < n; i++) {
-      const a = i / n * TAU + ph;
-      g.beginPath();
-      g.arc(cx + Math.cos(a) * rad * 0.44, cy + Math.sin(a) * rad * 0.44, rad * 0.6, 0, TAU);
-      g.fill();
-    }
-  }
-  g.beginPath(); g.arc(cx, cy, rad * 0.82, 0, TAU); g.fill();
-  g.save();
-  g.beginPath(); g.arc(cx, cy, rad * 1.1, 0, TAU); g.clip();
-  g.beginPath(); g.arc(cx + rad * 0.4, cy + rad * 0.46, rad * 0.95, 0, TAU);
-  g.fillStyle = 'rgba(70,25,60,0.22)'; g.fill();
-  g.beginPath(); g.arc(cx - rad * 0.34, cy - rad * 0.4, rad * 0.6, 0, TAU);
-  g.fillStyle = 'rgba(255,255,255,0.32)'; g.fill();
-  g.restore();
-  pxDisc(g, cx, cy, rad * 0.19, 'rgba(120,60,90,0.28)');
-  pxDisc(g, cx - rad * 0.24, cy - rad * 0.3, rad * 0.19, 'rgba(255,255,255,0.8)');
+/* rounded blob used for heads, blooms and cushions */
+function BLOB(p, cx, cy, rx, ry, col) { ELL(p, cx, cy, rx, ry, col); }
+/* scattered grain — an ordered dither turns into a visible dot grid over
+   large flat areas, so every broad surface gets random speckle instead */
+function SPEC(p, x, y, w, h, col, amt, seed) {
+  const g = mulberry(seed || 1);
+  p.g.fillStyle = col;
+  const n = (w * h * amt) | 0;
+  for (let k = 0; k < n; k++)
+    p.g.fillRect(x + ((g() * w) | 0), y + ((g() * h) | 0), 1, 1);
 }
-/* a mass of blooms with foliage — used for every arrangement in the hall */
-function wArrangement(g, cx, baseY, w, h, seed, dense) {
-  const N = Math.max(5, Math.round(w * h / (dense ? 78 : 130)));
-  wEllipse(g, cx, baseY, w * 0.52, w * 0.17, 'rgba(0,0,0,0.34)');
-  for (let i = 0; i < N * 0.8; i++) {                       // foliage behind
-    const a = wHash(seed + i * 3, 11), b = wHash(seed + 7, i * 5);
-    g.save();
-    g.translate(cx + (a - 0.5) * w * 1.05, baseY - b * h * 0.95);
-    g.rotate((wHash(seed + i, 3) - 0.5) * 2.2);
-    wEllipse(g, 0, 0, w * 0.17, w * 0.055, i % 2 ? '#8faa79' : '#5c7a52');
-    g.restore();
-  }
-  const pinks = ['#ffffff','#fdf7ef','#f8e2d2','#f2c6ae','#f7dade','#eec2c6','#fbeade','#e9dcc6'];
-  for (let i = 0; i < N; i++) {
-    const a = wHash(seed + i * 5, 17), b = wHash(seed + 13, i * 3);
-    const bx = cx + (a - 0.5) * w;
-    const by = baseY - 3 - b * h;
-    const rad = (0.055 + wHash(seed + i, i * 7) * 0.075) * w;
-    wBloom(g, bx, by, rad, pinks[(wHash(seed + i * 2, i) * 8) | 0]);
-  }
-  for (let i = 0; i < N * 0.35; i++) {                      // baby's breath
-    const a = wHash(seed + i * 11, 29), b = wHash(seed + 3, i * 13);
-    g.fillStyle = 'rgba(255,255,255,0.9)';
-    g.beginPath();
-    g.arc(cx + (a - 0.5) * w * 1.08, baseY - 2 - b * h * 1.06, w * 0.022, 0, TAU);
-    g.fill();
-  }
+/* deterministic little RNG so every generated sprite is stable */
+function mulberry(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
 }
 
-/* ══════════════════════════════════════════════════════════════
+/* ── texture cache ────────────────────────────────────────── */
+const _texc = new Map();
+function TEX(key, w, h, paint) {
+  let t = _texc.get(key);
+  if (t) return t;
+  const p = pxc(w, h);
+  paint(p);
+  t = PIXI.Texture.from(p.c);
+  t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+  _texc.set(key, t);
+  return t;
+}
+/* smooth textures — only for light, never for art */
+function TEXS(key, w, h, paint) {
+  let t = _texc.get(key);
+  if (t) return t;
+  const p = pxc(w, h);
+  p.g.imageSmoothingEnabled = true;
+  paint(p);
+  t = PIXI.Texture.from(p.c);
+  t.baseTexture.scaleMode = PIXI.SCALE_MODES.LINEAR;
+  _texc.set(key, t);
+  return t;
+}
+
+/* ══════════════════════════════════════════════════════════
+   BACKDROP — wall and floor baked into one texture
+══════════════════════════════════════════════════════════ */
+function bakeBackdrop() {
+  const p = pxc(MAPW, WALLA + MAPH);
+  const oy = WALLA;
+  const rn = mulberry(20261122);
+
+  /* ---- floor tiles ---- */
+  for (let r = 0; r < W_ROWS; r++) for (let c = 0; c < W_COLS; c++) {
+    const t = WORLD_MAP[r][c], x = c * AW, y = oy + r * AH;
+    const n = wHash(c, r);
+    if (t === '#') {
+      R(p, x, y, AW, AH, C.wall);
+      SPEC(p, x, y, AW, AH, C.wallD, 0.24, c * 41 + r * 13);
+    } else if (t === 's' || t === 'd') {
+      const base = t === 'd' ? C.dais : C.stage;
+      R(p, x, y, AW, AH, base);
+      SPEC(p, x, y, AW, AH, t === 'd' ? C.daisD : C.stageD, 0.14, c * 311 + r * 7);
+    } else if (t === 'r') {
+      R(p, x, y, AW, AH, C.ivory);
+    } else if (t === 'F') {
+      R(p, x, y, AW, AH, C.gr4);
+    } else if (t === 'P') {
+      R(p, x, y, AW, AH, C.marble);
+      SPEC(p, x, y, AW, AH, C.marbleL, 0.2, c * 97 + r * 3);
+    } else if (t === 'G') {
+      R(p, x, y, AW, AH, C.marbleL);
+      SPEC(p, x, y, AW, AH, C.marble, 0.26, c * 53 + r * 5);
+    } else {
+      R(p, x, y, AW, AH, C.carpet);
+      SPEC(p, x, y, AW, AH, n > 0.5 ? C.carpetL : C.carpetD, 0.22, c * 733 + r * 17);
+      // a damask motif every few tiles keeps the carpet from reading flat
+      if (c % 3 === 0 && r % 3 === 0) {
+        const mx = x + 8, my = y + 5;
+        for (const [dx, dy] of [[0,-2],[0,2],[-3,0],[3,0]]) D(p, mx + dx, my + dy, C.damask);
+      }
+    }
+  }
+
+  /* ---- the runner, drawn as one continuous band ---- */
+  const rx0 = AISLE_L * AW, rx1 = (AISLE_R + 1) * AW;
+  const ry0 = oy + 8 * AH, ry1 = oy + 43 * AH;
+  R(p, rx0, ry0, rx1 - rx0, ry1 - ry0, C.ivory);
+  SPEC(p, rx0, ry0, rx1 - rx0, ry1 - ry0, C.ivoryL, 0.1, 4242);
+  R(p, rx0, ry0, 2, ry1 - ry0, C.ivoryS);          // soft fall at the edges
+  R(p, rx1 - 2, ry0, 2, ry1 - ry0, C.ivoryS);
+  R(p, rx0 + 2, ry0, 1, ry1 - ry0, C.gold);        // gold braid down both sides
+  R(p, rx1 - 3, ry0, 1, ry1 - ry0, C.gold);
+  R(p, rx0 + 3, ry0, 1, ry1 - ry0, C.goldD);
+  R(p, rx1 - 4, ry0, 1, ry1 - ry0, C.goldD);
+  // a faint woven diamond down the middle
+  for (let y = ry0 + 8; y < ry1 - 4; y += 20) {
+    const mx = (AISLE_MID + 0.5) * AW;
+    for (let k = 1; k < 5; k++) {
+      D(p, mx - k, y + k, C.ivoryS); D(p, mx + k, y + k, C.ivoryS);
+      D(p, mx - k, y - k, C.ivoryS); D(p, mx + k, y - k, C.ivoryS);
+    }
+  }
+
+  /* ---- flower beds either side of the runner ---- */
+  for (const col of [AISLE_L - 1, AISLE_R + 1]) {
+    const x = col * AW;
+    for (let r = 8; r <= 42; r++) {
+      const y = oy + r * AH;
+      R(p, x, y, AW, AH, C.gr4);
+      const g = mulberry(col * 977 + r * 31);
+      for (let k = 0; k < 22; k++) {
+        const bx = x + Math.floor(g() * AW), by = y + Math.floor(g() * AH);
+        D(p, bx, by, g() > 0.5 ? C.gr2 : C.gr1);
+      }
+      for (let k = 0; k < 13; k++) {
+        const bx = x + 1 + Math.floor(g() * (AW - 2)), by = y + 1 + Math.floor(g() * (AH - 2));
+        const u = g();
+        const col2 = u > 0.76 ? C.wh1 : u > 0.5 ? C.pk1 : u > 0.24 ? C.pk2 : C.pk3;
+        BLOB(p, bx, by, 1.4, 1.2, col2);
+        D(p, bx, by - 1, u > 0.76 ? C.wh2 : C.pk1);
+      }
+    }
+  }
+
+  /* ---- the platform: the stage floor stands above the hall and the
+         dais a step higher again, reached by a flight in the aisle ---- */
+  const sy = oy + 8 * AH;
+  const dx0 = 10 * AW, dx1 = 19 * AW;
+  // planking, run continuously so the boards read as boards
+  for (let y = oy + 2 * AH; y < sy; y += 8) {
+    R(p, 2 * AW, y, (W_COLS - 4) * AW, 1, '#4e4149');
+    R(p, 2 * AW, y + 1, (W_COLS - 4) * AW, 1, '#63505b');
+  }
+  for (let y = oy + 3 * AH; y < sy; y += 8) {
+    R(p, dx0, y, dx1 - dx0, 1, '#6d5040');
+    R(p, dx0, y + 1, dx1 - dx0, 1, '#8a6752');
+  }
+  SPEC(p, dx0, oy + 3 * AH, dx1 - dx0, 5 * AH, C.daisL, 0.1, 616);
+  // the dais sits proud of the stage on three sides
+  R(p, dx0 - 2, oy + 3 * AH - 2, dx1 - dx0 + 4, 2, C.daisD);
+  R(p, dx0 - 2, oy + 3 * AH - 2, dx1 - dx0 + 4, 1, C.gold);
+  // stage riser, facing the hall
+  R(p, 2 * AW, sy, (W_COLS - 4) * AW, 6, C.stageD);
+  SPEC(p, 2 * AW, sy, (W_COLS - 4) * AW, 6, C.stage, 0.2, 617);
+  R(p, 2 * AW, sy - 1, (W_COLS - 4) * AW, 1, C.gold);
+  R(p, 2 * AW, sy + 6, (W_COLS - 4) * AW, 1, C.goldD);
+  // dais riser, a second step
+  R(p, dx0, sy - 7, dx1 - dx0, 7, C.daisD);
+  SPEC(p, dx0, sy - 7, dx1 - dx0, 7, C.dais, 0.2, 618);
+  R(p, dx0, sy - 8, dx1 - dx0, 1, C.gold);
+  // the flight of steps down into the aisle
+  const stw = (AISLE_R - AISLE_L + 1) * AW + 16;
+  for (let k = 0; k < 3; k++) {
+    const w2 = stw + k * 14, x2 = (AISLE_MID + 0.5) * AW - w2 / 2;
+    const yy = sy - 9 + k * 6;
+    R(p, x2, yy, w2, 6, C.daisD);
+    R(p, x2, yy + 1, w2, 3, C.dais);
+    R(p, x2, yy, w2, 1, C.goldL);
+    R(p, x2, yy + 4, w2, 1, '#3a271f');
+  }
+
+  /* ---- back wall ---- */
+  R(p, 0, 0, MAPW, WALLA + 2 * AH, C.wall);
+  SPEC(p, 0, 0, MAPW, WALLA, C.wallD, 0.3, 619);
+  // panelling
+  for (let x = 0; x < MAPW; x += 24) {
+    R(p, x + 2, 8, 20, WALLA - 14, C.wallL);
+    R(p, x + 3, 9, 18, WALLA - 16, C.wall);
+    R(p, x + 3, 9, 18, 1, C.wallH);
+  }
+  R(p, 0, 0, MAPW, 5, C.wallL);
+  R(p, 0, 5, MAPW, 1, C.goldD);
+  R(p, 0, WALLA - 6, MAPW, 2, C.wallH);
+  R(p, 0, WALLA - 4, MAPW, 1, C.goldD);
+
+  /* the lit arch behind the dais: straight jambs carrying a round head */
+  const ax = (AISLE_MID + 0.5) * AW, arw = 58, arh = WALLA - 10;
+  const springs = arh - arw * 0.72;              // where the curve springs from
+  const archHalf = y => y <= springs ? arw
+    : arw * Math.sqrt(Math.max(0, 1 - Math.pow((y - springs) / (arw * 0.72), 2)));
+  for (let y = 0; y < arh; y++) {
+    const half = archHalf(y), yy = WALLA - 5 - y;
+    if (half < 1) continue;
+    R(p, ax - half, yy, half * 2, 1, '#3a2c46');
+  }
+  // curtain folds hanging inside it
+  for (let x = -arw + 3; x <= arw - 3; x += 6) {
+    let h2 = 0;
+    while (h2 < arh && archHalf(h2) - 3 > Math.abs(x)) h2++;
+    if (h2 > 8) {
+      R(p, ax + x, WALLA - 5 - h2, 3, h2, '#4a3a60');
+      R(p, ax + x + 3, WALLA - 5 - h2, 2, h2, '#332843');
+      R(p, ax + x, WALLA - 5 - h2, 3, 2, '#5d4a76');
+    }
+  }
+  // gold moulding around the opening
+  for (let y = 0; y < arh; y++) {
+    const half = archHalf(y), yy = WALLA - 5 - y;
+    if (half < 1) continue;
+    D(p, Math.round(ax - half), yy, C.gold);
+    D(p, Math.round(ax + half - 1), yy, C.gold);
+    D(p, Math.round(ax - half - 1), yy, C.goldD);
+    D(p, Math.round(ax + half), yy, C.goldD);
+  }
+  // fairy lights strung across the head of the arch
+  for (let y = 4; y < arh - 2; y += 3) {
+    const half = archHalf(y) - 4;
+    if (half < 1) continue;
+    const yy = WALLA - 5 - y + (rn() * 2 | 0);
+    D(p, Math.round(ax - half), yy, C.goldL);
+    D(p, Math.round(ax + half), yy, C.goldL);
+  }
+  // a spray of blooms at the foot of each jamb
+  pxFlowers(p, ax - arw + 4, WALLA - 5, 9, 8, 5511, true);
+  pxFlowers(p, ax + arw - 4, WALLA - 5, 9, 8, 5512, true);
+
+  /* ---- entrance wall at the very bottom of the map ---- */
+  const by = oy + 45 * AH;
+  R(p, 0, by, MAPW, AH, C.wall);
+  R(p, 0, by, MAPW, 1, C.goldD);
+
+  return p.c;
+}
+
+/* ══════════════════════════════════════════════════════════
    PEOPLE
+   Everyone is built from the same skeleton so the cast looks
+   like it belongs to one hall: 26 art pixels tall, feet on the
+   sprite's baseline, shaded from the chandeliers above.
+══════════════════════════════════════════════════════════ */
 
-   `o.view` is 'front', 'back', or -1 / +1 for a side-on figure facing
-   left or right. Guests watching the aisle are drawn side-on, which is
-   what they would actually be doing; only the couple and the officiant
-   face down the room.
-
-   Everything is proportioned off H, the standing height, at roughly
-   3.7 heads tall — stylised, but with a real skeleton underneath.
-══════════════════════════════════════════════════════════════ */
-/* A genuine profile, drawn as its own silhouette rather than a front figure
-   with hair pasted over half the head. Everything below is drawn facing
-   right around the feet at (0,0); facing left just mirrors the canvas. */
-function wFigureSide(g, bx, by, H, o, side) {
-  const seated = !!o.seated;
-  const skirted = o.kind === 'gown' || o.kind === 'dress' || o.kind === 'hanbok';
-  const skin = o.skin, skinSh = o.skinShade || '#d99e77';
-  const hair = o.hair, hairSh = o.hairDark || '#241609';
-  const wear = o.wear, wear2 = o.wear2;
-  const r = H * 0.135;                     // head radius
-
-  wShadow(g, bx, by, H * 0.26, 0.5);
-
-  g.save();
-  g.translate(bx, by);
-  if (side < 0) g.scale(-1, 1);
-
-  const hipY   = seated ? -H * 0.355 : -H * 0.44;
-  const hipX   = seated ? -H * 0.10  : 0;
-  const shY    = hipY - H * (seated ? 0.30 : 0.235);
-  const neckY  = shY - H * 0.05;
-  const headCY = shY - H * 0.185;
-  const bodyD  = H * 0.225;                // front-to-back depth of the torso
-
-  const limb = (x0, y0, x1, y1, w, col) => {
-    g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round';
-    g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
-  };
-  const dim = c => { g.globalAlpha = 0.55; g.fillStyle = c; };
-
-  // ── far arm and far leg, behind the body ──
-  const shX = -H * 0.01;
-  const armW = H * 0.055;
-  const clapT = o.arms === 'clap'
-    ? (0.5 + 0.5 * Math.sin(W.t / 88 + (o.phase || 0))) : 0;
-  const handP = o.arms === 'clap'
-    ? { x: H * (0.13 + clapT * 0.045), y: shY + H * 0.145 }
-    : o.arms === 'clasp'
-      ? { x: H * 0.125, y: shY + H * 0.175 }
-      : o.arms === 'fold'
-        ? { x: H * 0.10, y: shY + H * 0.115 }
-        : { x: H * 0.035, y: shY + H * 0.235 };
-
-  g.globalAlpha = 0.62;
-  limb(shX - H * 0.02, shY + H * 0.015, handP.x - H * 0.03, handP.y, armW, wear2);
-  g.globalAlpha = 1;
-
-  if (!skirted) {
-    const kneeX = seated ? H * 0.155 : 0;
-    const kneeY = seated ? -H * 0.315 : -H * 0.2;
-    g.globalAlpha = 0.6;
-    if (seated) {
-      limb(hipX - H * 0.02, hipY, kneeX - H * 0.03, kneeY, H * 0.10, o.trouser || wear2);
-      limb(kneeX - H * 0.03, kneeY, kneeX - H * 0.02, -H * 0.015, H * 0.075, o.trouser || wear2);
-    } else {
-      limb(-H * 0.055, hipY, -H * 0.075, -H * 0.015, H * 0.082, o.trouser || wear2);
-      g.beginPath();
-      g.ellipse(-H * 0.05, -H * 0.012, H * 0.05, H * 0.022, 0, 0, TAU);
-      g.fillStyle = '#0d0b12'; g.fill();
-    }
-    g.globalAlpha = 1;
+/* the head, seen from the front (or the back, which just skips the face) */
+function pxHead(p, cx, ty, sk, hr, o) {
+  const [s1, s2, s3] = sk, [h1, h2, h3] = hr;
+  const back = o.view === 'back';
+  // face
+  BLOB(p, cx, ty + 5, 4, 4.6, back ? h1 : s1);
+  if (!back) {
+    R(p, cx + 2, ty + 2, 2, 7, s2);                 // shade down the right cheek
+    D(p, cx + 3, ty + 4, s3);
+    R(p, cx - 4, ty + 3, 1, 4, s2);
+    // eyes
+    D(p, cx - 2, ty + 5, h2); D(p, cx + 1, ty + 5, h2);
+    D(p, cx - 2, ty + 4, '#ffffff40'); D(p, cx + 1, ty + 4, '#ffffff40');
+    if (o.blush) { D(p, cx - 3, ty + 7, '#e8927f60'); D(p, cx + 2, ty + 7, '#e8927f60'); }
+    D(p, cx, ty + 7, s3);                            // nose
+    R(p, cx - 1, ty + 8, 2, 1, '#a8564d');           // mouth
   }
-
-  // ── near leg / skirt ──
-  if (seated) {
-    const legCol = o.trouser || wear2;
-    const kneeX = H * 0.165, kneeY = -H * 0.315;
-    limb(hipX, hipY, kneeX, kneeY, H * 0.112, legCol);
-    limb(kneeX, kneeY + H * 0.008, kneeX + H * 0.012, -H * 0.018, H * 0.08, legCol);
-    g.beginPath();
-    g.ellipse(kneeX + H * 0.035, -H * 0.014, H * 0.056, H * 0.025, 0, 0, TAU);
-    g.fillStyle = '#0d0b12'; g.fill();
-    if (skirted) {                       // skirt draping over the thighs
-      g.beginPath();
-      g.moveTo(hipX - bodyD * 0.55, hipY - H * 0.03);
-      g.quadraticCurveTo(H * 0.04, hipY + H * 0.03, kneeX + H * 0.05, kneeY + H * 0.035);
-      g.lineTo(kneeX + H * 0.05, kneeY - H * 0.075);
-      g.quadraticCurveTo(H * 0.02, hipY - H * 0.13, hipX - bodyD * 0.55, hipY - H * 0.14);
-      g.closePath(); g.fillStyle = wear; g.fill();
-    }
-  } else if (skirted) {
-    const sw = o.kind === 'gown' ? H * 0.42 : H * 0.30;
-    g.beginPath();
-    g.moveTo(-bodyD * 0.5, hipY);
-    g.bezierCurveTo(-sw * 0.75, -H * 0.16, -sw * 0.72, -H * 0.03, -sw * 0.66, 0);
-    g.lineTo(sw * 0.66, 0);
-    g.bezierCurveTo(sw * 0.72, -H * 0.03, sw * 0.7, -H * 0.16, bodyD * 0.5, hipY);
-    g.closePath();
-    const sg = g.createLinearGradient(-sw * 0.66, 0, sw * 0.66, 0);
-    sg.addColorStop(0, wear2); sg.addColorStop(0.45, wear); sg.addColorStop(1, wear2);
-    g.fillStyle = sg; g.fill();
-    // creases falling from the waist, and a lit hem
-    g.strokeStyle = 'rgba(0,0,0,0.11)'; g.lineWidth = Math.max(1, H * 0.007);
-    for (const t of [-0.3, 0.34]) {
-      g.beginPath();
-      g.moveTo(t * sw * 0.34, hipY + H * 0.05);
-      g.quadraticCurveTo(t * sw * 0.58, -H * 0.13, t * sw * 0.70, -H * 0.02);
-      g.stroke();
-    }
-    wEllipse(g, 0, 0, sw * 0.66, sw * 0.11, wear2);
-    g.strokeStyle = 'rgba(255,255,255,0.13)'; g.lineWidth = Math.max(1, H * 0.007);
-    g.beginPath(); g.ellipse(0, -H * 0.004, sw * 0.63, sw * 0.10, 0, Math.PI * 1.08, Math.PI * 1.9);
-    g.stroke();
-  } else {
-    limb(H * 0.035, hipY, H * 0.05, -H * 0.015, H * 0.088, o.trouser || wear2);
-    g.beginPath();
-    g.ellipse(H * 0.055, -H * 0.012, H * 0.055, H * 0.024, 0, 0, TAU);
-    g.fillStyle = '#0d0b12'; g.fill();
+  // hair
+  const st = o.hairStyle || 0;
+  R(p, cx - 4, ty + 1, 8, 3, h1);
+  R(p, cx - 5, ty + 2, 1, 4, h1); R(p, cx + 4, ty + 2, 1, 4, h1);
+  R(p, cx - 4, ty, 8, 1, h1);
+  R(p, cx - 3, ty, 6, 1, h3);                        // sheen along the crown
+  R(p, cx + 2, ty + 1, 2, 1, h2);
+  if (back) { R(p, cx - 4, ty + 1, 8, 8, h1); R(p, cx - 3, ty + 2, 5, 3, h3); R(p, cx - 4, ty + 6, 8, 3, h2); }
+  if (st === 0) {                                    // low bun
+    if (back) BLOB(p, cx, ty + 8, 3, 2.4, h3); else BLOB(p, cx, ty + 1, 3.4, 1.8, h3);
+  } else if (st === 1) {                             // long, falling past the shoulders
+    R(p, cx - 5, ty + 3, 1, 9, h1); R(p, cx + 4, ty + 3, 1, 9, h1);
+    R(p, cx - 6, ty + 4, 1, 7, h2); R(p, cx + 5, ty + 4, 1, 7, h2);
+    if (back) R(p, cx - 5, ty + 3, 10, 10, h1);
+  } else if (st === 2) {                             // short, tucked behind the ears
+    R(p, cx - 4, ty + 1, 8, 4, h1); R(p, cx - 5, ty + 2, 1, 3, h2); R(p, cx + 4, ty + 2, 1, 3, h2);
+  } else if (st === 3) {                             // updo with a comb
+    BLOB(p, cx, ty, 3, 2, h3);
+    D(p, cx + 2, ty, C.goldL); D(p, cx - 2, ty, C.goldL);
+  } else {                                           // side-parted, men's cut
+    R(p, cx - 4, ty + 1, 8, 3, h1); D(p, cx - 3, ty + 1, h3); D(p, cx - 2, ty + 1, h3);
   }
-
-  // ── torso: chest forward, back curved ──
-  g.beginPath();
-  g.moveTo(hipX - bodyD * 0.5, hipY);
-  g.quadraticCurveTo(-bodyD * 0.62, (hipY + shY) / 2, -bodyD * 0.44, shY + H * 0.02);
-  g.quadraticCurveTo(-bodyD * 0.4, shY - H * 0.02, -bodyD * 0.12, shY - H * 0.026);
-  g.quadraticCurveTo(bodyD * 0.34, shY - H * 0.022, bodyD * 0.46, shY + H * 0.03);
-  g.quadraticCurveTo(bodyD * 0.62, (hipY + shY) / 2, hipX + bodyD * 0.5, hipY);
-  g.closePath();
-  const tg = g.createLinearGradient(-bodyD * 0.6, 0, bodyD * 0.6, 0);
-  tg.addColorStop(0, wear2); tg.addColorStop(0.55, wear); tg.addColorStop(1, wear2);
-  g.fillStyle = tg; g.fill();
-
-  // ── what shows of their clothes from the side ──
-  if (o.kind === 'suit' || o.kind === 'tux') {
-    // a narrow strip of shirt showing at the jacket opening, tapering away
-    g.beginPath();
-    g.moveTo(bodyD * 0.18, shY + H * 0.002);
-    g.quadraticCurveTo(bodyD * 0.50, shY + H * 0.03, bodyD * 0.42, shY + H * 0.125);
-    g.quadraticCurveTo(bodyD * 0.30, shY + H * 0.150, bodyD * 0.06, shY + H * 0.11);
-    g.closePath(); g.fillStyle = '#f9f6f0'; g.fill();
-    g.fillStyle = 'rgba(0,0,0,0.10)';                 // collar shadow
-    g.fillRect(bodyD * 0.10, shY + H * 0.002, bodyD * 0.36, H * 0.012);
-    if (o.bowTie) {
-      g.fillStyle = o.tie || '#20202c';
-      g.beginPath();
-      g.moveTo(bodyD * 0.34, shY + H * 0.026);
-      g.lineTo(bodyD * 0.20, shY + H * 0.012);
-      g.lineTo(bodyD * 0.20, shY + H * 0.046);
-      g.closePath(); g.fill();
-      pxDisc(g, bodyD * 0.33, shY + H * 0.029, H * 0.008, 'rgba(255,255,255,0.3)');
-    } else {
-      limb(bodyD * 0.30, shY + H * 0.032, bodyD * 0.27, shY + H * 0.10, H * 0.020, o.tie || '#7a2f3a');
-    }
-    g.beginPath();                                    // lapel over it
-    g.moveTo(bodyD * 0.46, shY - H * 0.006);
-    g.lineTo(bodyD * 0.06, shY + H * 0.016);
-    g.lineTo(bodyD * 0.22, shY + H * 0.125);
-    g.closePath(); g.fillStyle = 'rgba(255,255,255,0.20)'; g.fill();
-  } else if (o.kind === 'hanbok') {
-    g.beginPath();
-    g.moveTo(-bodyD * 0.5, shY - H * 0.02);
-    g.lineTo(bodyD * 0.48, shY - H * 0.02);
-    g.quadraticCurveTo(bodyD * 0.52, shY + H * 0.16, 0, shY + H * 0.175);
-    g.quadraticCurveTo(-bodyD * 0.5, shY + H * 0.16, -bodyD * 0.5, shY - H * 0.02);
-    g.closePath(); g.fillStyle = o.jeogori || '#f6efe4'; g.fill();
-    limb(bodyD * 0.26, shY + H * 0.04, bodyD * 0.24, shY + H * 0.2, H * 0.028, o.goreum || '#9c3f52');
-  } else if (skirted) {
-    // In profile you only see a sliver of décolletage at the front edge,
-    // not the whole neckline, so keep it small and scooped.
-    const depth = [0.052, 0.075, 0.032, 0.062][o.neckline || 0] * H;
-    g.beginPath();
-    g.moveTo(bodyD * 0.45, shY + H * 0.003);
-    g.quadraticCurveTo(bodyD * 0.26, shY + depth, bodyD * 0.02, shY + H * 0.006);
-    g.quadraticCurveTo(bodyD * 0.24, shY + depth * 0.42, bodyD * 0.45, shY + H * 0.003);
-    g.closePath(); g.fillStyle = skin; g.fill();
-    if ((o.neckline || 0) === 3) {                    // halter strap up to the neck
-      g.strokeStyle = wear; g.lineWidth = Math.max(1, H * 0.014);
-      g.beginPath();
-      g.moveTo(bodyD * 0.30, shY + depth * 0.6);
-      g.quadraticCurveTo(bodyD * 0.22, shY - H * 0.03, bodyD * 0.06, shY - H * 0.045);
-      g.stroke();
-    }
-    // waist seam
-    g.fillStyle = o.sash || 'rgba(0,0,0,0.18)';
-    g.fillRect(-bodyD * 0.5, hipY - H * 0.05, bodyD, H * 0.03);
-    if (o.stole) {                                    // a wrap sitting on the shoulders
-      g.strokeStyle = o.stole; g.lineWidth = H * 0.030; g.lineCap = 'round';
-      g.globalAlpha = 0.85;
-      g.beginPath();
-      g.moveTo(-bodyD * 0.44, shY + H * 0.055);
-      g.quadraticCurveTo(-bodyD * 0.1, shY - H * 0.018, bodyD * 0.34, shY + H * 0.06);
-      g.stroke();
-      g.globalAlpha = 1;
-    }
-  }
-  if (o.pocketSq) {                                   // pocket square
-    g.fillStyle = o.pocketSq;
-    g.fillRect(-bodyD * 0.30, shY + H * 0.055, H * 0.028, H * 0.014);
-  }
-  if (o.necklace) {
-    g.strokeStyle = '#e8dcc0'; g.lineWidth = Math.max(0.8, H * 0.006);
-    g.beginPath();
-    g.arc(bodyD * 0.02, shY + H * 0.012, H * 0.036, 0.25, Math.PI - 0.25);
-    g.stroke();
-    pxDisc(g, bodyD * 0.03, shY + H * 0.05, H * 0.011, '#f4e6c2');
-  }
-
-  // ── neck ──
-  limb(H * 0.012, neckY + H * 0.042, H * 0.020, neckY - H * 0.012, H * 0.062, skinSh);
-
-  // ── head, as a real profile silhouette ──
-  const hy = headCY;
-  g.save();
-  if (o.nod) { g.translate(0, hy); g.rotate(o.nod); g.translate(0, -hy); }
-  g.beginPath();
-  g.moveTo(-r * 0.88, hy + r * 0.42);                       // nape
-  g.bezierCurveTo(-r * 1.10, hy + r * 0.05, -r * 1.02, hy - r * 0.72, -r * 0.42, hy - r * 0.98);
-  g.bezierCurveTo(r * 0.14, hy - r * 1.18, r * 0.76, hy - r * 0.80, r * 0.84, hy - r * 0.30);
-  g.bezierCurveTo(r * 0.90, hy - r * 0.16, r * 0.87, hy - r * 0.05, r * 0.91, hy + r * 0.01);
-  g.quadraticCurveTo(r * 1.03, hy + r * 0.07, r * 1.00, hy + r * 0.16);   // nose
-  g.quadraticCurveTo(r * 0.97, hy + r * 0.22, r * 0.86, hy + r * 0.24);
-  g.quadraticCurveTo(r * 0.94, hy + r * 0.33, r * 0.86, hy + r * 0.40);   // lips
-  g.quadraticCurveTo(r * 0.92, hy + r * 0.52, r * 0.72, hy + r * 0.68);   // chin
-  g.quadraticCurveTo(r * 0.30, hy + r * 1.00, -r * 0.30, hy + r * 0.84);  // jaw
-  g.closePath();
-  const fg2 = g.createLinearGradient(-r, hy - r, r, hy + r);
-  fg2.addColorStop(0, skinSh); fg2.addColorStop(0.45, skin); fg2.addColorStop(1, '#fff1e0');
-  g.fillStyle = fg2; g.fill();
-
-  // ear
-  g.strokeStyle = skinSh; g.lineWidth = Math.max(0.7, r * 0.09);
-  g.beginPath(); g.arc(-r * 0.18, hy + r * 0.14, r * 0.19, -1.1, 1.5); g.stroke();
-
-  // hair: skull cap sweeping into a fringe over the brow
-  g.beginPath();
-  g.moveTo(-r * 0.95, hy + r * 0.52);
-  g.bezierCurveTo(-r * 1.18, hy + r * 0.05, -r * 1.08, hy - r * 0.80, -r * 0.42, hy - r * 1.06);
-  g.bezierCurveTo(r * 0.20, hy - r * 1.28, r * 0.86, hy - r * 0.86, r * 0.90, hy - r * 0.28);
-  g.quadraticCurveTo(r * 0.62, hy - r * 0.52, r * 0.20, hy - r * 0.44);
-  g.quadraticCurveTo(-r * 0.30, hy - r * 0.36, -r * 0.55, hy + r * 0.10);
-  g.quadraticCurveTo(-r * 0.72, hy + r * 0.38, -r * 0.95, hy + r * 0.52);
-  g.closePath();
-  g.fillStyle = hair; g.fill();
-  g.beginPath();
-  g.ellipse(-r * 0.30, hy - r * 0.62, r * 0.42, r * 0.24, -0.4, 0, TAU);
-  g.fillStyle = o.hairLight || 'rgba(255,255,255,0.12)'; g.fill();
-  g.strokeStyle = 'rgba(255,255,255,0.10)'; g.lineWidth = Math.max(0.7, r * 0.06);
-  g.beginPath();
-  g.moveTo(-r * 0.72, hy - r * 0.66);
-  g.quadraticCurveTo(r * 0.1, hy - r * 0.94, r * 0.62, hy - r * 0.44);
-  g.stroke();
-
-  if (o.hairStyle === 1) {                              // bob
-    g.beginPath();
-    g.moveTo(-r * 1.0, hy - r * 0.2);
-    g.quadraticCurveTo(-r * 1.32, hy + r * 0.6, -r * 0.86, hy + r * 1.15);
-    g.quadraticCurveTo(-r * 0.3, hy + r * 1.05, -r * 0.28, hy + r * 0.5);
-    g.closePath(); g.fillStyle = hair; g.fill();
-  } else if (o.hairStyle === 2) {                       // long
-    g.beginPath();
-    g.moveTo(-r * 1.02, hy - r * 0.25);
-    g.quadraticCurveTo(-r * 1.45, hy + r * 1.2, -r * 1.05, hy + r * 2.6);
-    g.quadraticCurveTo(-r * 0.5, hy + r * 2.5, -r * 0.34, hy + r * 0.6);
-    g.closePath(); g.fillStyle = hair; g.fill();
-    g.beginPath();
-    g.moveTo(-r * 1.02, hy - r * 0.1);
-    g.quadraticCurveTo(-r * 1.3, hy + r * 1.1, -r * 1.0, hy + r * 2.3);
-    g.quadraticCurveTo(-r * 0.86, hy + r * 1.0, -r * 0.8, hy + r * 0.2);
-    g.closePath(); g.fillStyle = 'rgba(255,255,255,0.07)'; g.fill();
-  } else if (o.hairStyle === 3) {                       // updo
-    pxDisc(g, -r * 0.92, hy - r * 0.52, r * 0.46, hairSh);
-    pxDisc(g, -r * 0.98, hy - r * 0.58, r * 0.34, hair);
-  } else if (o.hairStyle === 4) {                       // ponytail
-    g.beginPath();
-    g.moveTo(-r * 0.95, hy - r * 0.15);
-    g.quadraticCurveTo(-r * 1.6, hy + r * 0.5, -r * 1.3, hy + r * 1.9);
-    g.quadraticCurveTo(-r * 1.0, hy + r * 0.9, -r * 0.7, hy + r * 0.25);
-    g.closePath(); g.fillStyle = hair; g.fill();
-  }
-
-  // features
-  const eyX = r * 0.56, eyY = hy + r * 0.05;
-  g.fillStyle = 'rgba(45,30,22,0.94)';
-  g.beginPath(); g.ellipse(eyX, eyY, r * 0.095, r * 0.14, 0, 0, TAU); g.fill();
-  g.fillStyle = 'rgba(255,255,255,0.75)';
-  g.beginPath(); g.arc(eyX + r * 0.035, eyY - r * 0.05, r * 0.037, 0, TAU); g.fill();
-  g.strokeStyle = 'rgba(55,36,26,0.72)'; g.lineWidth = Math.max(0.7, r * 0.075);
-  g.beginPath();
-  g.moveTo(eyX - r * 0.15, eyY - r * 0.28);
-  g.quadraticCurveTo(eyX + r * 0.06, eyY - r * 0.36, eyX + r * 0.22, eyY - r * 0.26);
-  g.stroke();
-  g.strokeStyle = 'rgba(150,80,70,0.8)'; g.lineWidth = Math.max(0.7, r * 0.08);
-  g.beginPath();
-  g.moveTo(r * 0.72, hy + r * 0.36);
-  g.quadraticCurveTo(r * 0.86, hy + r * 0.40, r * 0.80, hy + r * 0.46);
-  g.stroke();
-  if (o.blush) {
-    g.fillStyle = 'rgba(238,146,156,0.36)';
-    g.beginPath(); g.ellipse(r * 0.52, eyY + r * 0.30, r * 0.20, r * 0.11, 0, 0, TAU); g.fill();
-  }
-  if (o.glasses) {
-    g.strokeStyle = 'rgba(40,34,30,0.75)'; g.lineWidth = Math.max(0.7, r * 0.055);
-    g.beginPath(); g.arc(eyX, eyY, r * 0.24, 0, TAU); g.stroke();
-    g.beginPath(); g.moveTo(eyX - r * 0.24, eyY - r * 0.02);
-    g.lineTo(-r * 0.1, eyY - r * 0.08); g.stroke();
-    g.fillStyle = 'rgba(210,232,244,0.16)';
-    g.beginPath(); g.arc(eyX, eyY, r * 0.22, 0, TAU); g.fill();
-  }
-  if (o.earring) pxDisc(g, -r * 0.16, hy + r * 0.32, r * 0.075, '#f0e2bc');
-
-  g.restore();                       // end of the head's tilt
-
-  // ── near arm, over everything ──
-  const bareArm = skirted && o.kind !== 'hanbok';
-  limb(shX + H * 0.02, shY + H * 0.015, handP.x, handP.y, armW, bareArm ? skin : wear);
-  if (bareArm && o.sleeve) {                          // cap, elbow or full sleeve
-    const t = o.sleeve === 1 ? 0.22 : o.sleeve === 2 ? 0.55 : 0.92;
-    limb(shX + H * 0.02, shY + H * 0.015,
-         shX + H * 0.02 + (handP.x - shX - H * 0.02) * t,
-         shY + H * 0.015 + (handP.y - shY - H * 0.015) * t,
-         armW * 1.16, wear);
-  }
-  if (o.arms !== 'down') pxDisc(g, handP.x, handP.y, armW * 0.46, skin);
-  if (o.clutch) {                                     // clutch bag in the hand
-    g.save(); g.translate(handP.x + H * 0.012, handP.y + H * 0.028); g.rotate(0.22);
-    wRound(g, -H * 0.032, -H * 0.018, H * 0.064, H * 0.036, o.clutch, H * 0.008);
-    g.fillStyle = 'rgba(255,255,255,0.28)';
-    g.fillRect(-H * 0.03, -H * 0.014, H * 0.06, H * 0.005);
-    g.restore();
-  }
-
-  g.restore();
 }
 
-function wFigure(g, bx, by, H, o) {
-  if (o.scale || o.lean) {
-    const sc = o.scale || 1, ln = o.lean || 0;
-    g.save(); g.translate(bx, by); g.rotate(ln); g.translate(-bx, -by);
-    const inner = Object.assign({}, o); inner.scale = 0; inner.lean = 0;
-    wFigure(g, bx, by, H * sc, inner);
-    g.restore();
-    return;
-  }
-  const side   = typeof o.view === 'number' ? o.view : 0;
-  if (side) return wFigureSide(g, bx, by, H, o, side);
-  const back   = o.view === 'back';
-  const seated = !!o.seated;
-  const skirted = o.kind === 'gown' || o.kind === 'dress' || o.kind === 'hanbok';
+/* the head in profile, always facing right — sprites are flipped for the left */
+function pxHeadSide(p, cx, ty, sk, hr, o) {
+  const [s1, s2, s3] = sk, [h1, h2, h3] = hr;
+  // skull, narrower than the front view
+  BLOB(p, cx, ty + 5, 3.6, 4.6, s1);
+  R(p, cx - 4, ty + 2, 2, 7, s2);                    // the far side falls into shade
+  // jaw and chin push forward
+  R(p, cx + 1, ty + 7, 2, 2, s1);
+  D(p, cx + 3, ty + 6, s1);                          // nose
+  D(p, cx + 3, ty + 7, s2);
+  D(p, cx + 2, ty + 8, s3);                          // lips
+  D(p, cx + 1, ty + 9, s2);                          // under the chin
+  D(p, cx, ty + 5, h2);                              // eye, seen edge-on
+  D(p, cx + 1, ty + 5, h1);
+  D(p, cx - 1, ty + 3, h2);                          // brow
+  D(p, cx, ty + 3, h2);
+  if (o.blush) D(p, cx + 1, ty + 7, '#e8927f55');
+  D(p, cx - 3, ty + 6, s2);                          // ear
+  D(p, cx - 3, ty + 7, s3);
+  // hair, massed at the back of the head
+  R(p, cx - 4, ty, 8, 3, h1);
+  R(p, cx - 5, ty + 1, 2, 7, h1);
+  R(p, cx + 1, ty + 1, 3, 2, h1);
+  R(p, cx - 3, ty, 5, 1, h3);
+  const st = o.hairStyle || 0;
+  if (st === 0)      BLOB(p, cx - 5, ty + 6, 2.4, 2.2, h3);
+  else if (st === 1) { R(p, cx - 6, ty + 3, 3, 10, h1); R(p, cx - 6, ty + 5, 1, 7, h2); }
+  else if (st === 2)   R(p, cx - 5, ty + 1, 3, 5, h1);
+  else if (st === 3) { BLOB(p, cx - 5, ty + 2, 2.4, 2, h3); D(p, cx - 4, ty + 1, C.goldL); }
+  else                 R(p, cx - 5, ty + 1, 4, 3, h1);
+}
 
-  // ── skeleton ──
-  const headR   = H * 0.135;
-  const headCY  = by - H * 0.855;
-  const neckY   = by - H * 0.725;
-  const shoulderY = by - H * 0.675;
-  const waistY  = by - H * 0.52;
-  const hipY    = by - H * 0.44;
-  const shW = (side ? H * 0.19 : H * 0.30) * (o.slim ? 0.92 : 1);
-  const hipW = side ? H * 0.17 : H * 0.235;
-
-  // seated: hips drop to the seat and the thighs run forward
-  const sHipY = by - H * 0.355;
-  const sHipX = bx - side * H * 0.10;
-  const kneeX = bx + side * H * 0.155;
-  const kneeY = by - H * 0.315;
-
-  const bodyTopY = seated ? sHipY - H * 0.34 : shoulderY;
-  const bodyHipY = seated ? sHipY : hipY;
-  const bodyHipX = seated ? sHipX : bx;
-  const bodyNeckY = seated ? bodyTopY - H * 0.05 : neckY;
-  const bodyHeadCY = seated ? bodyTopY - H * 0.185 : headCY;
-
-  const skin = o.skin, skinSh = o.skinShade || '#d99e77';
-  const hair = o.hair, hairSh = o.hairDark || '#241609';
-  const wear = o.wear, wear2 = o.wear2;
-
-  if (!seated) wShadow(g, bx, by, H * 0.30, 0.5);
-
-  const limb = (x0, y0, x1, y1, w, col) => {
-    g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round';
-    g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
-  };
-
-  // ── far arm, behind the body ──
-  const armW = H * 0.058, armCol = skirted && o.kind !== 'hanbok' ? skin : wear2;
-  const shX = (s) => bx + s * shW * 0.5 + (seated ? -side * H * 0.02 : 0);
-  const armPose = o.arms || 'down';
-  const clapT = armPose === 'clap'
-    ? (0.5 + 0.5 * Math.sin(W.t / 88 + (o.phase || 0))) : 0;
-
-  function drawArm(s, front) {
-    const ox = shX(s), oy = bodyTopY + H * 0.02;
-    let ex, ey;
-    if (armPose === 'fold') {
-      ex = bx + s * H * 0.055 + side * H * 0.06;
-      ey = bodyTopY + H * 0.135;
-    } else if (armPose === 'clap') {
-      ex = bx + s * H * (0.05 + clapT * 0.05) + side * H * 0.10;
-      ey = bodyTopY + H * 0.16;
-    } else if (armPose === 'clasp') {
-      ex = bx + s * H * 0.035 + side * H * 0.09;
-      ey = bodyTopY + H * 0.185;
-    } else {
-      ex = ox + s * H * 0.012 + side * H * 0.02;
-      ey = bodyTopY + H * 0.235;
+/* a standing adult, front or back */
+function pxPerson(p, cx, b, o) {
+  const sk = o.skin, [w1, w2, w3] = o.wear;
+  const ty = b - 26;
+  // ground shadow
+  ELL(p, cx, b - 1, 6, 2, '#00000038');
+  // legs / skirt
+  if (o.skirt) {
+    for (let j = 0; j < 10; j++) {
+      const hw = 4 + j * 0.62;
+      R(p, cx - hw, b - 11 + j, hw * 2, 1, j > 7 ? w2 : w1);
     }
-    limb(ox, oy, ex, ey, armW, front ? armCol : wear2);
-    if (armPose !== 'down') pxDisc(g, ex, ey, armW * 0.48, skin);
-  }
-  drawArm(side ? -1 : -1, false);
-
-  // ── lower body ──
-  if (seated) {
-    const legCol = o.trouser || wear2;
-    limb(sHipX, sHipY, kneeX, kneeY, H * 0.115, legCol);              // thigh, forward
-    limb(kneeX, kneeY + H * 0.01, kneeX + side * H * 0.015, by - H * 0.015,
-         H * 0.082, legCol);                                          // shin, down
-    g.beginPath();
-    g.ellipse(kneeX + side * H * 0.035, by - H * 0.012, H * 0.058, H * 0.026, 0, 0, TAU);
-    g.fillStyle = '#0d0b12'; g.fill();
-    if (skirted) {                                                // skirt over the knees
-      g.beginPath();
-      g.moveTo(sHipX - hipW * 0.62, sHipY - H * 0.03);
-      g.quadraticCurveTo(bx + side * H * 0.06, sHipY + H * 0.02,
-                         kneeX + side * H * 0.05, kneeY + H * 0.03);
-      g.lineTo(kneeX + side * H * 0.05, kneeY - H * 0.07);
-      g.quadraticCurveTo(bx, sHipY - H * 0.12, sHipX - hipW * 0.62, sHipY - H * 0.14);
-      g.closePath(); g.fillStyle = wear; g.fill();
-    }
-  } else if (skirted) {
-    const skirtW = o.kind === 'gown' ? H * 0.60 : H * 0.42;
-    g.beginPath();
-    g.moveTo(bx - hipW * 0.52, hipY);
-    g.bezierCurveTo(bx - skirtW * 0.60, by - H * 0.16, bx - skirtW * 0.54, by - H * 0.03, bx - skirtW * 0.5, by);
-    g.lineTo(bx + skirtW * 0.5, by);
-    g.bezierCurveTo(bx + skirtW * 0.54, by - H * 0.03, bx + skirtW * 0.60, by - H * 0.16, bx + hipW * 0.52, hipY);
-    g.closePath();
-    const sg = g.createLinearGradient(bx - skirtW * 0.5, 0, bx + skirtW * 0.5, 0);
-    sg.addColorStop(0, wear2); sg.addColorStop(0.32, wear);
-    sg.addColorStop(0.6, wear); sg.addColorStop(1, wear2);
-    g.fillStyle = sg; g.fill();
-    wEllipse(g, bx, by, skirtW * 0.5, skirtW * 0.085, wear2);
+    R(p, cx - 1, b - 11, 2, 9, w3);                   // a lit fold down the front
+    R(p, cx + 3, b - 8, 1, 6, w2);
+    R(p, cx - 9, b - 2, 18, 1, '#00000030');
   } else {
-    const lw = H * 0.088, sp = hipW * 0.30;
-    limb(bx - sp, hipY, bx - sp * 0.85, by - H * 0.015, lw, o.trouser || wear2);
-    limb(bx + sp, hipY, bx + sp * 0.85, by - H * 0.015, lw, o.trouser || wear2);
-    wEllipse(g, bx - sp * 0.9, by, lw * 0.62, lw * 0.28, '#0b0910');
-    wEllipse(g, bx + sp * 0.9, by, lw * 0.62, lw * 0.28, '#0b0910');
+    const [t1, t2] = o.trouser;
+    R(p, cx - 4, b - 12, 3, 10, t1); R(p, cx + 1, b - 12, 3, 10, t1);
+    R(p, cx - 4, b - 12, 1, 10, t2); R(p, cx + 1, b - 12, 1, 10, t2);
+    R(p, cx - 5, b - 2, 4, 2, C.blkD); R(p, cx + 1, b - 2, 4, 2, C.blkD);
+    R(p, cx - 5, b - 2, 4, 1, C.blkL); R(p, cx + 1, b - 2, 4, 1, C.blkL);
   }
-
-  // ── torso: shoulders round off, waist pulls in ──
-  g.beginPath();
-  g.moveTo(bodyHipX - hipW * 0.5, bodyHipY);
-  g.quadraticCurveTo(bx - shW * 0.56, waistY - (seated ? H * 0.06 : 0), bx - shW * 0.5, bodyTopY + H * 0.03);
-  g.quadraticCurveTo(bx - shW * 0.5, bodyTopY - H * 0.012, bx - shW * 0.3, bodyTopY - H * 0.018);
-  g.lineTo(bx + shW * 0.3, bodyTopY - H * 0.018);
-  g.quadraticCurveTo(bx + shW * 0.5, bodyTopY - H * 0.012, bx + shW * 0.5, bodyTopY + H * 0.03);
-  g.quadraticCurveTo(bx + shW * 0.56, waistY - (seated ? H * 0.06 : 0), bodyHipX + hipW * 0.5, bodyHipY);
-  g.closePath();
-  const tg = g.createLinearGradient(bx - shW * 0.5, 0, bx + shW * 0.5, 0);
-  if (side) {
-    tg.addColorStop(0, side > 0 ? wear2 : wear); tg.addColorStop(1, side > 0 ? wear : wear2);
-  } else { tg.addColorStop(0, wear2); tg.addColorStop(0.4, wear); tg.addColorStop(1, wear2); }
-  g.fillStyle = tg; g.fill();
-
-  // ── what they are wearing, only where it shows ──
-  if (!back) {
-    if (o.kind === 'suit' || o.kind === 'tux') {
-      const cx2 = bx + side * shW * 0.16;
-      g.beginPath();
-      g.moveTo(cx2 - shW * (side ? 0.10 : 0.15), bodyTopY);
-      g.lineTo(cx2 + shW * (side ? 0.10 : 0.15), bodyTopY);
-      g.lineTo(cx2 + shW * 0.09, bodyHipY - H * 0.02);
-      g.lineTo(cx2 - shW * 0.09, bodyHipY - H * 0.02);
-      g.closePath(); g.fillStyle = '#f7f3ec'; g.fill();
-      limb(cx2, bodyTopY + H * 0.025, cx2 - side * H * 0.004, bodyTopY + H * 0.115,
-           H * 0.026, o.tie || '#7a2f3a');
-      if (!side) {                                   // lapels
-        for (const s of [-1, 1]) {
-          g.beginPath();
-          g.moveTo(bx + s * shW * 0.46, bodyTopY - H * 0.01);
-          g.lineTo(bx + s * shW * 0.12, bodyTopY + H * 0.015);
-          g.lineTo(bx + s * shW * 0.2, waistY);
-          g.closePath(); g.fillStyle = 'rgba(255,255,255,0.08)'; g.fill();
-        }
-      }
-    } else if (o.kind === 'hanbok') {
-      g.beginPath();
-      g.moveTo(bx - shW * 0.54, bodyTopY - H * 0.015);
-      g.lineTo(bx + shW * 0.54, bodyTopY - H * 0.015);
-      g.quadraticCurveTo(bx + shW * 0.5, bodyTopY + H * 0.17, bx, bodyTopY + H * 0.185);
-      g.quadraticCurveTo(bx - shW * 0.5, bodyTopY + H * 0.17, bx - shW * 0.54, bodyTopY - H * 0.015);
-      g.closePath(); g.fillStyle = o.jeogori || '#f6efe4'; g.fill();
-      g.fillStyle = 'rgba(0,0,0,0.10)';
-      g.fillRect(bx - shW * 0.54, bodyTopY + H * 0.145, shW * 1.08, H * 0.02);
-      limb(bx + side * H * 0.02, bodyTopY + H * 0.03, bx + side * H * 0.02, bodyTopY + H * 0.20,
-           H * 0.03, o.goreum || '#9c3f52');
-    } else if (skirted && o.sash) {
-      g.fillStyle = o.sash;
-      g.fillRect(bodyHipX - hipW * 0.52, bodyHipY - H * 0.055, hipW * 1.04, H * 0.035);
-    }
-    if (o.kind === 'dress' || o.kind === 'gown') {   // collarbone / neckline
-      wEllipse(g, bx, bodyTopY + H * 0.012, shW * 0.30, H * 0.024, skin);
-    }
+  // torso
+  R(p, cx - 5, b - 20, 10, 9, w1);
+  R(p, cx - 5, b - 20, 10, 1, w3);                    // light catches the shoulders
+  R(p, cx + 3, b - 20, 2, 9, w2);
+  R(p, cx - 5, b - 20, 1, 9, w2);
+  if (o.jacket) {                                     // lapels and a shirt in the gap
+    R(p, cx - 1, b - 20, 2, 7, C.ivory);
+    D(p, cx - 2, b - 19, w3); D(p, cx + 1, b - 19, w3);
+    R(p, cx - 1, b - 19, 2, 3, o.tie || C.ivoryS);
+    D(p, cx, b - 16, o.tie || C.ivoryS);
+    if (o.pocket) D(p, cx + 3, b - 18, C.wh1);
+  } else if (o.neckline) {
+    R(p, cx - 2, b - 20, 4, 2, sk[0]); D(p, cx, b - 18, sk[1]);
+    if (o.necklace) { D(p, cx, b - 19, C.goldL); D(p, cx - 1, b - 19, C.gold); D(p, cx + 1, b - 19, C.gold); }
   }
+  if (o.sash) { for (let j = 0; j < 8; j++) D(p, cx - 4 + j, b - 20 + j, o.sash); }
+  // arms
+  const ar = o.arms || 0;                             // 0 rest, 1 clapping, 2 hands clasped
+  const sl = o.sleeve === false;
+  const armc = sl ? sk[0] : w1, armd = sl ? sk[1] : w2;
+  if (ar === 1) {
+    R(p, cx - 7, b - 19, 2, 5, armc); R(p, cx + 5, b - 19, 2, 5, armc);
+    R(p, cx - 5, b - 15, 4, 2, sk[0]); R(p, cx + 1, b - 15, 4, 2, sk[0]);
+    R(p, cx - 5, b - 15, 4, 1, sk[1]);
+  } else if (ar === 2) {
+    R(p, cx - 7, b - 19, 2, 4, armc); R(p, cx + 5, b - 19, 2, 4, armc);
+    R(p, cx - 6, b - 16, 3, 3, armd); R(p, cx + 3, b - 16, 3, 3, armd);
+    BLOB(p, cx, b - 14, 2.4, 1.6, sk[0]); D(p, cx, b - 15, sk[1]);
+  } else {
+    R(p, cx - 7, b - 19, 2, 8, armc); R(p, cx + 5, b - 19, 2, 8, armc);
+    R(p, cx - 7, b - 19, 1, 8, armd); R(p, cx + 6, b - 19, 1, 8, armd);
+    BLOB(p, cx - 6, b - 11, 1.6, 1.6, sk[0]); BLOB(p, cx + 6, b - 11, 1.6, 1.6, sk[0]);
+  }
+  // neck and head
+  R(p, cx - 1, b - 21, 3, 2, sk[1]);
+  pxHead(p, cx, ty, sk, o.hair, o);
+}
 
-  // ── near arm, over the body ──
-  drawArm(side ? 1 : 1, true);
+/* a standing adult in profile, facing right */
+function pxPersonSide(p, cx, b, o) {
+  const sk = o.skin, [w1, w2, w3] = o.wear;
+  const ty = b - 26;
+  ELL(p, cx, b - 1, 5, 2, '#00000038');
+  if (o.skirt) {
+    for (let j = 0; j < 10; j++) {
+      const hw = 3.2 + j * 0.5;
+      R(p, cx - hw - 0.6, b - 11 + j, hw * 2, 1, j > 7 ? w2 : w1);
+    }
+    R(p, cx - 1, b - 11, 2, 9, w3);
+  } else {
+    const [t1, t2] = o.trouser;
+    R(p, cx - 2, b - 12, 4, 10, t1);
+    R(p, cx - 2, b - 12, 1, 10, t2);
+    R(p, cx - 1, b - 12, 3, 4, t2);                   // the far leg, behind
+    R(p, cx - 2, b - 2, 6, 2, C.blkD);
+    R(p, cx - 2, b - 2, 6, 1, C.blkL);
+  }
+  // torso, narrower side-on but with real depth
+  R(p, cx - 3, b - 20, 7, 9, w1);
+  R(p, cx - 3, b - 20, 7, 1, w3);
+  R(p, cx - 3, b - 20, 2, 9, w2);                     // back falls away
+  D(p, cx + 3, b - 17, w3);
+  if (o.jacket) {
+    R(p, cx + 2, b - 20, 2, 6, C.ivory);
+    R(p, cx + 2, b - 19, 1, 3, o.tie || C.ivoryS);
+    D(p, cx + 3, b - 20, w3);
+  } else if (o.neckline) {
+    R(p, cx + 1, b - 20, 2, 2, sk[0]);
+    if (o.necklace) D(p, cx + 2, b - 19, C.goldL);
+  }
+  if (o.sash) { for (let j = 0; j < 6; j++) D(p, cx - 2 + j * 0.8, b - 20 + j, o.sash); }
+  const ar = o.arms || 0;
+  const sl = o.sleeve === false;
+  const armc = sl ? sk[0] : w1, armd = sl ? sk[1] : w2;
+  if (ar === 1) {
+    R(p, cx, b - 19, 2, 4, armc);
+    R(p, cx + 2, b - 16, 3, 2, sk[0]); D(p, cx + 4, b - 16, sk[1]);
+  } else if (ar === 2) {
+    R(p, cx, b - 19, 2, 4, armc);
+    R(p, cx + 1, b - 16, 3, 3, armd);
+    BLOB(p, cx + 3, b - 14, 1.8, 1.6, sk[0]);
+  } else {
+    R(p, cx + 1, b - 19, 2, 8, armc);
+    R(p, cx + 1, b - 19, 1, 8, armd);
+    BLOB(p, cx + 2, b - 11, 1.6, 1.6, sk[0]);
+  }
+  R(p, cx, b - 21, 2, 2, sk[1]);
+  pxHeadSide(p, cx, ty, sk, o.hair, o);
+}
 
-  // ── neck ──
-  limb(bx + side * H * 0.012, bodyNeckY + H * 0.03, bx + side * H * 0.018, bodyNeckY - H * 0.03,
-       H * 0.062, skinSh);
+/* a chiavari chair, seen from the side — gold frame, ivory cushion */
+function pxChairSide(p, cx, seat, o) {
+  const g1 = o.chair ? o.chair[0] : C.gold, g2 = o.chair ? o.chair[1] : C.goldL,
+        g3 = o.chair ? o.chair[2] : C.goldD;
+  R(p, cx - 5, seat - 14, 1, 14, g1);                  // back posts
+  R(p, cx - 3, seat - 13, 1, 13, g3);
+  R(p, cx - 5, seat - 14, 3, 1, g2);                   // rails
+  R(p, cx - 5, seat - 10, 3, 1, g1);
+  R(p, cx - 5, seat - 6, 3, 1, g1);
+  R(p, cx - 5, seat - 1, 9, 2, o.chairPad || C.ivory); // cushion
+  R(p, cx - 5, seat - 1, 9, 1, C.ivoryL);
+  R(p, cx - 5, seat + 1, 9, 1, g3);
+  R(p, cx - 4, seat + 2, 1, 7, g1);                    // legs
+  R(p, cx + 3, seat + 2, 1, 7, g1);
+  R(p, cx - 4, seat + 6, 8, 1, g3);                    // stretcher
+}
 
-  // ── head ──
-  const hx = bx + side * headR * 0.16;
-  const hy = bodyHeadCY;
+/* seated in profile, facing right — thighs forward, shins down */
+function pxSeatedSide(p, cx, b, o) {
+  const sk = o.skin, [w1, w2, w3] = o.wear;
+  const seat = b - 9;
+  ELL(p, cx, b - 1, 6, 2, '#00000038');
+  pxChairSide(p, cx, seat, o);
+  const lap = o.lap || w1, lapD = o.lap ? o.lapD || o.lap : w2;
+  // thigh forward, shin down
+  if (o.skirt) {
+    R(p, cx - 3, seat - 4, 8, 5, lap);
+    R(p, cx - 3, seat - 4, 8, 1, o.lapL || w3);
+    for (let j = 0; j < 7; j++) R(p, cx + 1 - j * 0.2, seat + 1 + j, 4 + j * 0.5, 1, j > 4 ? lapD : lap);
+    R(p, cx + 1, b - 2, 5, 1, '#00000030');
+  } else {
+    const [t1, t2] = o.trouser;
+    R(p, cx - 3, seat - 4, 8, 5, t1);
+    R(p, cx - 3, seat - 4, 8, 1, C.blkL);
+    R(p, cx + 2, seat + 1, 3, 7, t1);
+    R(p, cx + 2, seat + 1, 1, 7, t2);
+    R(p, cx + 1, b - 2, 5, 2, C.blkD);
+    R(p, cx + 1, b - 2, 5, 1, C.blkL);
+  }
+  // torso, upright against the chair back
+  R(p, cx - 3, seat - 13, 7, 10, w1);
+  R(p, cx - 3, seat - 13, 7, 1, w3);
+  R(p, cx - 3, seat - 13, 2, 10, w2);
+  D(p, cx + 3, seat - 10, w3);
+  if (o.jacket) {
+    R(p, cx + 2, seat - 13, 2, 6, C.ivoryL);
+    R(p, cx + 2, seat - 12, 1, 4, o.tie || C.ivoryS);
+    D(p, cx + 3, seat - 13, w3);
+    if (o.pocket) D(p, cx + 2, seat - 11, C.wh1);
+  } else if (o.neckline) {
+    R(p, cx + 1, seat - 13, 2, 2, sk[0]);
+    if (o.necklace) D(p, cx + 2, seat - 12, C.goldL);
+  }
+  if (o.hanbok) {                       // 저고리 hem and 고름 down the front
+    R(p, cx - 3, seat - 6, 8, 1, o.lapL || C.wh1);
+    R(p, cx + 2, seat - 12, 1, 6, o.sash || C.pk3);
+    D(p, cx + 3, seat - 12, C.pk1);
+  } else if (o.sash) {
+    for (let j = 0; j < 6; j++) D(p, cx - 2 + j * 0.8, seat - 13 + j, o.sash);
+  }
+  // arms
+  const ar = o.arms || 0;
+  if (ar === 1) {                        // clapping
+    R(p, cx, seat - 12, 2, 4, w1);
+    R(p, cx + 2, seat - 9, 3, 2, sk[0]); D(p, cx + 4, seat - 9, sk[1]);
+  } else if (ar === 2) {                 // hands folded
+    R(p, cx, seat - 12, 2, 4, w1);
+    R(p, cx + 1, seat - 9, 3, 3, w2);
+    BLOB(p, cx + 3, seat - 7, 1.8, 1.6, sk[0]);
+  } else {                               // resting on the lap
+    R(p, cx, seat - 12, 2, 5, w1);
+    R(p, cx + 1, seat - 8, 3, 2, w2);
+    BLOB(p, cx + 4, seat - 7, 1.6, 1.5, sk[0]);
+  }
+  R(p, cx, seat - 14, 2, 2, sk[1]);
+  pxHeadSide(p, cx, seat - 19, sk, o.hair, o);
+}
 
-  // hair behind the head
-  if (o.hairStyle === 2) wRound(g, hx - headR * 1.0, hy - headR * 0.35, headR * 2.0, headR * 2.5, hair, headR * 0.85);
-  if (o.hairStyle === 4) pxDisc(g, hx - side * headR * 0.95, hy + headR * 0.15, headR * 0.52, hair);
-  if (o.hairStyle === 3) pxDisc(g, hx - side * headR * 0.82, hy - headR * 0.42, headR * 0.46, hairSh);
-
+/* seated seen from the front or the back */
+function pxSeatedFront(p, cx, b, o) {
+  const sk = o.skin, [w1, w2, w3] = o.wear;
+  const seat = b - 9, back = o.view === 'back';
+  ELL(p, cx, b - 1, 6, 2, '#00000038');
+  const g1 = o.chair ? o.chair[0] : C.gold, g3 = o.chair ? o.chair[2] : C.goldD;
   if (back) {
-    pxDisc(g, hx, hy, headR, hair);
-    g.beginPath(); g.arc(hx - headR * 0.3, hy - headR * 0.32, headR * 0.5, 0, TAU);
-    g.fillStyle = 'rgba(255,255,255,0.08)'; g.fill();
-    if (o.hairStyle === 3) { pxDisc(g, hx, hy - headR * 0.05, headR * 0.5, hairSh); pxDisc(g, hx, hy - headR * 0.1, headR * 0.36, hair); }
-    if (o.hairStyle === 1) wRound(g, hx - headR * 0.95, hy - headR * 0.2, headR * 1.9, headR * 1.5, hair, headR * 0.6);
+    R(p, cx - 5, seat - 14, 1, 14, g1); R(p, cx + 4, seat - 14, 1, 14, g1);
+    R(p, cx - 5, seat - 14, 10, 1, C.goldL);
+    R(p, cx - 5, seat - 10, 10, 1, g1); R(p, cx - 5, seat - 6, 10, 1, g1);
+  }
+  R(p, cx - 6, seat - 1, 12, 2, o.chairPad || C.ivory);
+  R(p, cx - 6, seat + 1, 12, 1, g3);
+  R(p, cx - 5, seat + 2, 1, 7, g1); R(p, cx + 4, seat + 2, 1, 7, g1);
+  if (o.skirt) {
+    const lap = o.lap || w1;
+    R(p, cx - 5, seat - 3, 10, 7, lap); R(p, cx - 5, seat - 3, 10, 1, w3);
+    R(p, cx - 5, seat + 4, 10, 1, o.lapD || w2);
   } else {
-    // face
-    const fg2 = g.createRadialGradient(hx - headR * 0.36, hy - headR * 0.38, headR * 0.08,
-                                       hx, hy, headR * 1.06);
-    fg2.addColorStop(0, '#fff3e2'); fg2.addColorStop(0.55, skin); fg2.addColorStop(1, skinSh);
-    g.beginPath(); g.arc(hx, hy, headR, 0, TAU); g.fillStyle = fg2; g.fill();
-
-    if (side) {
-      // a soft brow-and-nose bump on the silhouette, not a beak
-      g.beginPath();
-      g.moveTo(hx + side * headR * 0.90, hy - headR * 0.18);
-      g.quadraticCurveTo(hx + side * headR * 1.05, hy + headR * 0.02,
-                         hx + side * headR * 0.94, hy + headR * 0.16);
-      g.quadraticCurveTo(hx + side * headR * 0.86, hy + headR * 0.06,
-                         hx + side * headR * 0.88, hy - headR * 0.18);
-      g.closePath(); g.fillStyle = skin; g.fill();
-    }
-
-    // Hair: a disc pushed back off the face and clipped to the skull, which
-    // leaves a clean crescent of face at the front rather than a bitten circle.
-    g.save();
-    g.beginPath(); g.arc(hx, hy, headR * 1.015, 0, TAU); g.clip();
-    if (side) {
-      // Back of the skull plus a crown band, masked to the head: leaves a
-      // clean profile of brow, eye and jaw at the front.
-      g.fillStyle = hair;
-      const backX = side > 0 ? hx - headR * 1.1 : hx + headR * 0.28;
-      g.fillRect(backX, hy - headR * 1.1, headR * 0.82, headR * 2.2);
-      g.beginPath();                                // crown, sweeping to a fringe
-      g.moveTo(hx - side * headR * 1.1, hy - headR * 1.15);
-      g.lineTo(hx + side * headR * 1.15, hy - headR * 1.15);
-      g.quadraticCurveTo(hx + side * headR * 1.0, hy - headR * 0.5,
-                         hx + side * headR * 0.55, hy - headR * 0.34);
-      g.quadraticCurveTo(hx - side * headR * 0.1, hy - headR * 0.62,
-                         hx - side * headR * 1.1, hy - headR * 0.42);
-      g.closePath(); g.fill();
-      if (o.hairStyle !== 0) {                      // longer hair falls at the nape
-        g.fillRect(backX - (side > 0 ? headR * 0.1 : 0), hy - headR * 0.2,
-                   headR * 0.9, headR * 1.5);
-      }
-    } else {
-      g.beginPath();
-      g.arc(hx, hy - headR * 0.22, headR * 1.0, 0, TAU);
-      g.fillStyle = hair; g.fill();
-      g.beginPath();                              // face opening
-      g.ellipse(hx, hy + headR * 0.18, headR * 0.78, headR * 0.82, 0, 0, TAU);
-      g.fillStyle = skin; g.fill();
-      g.beginPath();                              // fringe
-      g.moveTo(hx - headR * 1.1, hy - headR * 0.18);
-      g.quadraticCurveTo(hx - headR * 0.3, hy - headR * 0.62, hx + headR * 0.15, hy - headR * 0.2);
-      g.quadraticCurveTo(hx + headR * 0.55, hy - headR * 0.72, hx + headR * 1.1, hy - headR * 0.22);
-      g.lineTo(hx + headR * 1.1, hy - headR * 1.2);
-      g.lineTo(hx - headR * 1.1, hy - headR * 1.2);
-      g.closePath(); g.fillStyle = hair; g.fill();
-    }
-    g.beginPath(); g.arc(hx - headR * 0.32, hy - headR * 0.52, headR * 0.4, 0, TAU);
-    g.fillStyle = 'rgba(255,255,255,0.11)'; g.fill();
-    g.restore();
-    if (side && o.hairStyle !== 0) {              // ear, tucked under the hair
-      g.strokeStyle = skinSh; g.lineWidth = Math.max(0.6, headR * 0.08);
-      g.beginPath();
-      g.arc(hx - side * headR * 0.16, hy + headR * 0.12, headR * 0.16,
-            side > 0 ? -1.2 : 1.9, side > 0 ? 1.2 : 4.4);
-      g.stroke();
-    }
-
-    // features
-    const eyY = hy + headR * 0.12;
-    const lid = 'rgba(45,30,22,0.92)';
-    if (side) {
-      const ex = hx + side * headR * 0.50;
-      g.fillStyle = lid;
-      g.beginPath(); g.ellipse(ex, eyY, headR * 0.10, headR * 0.15, 0, 0, TAU); g.fill();
-      g.fillStyle = 'rgba(255,255,255,0.7)';
-      g.beginPath(); g.arc(ex + side * headR * 0.03, eyY - headR * 0.05, headR * 0.04, 0, TAU); g.fill();
-      g.strokeStyle = 'rgba(55,36,26,0.7)'; g.lineWidth = Math.max(0.6, headR * 0.085);
-      g.beginPath(); g.moveTo(ex - side * headR * 0.14, eyY - headR * 0.3);
-      g.lineTo(ex + side * headR * 0.14, eyY - headR * 0.34); g.stroke();
-      g.strokeStyle = 'rgba(150,80,70,0.8)';
-      g.beginPath();
-      g.moveTo(hx + side * headR * 0.62, hy + headR * 0.44);
-      g.quadraticCurveTo(hx + side * headR * 0.74, hy + headR * 0.5, hx + side * headR * 0.5, hy + headR * 0.54);
-      g.stroke();
-      if (o.blush) { g.fillStyle = 'rgba(238,146,156,0.38)';
-        g.beginPath(); g.ellipse(hx + side * headR * 0.5, eyY + headR * 0.3, headR * 0.2, headR * 0.11, 0, 0, TAU); g.fill(); }
-    } else {
-      const ex = headR * 0.37;
-      g.fillStyle = lid;
-      for (const s of [-1, 1]) {
-        g.beginPath(); g.ellipse(hx + s * ex, eyY, headR * 0.11, headR * 0.16, 0, 0, TAU); g.fill();
-      }
-      g.fillStyle = 'rgba(255,255,255,0.72)';
-      for (const s of [-1, 1]) {
-        g.beginPath(); g.arc(hx + s * ex + headR * 0.04, eyY - headR * 0.055, headR * 0.042, 0, TAU); g.fill();
-      }
-      g.strokeStyle = 'rgba(55,36,26,0.68)'; g.lineWidth = Math.max(0.6, headR * 0.08);
-      for (const s of [-1, 1]) {
-        g.beginPath();
-        g.moveTo(hx + s * (ex + headR * 0.15), eyY - headR * 0.30);
-        g.quadraticCurveTo(hx + s * ex, eyY - headR * 0.40, hx + s * (ex - headR * 0.15), eyY - headR * 0.30);
-        g.stroke();
-      }
-      g.strokeStyle = 'rgba(150,80,70,0.8)'; g.lineWidth = Math.max(0.6, headR * 0.085);
-      g.beginPath(); g.arc(hx, hy + headR * 0.34, headR * 0.19, 0.35, Math.PI - 0.35); g.stroke();
-      if (o.blush) {
-        g.fillStyle = 'rgba(238,146,156,0.36)';
-        for (const s of [-1, 1]) {
-          g.beginPath();
-          g.ellipse(hx + s * (ex + headR * 0.16), eyY + headR * 0.28, headR * 0.19, headR * 0.11, 0, 0, TAU);
-          g.fill();
-        }
-      }
-    }
-    if (o.hairStyle === 1 && !side)
-      for (const s of [-1, 1]) wRound(g, hx + s * headR * 0.78 - headR * 0.22, hy - headR * 0.5, headR * 0.44, headR * 1.5, hair, headR * 0.22);
-    if (o.hairStyle === 2 && !side)
-      for (const s of [-1, 1]) wRound(g, hx + s * headR * 0.86 - headR * 0.26, hy - headR * 0.45, headR * 0.52, headR * 2.3, hair, headR * 0.26);
+    const [t1, t2] = o.trouser;
+    R(p, cx - 5, seat - 3, 4, 9, t1); R(p, cx + 1, seat - 3, 4, 9, t1);
+    R(p, cx - 5, seat - 3, 1, 9, t2); R(p, cx + 1, seat - 3, 1, 9, t2);
+    R(p, cx - 5, b - 2, 4, 2, C.blkD); R(p, cx + 1, b - 2, 4, 2, C.blkD);
   }
-}
-
-const W_SUITS  = ['#232032','#2e2438','#1d2433','#33283a','#262d3c','#2b2129','#20293a'];
-const W_DRESSES= ['#6b4a68','#3f4d63','#7c5560','#4a3c66','#8a6470','#3d5052','#65517a','#5d4550'];
-const W_HAIRS  = ['#241810','#3a2717','#171009','#4a3320','#2b2028','#503826'];
-const W_SKINS  = ['#ffdcbc','#f6d0ab','#eec5a0','#e0b189'];
-
-function wGuestOpts(seed, view) {
-  const a = wHash(seed * 977, 31), b = wHash(seed * 613, 57), c = wHash(seed * 331, 83);
-  const d = wHash(seed * 191, 47);
-  const fem = a > 0.45;
-  const cycle = 5200 + d * 4200;
-  const clapping = ((W.t + d * 9000) % cycle) < 1500;
-  return {
-    view: view === undefined ? 'front' : view,
-    kind: fem ? 'dress' : 'suit',
-    wear:  fem ? W_DRESSES[(a * 8) | 0] : W_SUITS[(a * 7) | 0],
-    wear2: fem ? W_DRESSES[(b * 8) | 0] : '#151220',
-    trouser: '#171420',
-    tie: ['#7a2f3a','#2f3f6b','#4a3a2a','#3f5a4a','#5a3a52'][(c * 5) | 0],
-    hair: W_HAIRS[(b * 6) | 0],
-    hairDark: '#1b1109',
-    skin: W_SKINS[(c * 4) | 0],
-    hairStyle: fem ? [1, 2, 3, 4][(b * 4) | 0] : 0,
-    blush: fem,
-    slim: fem,
-    sash: c > 0.7 ? '#e8dfe8' : null,
-    arms: clapping ? 'clap' : (d > 0.62 ? 'clasp' : d > 0.34 ? 'fold' : 'down'),
-    phase: d * 6.3,
-    // no two guests quite the same height, posture or angle
-    scale: 0.90 + wHash(seed * 53, 19) * 0.20,
-    lean: (wHash(seed * 71, 13) - 0.5) * 0.09,
-    nod: (wHash(seed * 97, 29) - 0.5) * 0.22,
-    // and none dressed quite the same either
-    neckline: (wHash(seed * 137, 11) * 4) | 0,
-    sleeve:   fem ? ((wHash(seed * 211, 23) * 4) | 0) : 3,
-    stole:    fem && wHash(seed * 307, 41) > 0.72
-                ? ['#e9e2ea','#d9c7cf','#cdd6dd','#efe4d4'][(wHash(seed * 17, 5) * 4) | 0] : null,
-    glasses:  wHash(seed * 419, 7)  > 0.80,
-    necklace: fem && wHash(seed * 523, 3) > 0.45,
-    earring:  fem && wHash(seed * 607, 31) > 0.5,
-    clutch:   fem && wHash(seed * 701, 19) > 0.66
-                ? ['#c9a961','#e0d6c4','#8f7a5c'][(wHash(seed * 29, 9) * 3) | 0] : null,
-    pocketSq: !fem && wHash(seed * 811, 13) > 0.5
-                ? ['#f7f3ec','#f2c6ae','#b9c8d8'][(wHash(seed * 37, 7) * 3) | 0] : null,
-    bowTie:   !fem && wHash(seed * 907, 17) > 0.72,
-    hairLight: ['rgba(255,236,200,0.16)','rgba(255,220,190,0.13)','rgba(230,215,255,0.12)'][(wHash(seed * 43, 3) * 3) | 0],
-  };
-}
-
-/* ══════════════════════════════════════════════════════════════
-   FLOOR
-══════════════════════════════════════════════════════════════ */
-function wDrawTile(g, ch, c, r, S) {
-  const TW = WT * S, TH = WT * PY * S;
-  const X = c * TW, Y = r * TH;
-  const n = wHash(c, r);
-
-  if (ch === '#') { g.fillStyle = '#0d0a12'; g.fillRect(X, Y, TW, TH); return; }
-
-  if (ch === 'r') {                       // the runner
-    const gr = g.createLinearGradient(X, 0, X + TW, 0);
-    if (c === AISLE_MID) { gr.addColorStop(0, '#22233c'); gr.addColorStop(0.5, '#2a2b4a'); gr.addColorStop(1, '#22233c'); }
-    else { gr.addColorStop(0, '#1b1c30'); gr.addColorStop(1, '#20213a'); }
-    g.fillStyle = gr; g.fillRect(X, Y, TW, TH);
-    g.fillStyle = 'rgba(255,255,255,0.03)';
-    for (let i = 0; i < 3; i++) g.fillRect(X, Y + i * TH / 3, TW, TH * 0.05);
-    if (c === AISLE_L) { g.fillStyle = '#4a4b6b'; g.fillRect(X, Y, TW * 0.06, TH); }
-    if (c === AISLE_R) { g.fillStyle = '#4a4b6b'; g.fillRect(X + TW * 0.94, Y, TW * 0.06, TH); }
-    if (n > 0.9) wBloom(g, X + n * TW, Y + TH * 0.5, TW * 0.05, '#f0c6d6');
-    return;
-  }
-  if (ch === 's' || ch === 'd' || ch === 'P') {
-    const base = ch === 'd' ? '#3f3549' : (ch === 'P' ? '#342d3f' : '#332b3d');
-    const fg = g.createLinearGradient(X, Y, X + TW, Y + TH);
-    fg.addColorStop(0, base); fg.addColorStop(1, ch === 'd' ? '#2f2739' : '#282230');
-    g.fillStyle = fg; g.fillRect(X, Y, TW, TH);
-    g.fillStyle = 'rgba(255,255,255,0.035)'; g.fillRect(X, Y, TW, TH * 0.12);
-    // riser at the front edge of the dais, so it reads as a step up
-    if (ch === 'd' && wTileAt(c, r + 1) !== 'd') {
-      const rh = TH * 0.55;
-      const rg = g.createLinearGradient(0, Y + TH - rh, 0, Y + TH);
-      rg.addColorStop(0, '#4a3f55'); rg.addColorStop(1, '#1d1826');
-      g.fillStyle = rg; g.fillRect(X, Y + TH - rh, TW, rh);
-      g.fillStyle = '#c9a961'; g.fillRect(X, Y + TH - rh, TW, Math.max(1, S));
-    }
-    if (ch === 'P' && wTileAt(c, r + 1) !== 'P') {
-      g.fillStyle = '#c9a961'; g.fillRect(X, Y + TH - Math.max(1, S * 1.4), TW, Math.max(1, S * 1.4));
-    }
-    return;
-  }
-
-  // patterned blue-grey carpet, as laid through the hall
-  const fg = g.createLinearGradient(X, Y, X + TW, Y + TH);
-  fg.addColorStop(0, n > 0.5 ? '#2c3040' : '#292d3a');
-  fg.addColorStop(1, n > 0.5 ? '#232634' : '#20232f');
-  g.fillStyle = fg; g.fillRect(X, Y, TW, TH);
-  g.save(); g.beginPath(); g.rect(X, Y, TW, TH); g.clip();
-  for (let i = 0; i < 3; i++) {
-    const h2 = wHash(c * 7 + i, r * 3);
-    g.beginPath();
-    g.moveTo(X + h2 * TW, Y - TH * 0.2);
-    g.bezierCurveTo(X + (1 - h2) * TW * 1.3, Y + TH * 0.35,
-                    X + h2 * TW * 0.4,       Y + TH * 0.7,
-                    X + (1 - h2) * TW,       Y + TH * 1.2);
-    g.strokeStyle = i % 2 ? 'rgba(150,170,200,0.055)' : 'rgba(90,110,150,0.07)';
-    g.lineWidth = Math.max(1, S * (1 + h2 * 2)); g.stroke();
-  }
-  g.restore();
-}
-
-/* ══════════════════════════════════════════════════════════════
-   STANDING PIECES — each drawn upward from its footprint
-══════════════════════════════════════════════════════════════ */
-function baseOf(col, row, S) {
-  return { x: (col + 0.5) * WT * S, y: (row + 1) * WT * PY * S };
-}
-
-/* the drapery wall behind the stage */
-function wDrawBackWall(g, camX, camY, cw, S) {
-  const wallBase = 2 * WT * PY * S;
-  const top = wallBase - WALL_H * S;
-  const gr = g.createLinearGradient(0, top, 0, wallBase);
-  gr.addColorStop(0, '#0a0810'); gr.addColorStop(0.55, '#171223'); gr.addColorStop(1, '#221a30');
-  g.fillStyle = gr; g.fillRect(camX - 40, top, cw + 80, wallBase - top);
-  // pleats
-  const step = WT * S * 0.5;
-  for (let x = Math.floor((camX - 40) / step) * step; x < camX + cw + 40; x += step) {
-    g.fillStyle = 'rgba(0,0,0,0.30)'; g.fillRect(x, top, step * 0.34, wallBase - top);
-    g.fillStyle = 'rgba(255,255,255,0.035)'; g.fillRect(x + step * 0.42, top, step * 0.16, wallBase - top);
-  }
-  // gold cornice
-  g.fillStyle = '#8d7440'; g.fillRect(camX - 40, top, cw + 80, S * 5);
-  g.fillStyle = '#e0c07a'; g.fillRect(camX - 40, top, cw + 80, S * 1.6);
-  g.fillStyle = 'rgba(0,0,0,0.4)'; g.fillRect(camX - 40, wallBase - S * 3, cw + 80, S * 3);
-}
-
-/* round banquet table with guests seated all round it */
-function wDrawTable(g, tb, S) {
-  const b = baseOf(tb.col + 1, tb.row + 1, S);
-  const cx = b.x, floorY = b.y;
-  const rx = 1.5 * WT * S, ry = rx * 0.44;
-  const topY = floorY - WT * S * 0.52;
-  const toAisle = tb.col < AISLE_L ? 1 : -1;   // which way the runner lies
-
-  // guests behind the table first
-  for (let i = 0; i < tb.seats; i++) {
-    const a = i / tb.seats * TAU + 0.35;
-    if (Math.sin(a) > -0.1) continue;
-    const go = wGuestOpts(wHash(tb.col + i * 7, tb.row + i * 3), toAisle);
-    go.seated = true;
-    wFigure(g, cx + Math.cos(a) * rx * 1.16, floorY + Math.sin(a) * ry * 1.16,
-            WT * S * 1.3, go);
-  }
-  // cloth
-  wShadow(g, cx, floorY + ry * 0.5, rx * 1.35, 0.55);
-  g.beginPath();
-  g.moveTo(cx - rx, topY);
-  g.lineTo(cx - rx, floorY - ry * 0.1);
-  g.ellipse(cx, floorY - ry * 0.1, rx, ry, 0, Math.PI, 0, true);
-  g.lineTo(cx + rx, topY);
-  g.closePath();
-  const cg = g.createLinearGradient(cx - rx, 0, cx + rx, 0);
-  cg.addColorStop(0, '#171320'); cg.addColorStop(0.4, '#2b2438'); cg.addColorStop(1, '#12101a');
-  g.fillStyle = cg; g.fill();
-  // top
-  const tgr = g.createRadialGradient(cx - rx * 0.3, topY - ry * 0.3, ry * 0.1, cx, topY, rx);
-  tgr.addColorStop(0, '#41374f'); tgr.addColorStop(0.6, '#2f2740'); tgr.addColorStop(1, '#221c2e');
-  wEllipse(g, cx, topY, rx, ry, '#000');
-  g.beginPath(); g.ellipse(cx, topY, rx, ry, 0, 0, TAU); g.fillStyle = tgr; g.fill();
-  g.beginPath(); g.ellipse(cx, topY, rx * 0.98, ry * 0.98, 0, Math.PI * 1.1, Math.PI * 1.85);
-  g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = Math.max(1, S); g.stroke();
-  // centrepiece
-  wArrangement(g, cx, topY + ry * 0.15, rx * 1.15, WT * S * 0.85, tb.col * 31 + tb.row, true);
-  // Tall glass candelabrum rising out of the blooms — the striking piece
-  // each round table carries in the photographs.
-  const stalkH = WT * S * 1.85;
-  for (let i = 0; i < 5; i++) {
-    const dx = (i - 2) * WT * S * 0.16;
-    const hh = stalkH * (i === 2 ? 1 : i % 2 ? 0.70 : 0.85);
-    g.fillStyle = 'rgba(226,240,245,0.20)';
-    g.fillRect(cx + dx - S * 2.2, topY - hh, S * 4.4, hh);
-    g.fillStyle = 'rgba(255,255,255,0.30)';
-    g.fillRect(cx + dx - S * 2.2, topY - hh, S * 1.3, hh);
-    g.fillStyle = '#f6efdf';
-    g.fillRect(cx + dx - S * 1.7, topY - hh - S * 4.5, S * 3.4, S * 4.5);
-    const fl2 = g.createRadialGradient(cx + dx, topY - hh - S * 6, 0,
-                                       cx + dx, topY - hh - S * 6, S * 6.5);
-    fl2.addColorStop(0, 'rgba(255,240,196,0.95)');
-    fl2.addColorStop(1, 'rgba(255,220,150,0)');
-    g.fillStyle = fl2;
-    g.beginPath(); g.arc(cx + dx, topY - hh - S * 6, S * 6.5, 0, TAU); g.fill();
-  }
-  wArrangement(g, cx, topY - stalkH * 0.40, rx * 0.85, WT * S * 0.6, tb.col * 13 + 7, true);
-  // guests in front
-  for (let i = 0; i < tb.seats; i++) {
-    const a = i / tb.seats * TAU + 0.35;
-    if (Math.sin(a) <= -0.1) continue;
-    const go = wGuestOpts(wHash(tb.col + i * 7, tb.row + i * 3), toAisle);
-    go.seated = true;
-    wFigure(g, cx + Math.cos(a) * rx * 1.16, floorY + Math.sin(a) * ry * 1.16,
-            WT * S * 1.3, go);
-  }
-}
-
-/* a guest standing along the aisle */
-function wDrawLongTable(g, lt, S) {
-  const TW = WT * S, TH = WT * PY * S;
-  const cx = (lt.col + 0.5) * TW;
-  const w  = TW * 1.55;
-  const y0 = lt.row0 * TH, y1 = (lt.row1 + 1) * TH;
-  const top = TW * 0.42;                      // apparent height of the table top
-
-  // chairs and guests behind the table (outer side)
-  for (let r = lt.row0 + 0.4; r < lt.row1; r += 1.9) {
-    const gy = r * TH;
-    wChair(g, cx - lt.side * w * 0.62, gy, S, -1);
-    const go = wGuestOpts(wHash(lt.col * 3 + r * 7, 11), lt.side);
-    go.seated = true;
-    wFigure(g, cx - lt.side * w * 0.62, gy + TH * 0.1, TW * 1.3, go);
-  }
-
-  // the table: black cloth to the floor, with a lit top edge
-  const cg = g.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
-  cg.addColorStop(0, '#0b0a0f'); cg.addColorStop(0.45, '#17161d'); cg.addColorStop(1, '#0a090e');
-  g.fillStyle = cg;
-  g.fillRect(cx - w / 2, y0, w, y1 - y0);
-  const tg = g.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
-  tg.addColorStop(0, '#1c1b24'); tg.addColorStop(0.4, '#2a2833'); tg.addColorStop(1, '#151419');
-  g.fillStyle = tg;
-  g.fillRect(cx - w / 2, y0 - top, w, y1 - y0);
-  g.fillStyle = 'rgba(255,255,255,0.10)';
-  g.fillRect(cx - w / 2, y0 - top, w, Math.max(1, S));
-
-  // a low run of blooms and glass down the middle of the cloth
-  for (let r = lt.row0 + 0.6; r < lt.row1; r += 2.1) {
-    const gy = r * TH - top * 0.5;
-    wArrangement(g, cx, gy, w * 0.66, TW * 0.3, lt.col * 61 + r * 13, true);
-    if ((r * 10 | 0) % 3 === 0) {
-      const vx = cx + (wHash(r, lt.col) - 0.5) * w * 0.5;
-      const vh = TW * (0.85 + wHash(r * 3, lt.col) * 0.35);
-      g.fillStyle = 'rgba(222,238,244,0.26)';                 // clear glass
-      g.fillRect(vx - S * 2.6, gy - vh, S * 5.2, vh);
-      g.fillStyle = 'rgba(255,255,255,0.32)';
-      g.fillRect(vx - S * 2.6, gy - vh, S * 1.4, vh);
-      g.strokeStyle = '#6f8f5e'; g.lineWidth = Math.max(1, S * 0.9);
-      for (const t of [-1, 0, 1]) {                           // tulips
-        g.beginPath();
-        g.moveTo(vx + t * S * 1.3, gy - vh * 0.6);
-        g.quadraticCurveTo(vx + t * S * 2.8, gy - vh * 1.2, vx + t * S * 3.2, gy - vh * 1.42);
-        g.stroke();
-        wBloom(g, vx + t * S * 3.2, gy - vh * 1.48, S * 3,
-               ['#f7dade','#ffffff','#f3c6ae'][t + 1]);
-      }
-    }
-  }
-
-  // chairs and guests on the aisle side, drawn over the table
-  for (let r = lt.row0 + 1.35; r < lt.row1; r += 1.9) {
-    const gy = r * TH + TH * 0.55;
-    wChair(g, cx + lt.side * w * 0.62, gy, S, 1);
-    const go = wGuestOpts(wHash(lt.col * 5 + r * 11, 23), lt.side);
-    go.seated = true;
-    wFigure(g, cx + lt.side * w * 0.62, gy, TW * 1.3, go);
-  }
-}
-
-/* a black banquet chair */
-function wChair(g, cx, by, S, front) {
-  const TW = WT * S;
-  const w = TW * 0.5, h = TW * 0.62;
-  wShadow(g, cx, by, w * 0.7, 0.4);
-  if (front < 0) {                            // seen from behind: tall back
-    wRound(g, cx - w / 2, by - h, w, h, '#121118', w * 0.3);
-    wRound(g, cx - w / 2 + S, by - h + S, w - S * 2, h * 0.60, '#1e1d26', w * 0.26);
-    wRound(g, cx - w / 2 + S * 1.6, by - h * 0.32, w - S * 3.2, h * 0.28, '#6b6660', w * 0.15);
-  } else {
-    wRound(g, cx - w / 2, by - h * 0.55, w, h * 0.55, '#121118', w * 0.22);
-    wRound(g, cx - w * 0.42, by - h * 0.56, w * 0.84, h * 0.26, '#75706a', w * 0.14);
-    wEllipse(g, cx, by - h * 0.5, w * 0.42, w * 0.14, '#5f5a55');
-  }
-}
-
-/* tall gold candelabrum with glass hurricanes */
-function wCandelabra(g, cd, S) {
-  const b = baseOf(cd.col, cd.row, S);
-  const TW = WT * S, H = TW * 1.25;
-  wShadow(g, b.x, b.y, TW * 0.3, 0.45);
-  wEllipse(g, b.x, b.y, TW * 0.24, TW * 0.09, '#7a6436');
-  const sg = g.createLinearGradient(b.x - S * 3, 0, b.x + S * 3, 0);
-  sg.addColorStop(0, '#6d5a33'); sg.addColorStop(0.4, '#e0c07a'); sg.addColorStop(1, '#6d5a33');
-  g.fillStyle = sg; g.fillRect(b.x - S * 2.4, b.y - H, S * 4.8, H);
-  // glass hurricane
-  g.fillStyle = 'rgba(226,240,245,0.22)';
-  g.fillRect(b.x - S * 5, b.y - H - TW * 0.5, S * 10, TW * 0.5);
-  g.fillStyle = 'rgba(255,255,255,0.30)';
-  g.fillRect(b.x - S * 5, b.y - H - TW * 0.5, S * 2, TW * 0.5);
-  g.fillStyle = '#f6efdf';
-  g.fillRect(b.x - S * 2.2, b.y - H - TW * 0.34, S * 4.4, TW * 0.34);
-  const fl = g.createRadialGradient(b.x, b.y - H - TW * 0.42, 0, b.x, b.y - H - TW * 0.42, TW * 0.55);
-  fl.addColorStop(0, 'rgba(255,236,180,0.95)');
-  fl.addColorStop(0.35, 'rgba(255,220,150,0.45)');
-  fl.addColorStop(1, 'rgba(255,214,150,0)');
-  g.fillStyle = fl;
-  g.beginPath(); g.arc(b.x, b.y - H - TW * 0.42, TW * 0.55, 0, TAU); g.fill();
-}
-
-function wDrawStanding(g, st, S) {
-  const b = baseOf(st.col, st.row, S);
-  wFigure(g, b.x, b.y, WT * S * 1.5, wGuestOpts(st.seed));
-}
-
-/* 혼주석 — a parent in an upholstered tub armchair */
-function wDrawParent(g, pr, S) {
-  const b = baseOf(pr.col, pr.row, S);
-  const TW = WT * S;
-  const w = TW * 1.02, h = TW * 0.92;
-
-  wShadow(g, b.x, b.y, w * 0.62, 0.5);
-  // wooden legs
-  g.fillStyle = '#8a5f3a';
-  for (const dx of [-0.34, 0.34])
-    g.fillRect(b.x + w * dx - S, b.y - h * 0.22, S * 2.2, h * 0.22);
-  // curved back and arms
-  wRound(g, b.x - w / 2, b.y - h, w, h * 0.86, '#5f5a54', w * 0.3);
-  wRound(g, b.x - w / 2 + S * 1.5, b.y - h + S * 1.5, w - S * 3, h * 0.7, '#6d6862', w * 0.28);
-  // the person sits in it
-  const o = pr.who === 'father'
-    ? { kind:'suit', wear:'#1a1622', wear2:'#12101a', trouser:'#141119', tie:'#7a2f3a',
-        hair:'#3a3438', skin:'#f6d0ab' }
-    : { kind:'hanbok', wear:'#d79ec0', wear2:'#b57aa2', jeogori:'#f8f2e8', goreum:'#9c3f52',
-        hair:'#2c2028', skin:'#ffdcbc', updo:true, blush:true };
-  o.seated = true;
-  o.arms = 'clasp';
-  o.view = pr.col < AISLE_L ? 1 : -1;    // turned in to watch the aisle
-  o.hairStyle = pr.who === 'father' ? 0 : 3;
-  wFigure(g, b.x + (pr.col < AISLE_L ? -h * 0.06 : h * 0.06), b.y - h * 0.06, TW * 1.5, o);
-  // seat cushion in front of them
-  wRound(g, b.x - w * 0.36, b.y - h * 0.42, w * 0.72, h * 0.3, '#7b756e', w * 0.16);
-  wRound(g, b.x - w * 0.3, b.y - h * 0.44, w * 0.6, h * 0.2, '#8a847c', w * 0.12);
-}
-function wDrawEntryFlowers(g, fl, S) {
-  const b = baseOf(fl.col, fl.row, S);
-  const w = (fl.big ? 2.3 : 1.6) * WT * S;
-  const h = (fl.big ? 2.6 : 1.7) * WT * S;
-  // stand
-  g.fillStyle = '#2a2336';
-  g.fillRect(b.x - w * 0.07, b.y - h * 0.42, w * 0.14, h * 0.42);
-  wEllipse(g, b.x, b.y, w * 0.18, w * 0.06, '#1a1524');
-  wArrangement(g, b.x, b.y - h * 0.34, w, h, fl.col * 53 + fl.row * 11, true);
-  if (fl.big) {
-    const px2 = b.x - w * 0.52;
-    g.fillStyle = '#efe6d6'; g.fillRect(px2 - S * 1.6, b.y - S * 11, S * 3.2, S * 11);
-    const fg2 = g.createRadialGradient(px2, b.y - S * 13, 0, px2, b.y - S * 13, S * 6);
-    fg2.addColorStop(0, 'rgba(255,240,190,0.95)'); fg2.addColorStop(1, 'rgba(255,220,150,0)');
-    g.fillStyle = fg2; g.beginPath(); g.arc(px2, b.y - S * 13, S * 6, 0, TAU); g.fill();
-  }
-}
-
-/* the unbroken flower border either side of the runner */
-function wDrawBorderTile(g, c, r, S) {
-  const b = baseOf(c, r, S);
-  wArrangement(g, b.x, b.y + WT * PY * S * 0.1, WT * S * 0.98, WT * S * 0.62,
-               c * 97 + r * 7, true);
-}
-
-/* memory stand, and the groom on the dais */
-function wDrawPlace(g, pl, S) {
-  const b = baseOf(pl.col, pl.row, S);
-  const done = W.visited.has(pl.ep);
-
-  if (pl.groom) {
-    const H = WT * S * 1.62;
-    wFigure(g, b.x, b.y, H, {
-      kind:'tux', wear:'#151119', wear2:'#0d0b12', trouser:'#121017',
-      tie:'#ffffff', hair:'#2a1c12', skin:'#f6d0ab',
-    });
-    g.fillStyle = '#f7c9d8';
-    g.beginPath(); g.arc(b.x + H * 0.11, b.y - H * 0.58, H * 0.032, 0, TAU); g.fill();
-    if (!done) {
-      const hy = b.y - H * 1.15 - Math.sin(W.t / 320) * S * 3;
-      g.fillStyle = '#ff6b8f';
-      g.beginPath();
-      g.moveTo(b.x, hy + S * 7);
-      g.bezierCurveTo(b.x - S * 9, hy - S * 2, b.x - S * 3, hy - S * 6, b.x, hy - S * 1);
-      g.bezierCurveTo(b.x + S * 3, hy - S * 6, b.x + S * 9, hy - S * 2, b.x, hy + S * 7);
-      g.fill();
-    }
-    return;
-  }
-
-  // easel with a framed photo
-  const H = WT * S * 1.8, w = WT * S * 0.95;
-  wShadow(g, b.x, b.y, w * 0.8, 0.5);
-  g.strokeStyle = '#7a6436'; g.lineWidth = Math.max(1.4, S * 1.6);
-  g.beginPath(); g.moveTo(b.x - w * 0.42, b.y); g.lineTo(b.x - w * 0.1, b.y - H * 0.75); g.stroke();
-  g.beginPath(); g.moveTo(b.x + w * 0.42, b.y); g.lineTo(b.x + w * 0.1, b.y - H * 0.75); g.stroke();
-  if (!done) {
-    const gl = g.createRadialGradient(b.x, b.y - H * 0.55, 0, b.x, b.y - H * 0.55, H * 0.9);
-    const pulse = 0.5 + 0.5 * Math.sin(W.t / 520);
-    gl.addColorStop(0, `rgba(255,228,190,${0.14 + pulse * 0.14})`);
-    gl.addColorStop(1, 'rgba(255,228,190,0)');
-    g.fillStyle = gl;
-    g.beginPath(); g.arc(b.x, b.y - H * 0.55, H * 0.9, 0, TAU); g.fill();
-  }
-  const fw = w * 1.05, fh = H * 0.52, fy = b.y - H * 0.95;
-  wRound(g, b.x - fw / 2, fy, fw, fh, '#8d7440', S * 2);
-  wRound(g, b.x - fw / 2 + S * 2, fy + S * 2, fw - S * 4, fh - S * 4, '#e0c07a', S * 1.4);
-  wRound(g, b.x - fw / 2 + S * 4, fy + S * 4, fw - S * 8, fh - S * 8,
-         done ? '#4a405e' : '#241f30', S);
-  if (done) {
-    wBloom(g, b.x - fw * 0.12, fy + fh * 0.42, fw * 0.16, '#f6c2d4');
-    wBloom(g, b.x + fw * 0.14, fy + fh * 0.58, fw * 0.13, '#e0b6e8');
-  }
-  g.fillStyle = 'rgba(255,255,255,0.16)';
-  g.fillRect(b.x - fw / 2 + S * 4, fy + S * 4, fw - S * 8, fh * 0.16);
-  wArrangement(g, b.x, b.y, w * 1.5, H * 0.34, pl.col * 17 + pl.row, true);
-  if (!done) {
-    const my = fy - H * 0.28 - Math.sin(W.t / 320) * S * 3;
-    wRound(g, b.x - S * 7, my, S * 14, S * 11, '#ffffff', S * 2);
-    g.beginPath(); g.moveTo(b.x - S * 3, my + S * 11); g.lineTo(b.x + S * 3, my + S * 11);
-    g.lineTo(b.x, my + S * 15); g.closePath(); g.fillStyle = '#ffffff'; g.fill();
-    g.fillStyle = '#ff6b8f';
-    g.beginPath(); g.arc(b.x, my + S * 5, S * 3.4, 0, TAU); g.fill();
-  }
-}
-
-/* the long low floral wall running across the back of the stage */
-function wDrawStageFlowers(g, S) {
-  const TW = WT * S;
-  const b = baseOf(14, 4, S);
-  const w = 9.2 * TW;
-  // slim gold frame behind it
-  g.strokeStyle = 'rgba(141,116,64,0.55)'; g.lineWidth = Math.max(1, S);
-  g.strokeRect(b.x - w * 0.42, b.y - TW * 2.0, w * 0.84, TW * 1.6);
-  // Built from one half and mirrored, so the wall reads symmetrical about
-  // the couple rather than drifting to one side.
-  for (let i = 0; i <= 6; i++) {
-    const hgt = TW * (1.25 + wHash(i + 30, 5) * 0.85);
-    const dx = i * w * 0.078;
-    wArrangement(g, b.x - dx, b.y - TW * 0.1, TW * 1.5, hgt, i * 71 + 3, true);
-    if (i) wArrangement(g, b.x + dx, b.y - TW * 0.1, TW * 1.5, hgt, i * 71 + 3, true);
-  }
-  // gold pillar stands with candles either side
-  for (const dx of [-0.34, -0.12, 0.12, 0.34]) {
-    const px2 = b.x + w * dx;
-    const ph = TW * (dx === -0.34 || dx === 0.34 ? 1.5 : 1.15);
-    const pg = g.createLinearGradient(px2 - S * 4, 0, px2 + S * 4, 0);
-    pg.addColorStop(0, '#6d5a33'); pg.addColorStop(0.4, '#d8bb7c'); pg.addColorStop(1, '#6d5a33');
-    g.fillStyle = pg; g.fillRect(px2 - S * 4, b.y - ph, S * 8, ph);
-    g.fillStyle = '#f6efdf'; g.fillRect(px2 - S * 2.6, b.y - ph - TW * 0.42, S * 5.2, TW * 0.42);
-    const fl = g.createRadialGradient(px2, b.y - ph - TW * 0.5, 0, px2, b.y - ph - TW * 0.5, TW * 0.6);
-    fl.addColorStop(0, 'rgba(255,238,190,0.95)'); fl.addColorStop(1, 'rgba(255,220,150,0)');
-    g.fillStyle = fl;
-    g.beginPath(); g.arc(px2, b.y - ph - TW * 0.5, TW * 0.6, 0, TAU); g.fill();
-  }
-}
-/* 주례단상 — the brass lectern, stage-left of the couple */
-function wDrawPodium(g, S) {
-  const TW = WT * S;
-  const b = baseOf(11.5, 5.8, S);
-  const H = TW * 1.85, w = TW * 0.62;
-
-  wFigure(g, b.x, b.y - H * 0.06, TW * 1.5, {
-    view:'front', kind:'suit', wear:'#232636', wear2:'#161825', trouser:'#151722',
-    tie:'#5a3a52', hair:'#585055', hairDark:'#3a3438', skin:'#f6d0ab',
-    hairStyle:0, arms:'clasp',
-  });
-
-  wShadow(g, b.x, b.y, w * 0.85, 0.5);
-  // slim gold column
-  const cg = g.createLinearGradient(b.x - w / 2, 0, b.x + w / 2, 0);
-  cg.addColorStop(0, '#6d5a33'); cg.addColorStop(0.35, '#e0c07a');
-  cg.addColorStop(0.6, '#c9a961'); cg.addColorStop(1, '#5d4c2c');
-  g.fillStyle = cg; g.fillRect(b.x - w / 2, b.y - H, w, H);
-  // open front, so it reads as a lectern rather than a post
-  g.fillStyle = 'rgba(20,16,10,0.55)';
-  g.fillRect(b.x - w * 0.28, b.y - H * 0.86, w * 0.56, H * 0.66);
-  // slanted reading top
-  g.beginPath();
-  g.moveTo(b.x - w * 0.68, b.y - H * 0.97);
-  g.lineTo(b.x + w * 0.68, b.y - H * 1.05);
-  g.lineTo(b.x + w * 0.68, b.y - H * 0.95);
-  g.lineTo(b.x - w * 0.68, b.y - H * 0.87);
-  g.closePath();
-  g.fillStyle = '#e0c07a'; g.fill();
-  g.fillStyle = '#fdf3d8';
-  g.fillRect(b.x - w * 0.5, b.y - H * 1.0, w, S * 1.4);
-  // floral cluster at its foot
-  wArrangement(g, b.x - w * 0.1, b.y, TW * 1.5, TW * 0.85, 8123, true);
-}
-/* 사회자 단상 — the MC's slim stand, stage-right of the couple */
-function wDrawMcStand(g, S) {
-  const TW = WT * S;
-  const b = baseOf(16.6, 5.8, S);
-  const H = TW * 1.62, w = TW * 0.5;
-
-  wFigure(g, b.x, b.y - H * 0.04, TW * 1.46, {
-    view: -1, kind:'suit', wear:'#1e2130', wear2:'#141622', trouser:'#141119',
-    tie:'#3f5a4a', hair:'#2a1c12', hairDark:'#1a1008', skin:'#f6d0ab',
-    hairStyle:0, arms:'clasp',
-  });
-
-  wShadow(g, b.x, b.y, w * 0.9, 0.5);
-  wEllipse(g, b.x, b.y, w * 0.52, w * 0.18, '#6d5a33');
-  const cg = g.createLinearGradient(b.x - w * 0.14, 0, b.x + w * 0.14, 0);
-  cg.addColorStop(0, '#6d5a33'); cg.addColorStop(0.4, '#d8bb7c'); cg.addColorStop(1, '#5d4c2c');
-  g.fillStyle = cg; g.fillRect(b.x - w * 0.12, b.y - H * 0.92, w * 0.24, H * 0.92);
-  // slim sloped desk
-  g.beginPath();
-  g.moveTo(b.x - w * 0.6, b.y - H * 0.90);
-  g.lineTo(b.x + w * 0.6, b.y - H * 0.96);
-  g.lineTo(b.x + w * 0.6, b.y - H * 0.88);
-  g.lineTo(b.x - w * 0.6, b.y - H * 0.82);
-  g.closePath(); g.fillStyle = '#e0c07a'; g.fill();
-  g.fillStyle = '#fdf3d8';
-  g.fillRect(b.x - w * 0.46, b.y - H * 0.93, w * 0.92, S * 1.2);
-  // gooseneck mic
-  g.strokeStyle = '#241f2c'; g.lineWidth = Math.max(1, S);
-  g.beginPath();
-  g.moveTo(b.x + w * 0.22, b.y - H * 0.92);
-  g.quadraticCurveTo(b.x + w * 0.5, b.y - H * 1.18, b.x + w * 0.1, b.y - H * 1.24);
-  g.stroke();
-  pxDisc(g, b.x + w * 0.1, b.y - H * 1.245, S * 1.7, '#1a1622');
-  wArrangement(g, b.x, b.y, TW * 1.1, TW * 0.55, 5531, true);
-}
-
-/* the entrance: a gold frame carrying an arch of flowers over the aisle */
-function wDrawGate(g, S) {
-  const TW = WT * S;
-  const b = baseOf(AISLE_MID, 44, S);
-  const w = 8.6 * TW, h = 5.4 * TW;
-  const x = b.x - w / 2, y = b.y - h;
-
-  // dark wall the doorway sits in
-  const wg = g.createLinearGradient(0, y, 0, b.y);
-  wg.addColorStop(0, '#0a0810'); wg.addColorStop(0.6, '#141020'); wg.addColorStop(1, '#1d1729');
-  g.fillStyle = wg; g.fillRect(x, y, w, h);
-
-  // warm light spilling from the lobby beyond
-  const open = w * 0.40, oy = y + h * 0.30, oh = h * 0.70;
-  const og = g.createLinearGradient(0, oy, 0, oy + oh);
-  og.addColorStop(0, '#3a2f1c'); og.addColorStop(0.5, '#5f4b2d'); og.addColorStop(1, '#241c14');
-  g.fillStyle = og; g.fillRect(b.x - open / 2, oy, open, oh);
-  const spill = g.createRadialGradient(b.x, oy + oh, 0, b.x, oy + oh, open * 1.2);
-  spill.addColorStop(0, 'rgba(255,224,168,0.34)');
-  spill.addColorStop(1, 'rgba(255,224,168,0)');
-  g.fillStyle = spill;
-  g.fillRect(b.x - open, oy + oh - open, open * 2, open * 1.4);
-
-  // the gold frame: uprights, lintel and the arc between them
-  const fx0 = b.x - open * 0.86, fx1 = b.x + open * 0.86;
-  const fTop = oy - TW * 0.6;
-  g.strokeStyle = '#c9a961'; g.lineWidth = Math.max(1.6, S * 2);
-  g.strokeRect(fx0, fTop, fx1 - fx0, b.y - fTop);
-  g.beginPath();
-  g.moveTo(fx0, b.y - h * 0.30);
-  g.quadraticCurveTo(b.x, fTop - TW * 1.5, fx1, b.y - h * 0.30);
-  g.strokeStyle = '#e0c07a'; g.lineWidth = Math.max(1.6, S * 2.4); g.stroke();
-
-  // Flowers climb both uprights and thin out over the crown — the arch is
-  // only lightly dressed at the top, exactly as it is in the photo.
-  for (let i = 0; i <= 26; i++) {
-    const t = i / 26;
-    const climb = Math.abs(t - 0.5) * 2;         // 1 at the legs, 0 at the apex
-    if (climb < 0.34) continue;                  // leave the crown bare gold
-    const px2 = fx0 + (fx1 - fx0) * t;
-    const py2 = (1 - t) * t * 4 * (fTop - TW * 1.2 - (b.y - h * 0.30)) + (b.y - h * 0.30);
-    const dens = 0.5 + climb * 0.9;
-    wArrangement(g, px2, py2 + TW * 0.3, TW * 1.35 * dens, TW * 0.95 * dens, i * 37 + 5, true);
-  }
-  // a few sprigs alone across the crown
-  for (let i = 10; i <= 16; i += 2) {
-    const t = i / 26;
-    const px2 = fx0 + (fx1 - fx0) * t;
-    const py2 = (1 - t) * t * 4 * (fTop - TW * 1.2 - (b.y - h * 0.30)) + (b.y - h * 0.30);
-    wArrangement(g, px2, py2 + TW * 0.25, TW * 0.75, TW * 0.5, i * 91 + 13, false);
-  }
-  for (const fx of [fx0, fx1]) {
-    for (let yy = b.y; yy > b.y - h * 0.40; yy -= TW * 0.55)
-      wArrangement(g, fx, yy, TW * 1.85, TW * 1.4, fx * 0.3 + yy * 0.11, true);
-    wArrangement(g, fx, b.y + TW * 0.1, TW * 2.3, TW * 1.05, fx * 0.7, true);
-  }
-
-  // stanchions and the tape across the threshold
-  for (const dx of [-0.30, 0.30]) {
-    const sx = b.x + w * dx;
-    wShadow(g, sx, b.y + TW * 0.5, TW * 0.22, 0.4);
-    const pg = g.createLinearGradient(sx - S * 2, 0, sx + S * 2, 0);
-    pg.addColorStop(0, '#8e8e94'); pg.addColorStop(0.4, '#e6e6ea'); pg.addColorStop(1, '#76767c');
-    g.fillStyle = pg; g.fillRect(sx - S * 1.6, b.y + TW * 0.5 - TW * 1.5, S * 3.2, TW * 1.5);
-    wEllipse(g, sx, b.y + TW * 0.5, TW * 0.2, TW * 0.07, '#5c5c62');
-    pxDisc(g, sx, b.y + TW * 0.5 - TW * 1.55, S * 2.4, '#e6e6ea');
-  }
-  g.fillStyle = '#14131a';
-  g.fillRect(b.x - w * 0.30, b.y + TW * 0.5 - TW * 1.42, w * 0.60, TW * 0.24);
-  g.fillStyle = 'rgba(255,255,255,0.75)';
-  g.font = `${Math.max(6, S * 5)}px sans-serif`; g.textAlign = 'center';
-  g.fillText('THE LINK', b.x, b.y + TW * 0.5 - TW * 1.25);
-  g.textAlign = 'left';
-}
-function wDrawGirl(g, bx, by, dir, step, S) {
-  const H = WT * S * 1.62;
-  const sway = step ? Math.sin(W.t / 90) * H * 0.012 : 0;
-  const back = dir === 'up';
-
-  // veil and train, always falling away from the way she faces
-  const tl = H * 1.45, tw = H * 0.68;
-  g.save();
-  g.translate(bx, by);
-  if (dir === 'left')  g.rotate(Math.PI * 0.5);
-  if (dir === 'right') g.rotate(-Math.PI * 0.5);
-  if (back)            g.rotate(Math.PI);
-  g.beginPath();
-  g.moveTo(-tw * 0.32, -H * 0.34);
-  g.quadraticCurveTo(-tw * 0.55, tl * 0.45, 0, tl * 0.62);
-  g.quadraticCurveTo(tw * 0.55, tl * 0.45, tw * 0.32, -H * 0.34);
-  g.closePath();
-  const vg = g.createLinearGradient(0, -H * 0.3, 0, tl * 0.6);
-  vg.addColorStop(0, 'rgba(255,253,250,0.62)');
-  vg.addColorStop(0.5, 'rgba(255,253,250,0.34)');
-  vg.addColorStop(1, 'rgba(255,253,250,0.06)');
-  g.fillStyle = vg; g.fill();
-  g.restore();
-
-  g.save(); g.translate(0, sway);
-  wFigure(g, bx, by, H, {
-    kind:'gown', wear:'#fdfbf7', wear2:'#ded7cd', trouser:'#fdfbf7',
-    hair:'#3d2416', hairDark:'#2a180d', skin:'#ffdcbc', updo:true, blush:true,
-    sash:'#f4d9e2', hairStyle:3, blush:true,
-    view: back ? 'back' : (dir === 'left' ? -1 : dir === 'right' ? 1 : 'front'),
-    arms: back ? 'down' : 'clasp',
-  });
-  // veil cap and flower crown
-  const headCY = by - H * 0.80, headR = H * 0.112;
-  g.fillStyle = 'rgba(255,255,255,0.5)';
-  g.beginPath();
-  g.ellipse(bx, headCY - headR * (back ? 0.5 : 0.85), headR * 1.2, headR * 0.6, 0, 0, TAU);
-  g.fill();
-  for (let i = 0; i < 5; i++) {
-    const a = back ? (0.35 + i * 0.62) : (-0.35 - i * 0.62);
-    wBloom(g, bx + Math.cos(a) * headR * 1.02, headCY - Math.abs(Math.sin(a)) * headR * (back ? 0.5 : 1.02),
-           headR * 0.28, ['#ffffff','#fdf7ef','#f8e2d2','#f7dade','#f2c6ae'][i]);
-  }
-  // bouquet, only when we can see her front
+  R(p, cx - 4, seat - 13, 9, 10, w1);
+  R(p, cx - 4, seat - 13, 9, 1, w3);
+  R(p, cx + 3, seat - 13, 2, 10, w2);
   if (!back) {
-    const by2 = by - H * 0.40;
-    wArrangement(g, bx, by2 + H * 0.06, H * 0.42, H * 0.28, 4242, true);
+    if (o.jacket) { R(p, cx - 1, seat - 13, 2, 6, C.ivoryL); R(p, cx - 1, seat - 12, 2, 3, o.tie || C.ivoryS); }
+    else if (o.neckline) {
+      R(p, cx - 2, seat - 13, 4, 2, sk[0]);
+      if (o.necklace) D(p, cx, seat - 12, C.goldL);
+    }
   }
-  g.restore();
+  const ar = o.arms || 0;
+  if (ar === 1) {
+    R(p, cx - 6, seat - 12, 2, 4, w1); R(p, cx + 5, seat - 12, 2, 4, w1);
+    R(p, cx - 4, seat - 9, 3, 2, sk[0]); R(p, cx + 2, seat - 9, 3, 2, sk[0]);
+  } else {
+    R(p, cx - 6, seat - 12, 2, 6, w1); R(p, cx + 5, seat - 12, 2, 6, w1);
+    BLOB(p, cx - 5, seat - 6, 1.5, 1.4, sk[0]); BLOB(p, cx + 5, seat - 6, 1.5, 1.4, sk[0]);
+  }
+  R(p, cx - 1, seat - 14, 3, 2, sk[1]);
+  pxHead(p, cx, seat - 19, sk, o.hair, o);
 }
 
-/* ══════════════════════════════════════════════════════════════
-   FRAME
-══════════════════════════════════════════════════════════════ */
-function wRender() {
-  const cv = $('world-canvas'), g = cv.getContext('2d');
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const cw = cv.clientWidth, chh = cv.clientHeight;
-  if (cv.width !== (cw * dpr | 0) || cv.height !== (chh * dpr | 0)) {
-    cv.width = cw * dpr | 0; cv.height = chh * dpr | 0;
+/* ── the bride ─────────────────────────────────────────────
+   Taller than the congregation, because she is the one you are
+   meant to follow. The train always lies behind her, so it is
+   drawn on the far side of whichever way she is walking. */
+const GOWN = { l: '#fffdf9', m: '#f2ebe0', d: '#ddd1c2', s: '#c2b3a1' };
+function pxBride(p, cx, b, dir, step) {
+  const sk = SKIN[0], hr = HAIR[0];
+  const sway = step === 1 ? -1 : step === 2 ? 1 : 0;
+  const back = dir === 'up', side = dir === 'side' || dir === 'left' || dir === 'right';
+  const G = GOWN;
+
+  /* the train — a soft sweep of silk lying on the floor behind her.
+     Toward us when she walks away, spread out around her when she
+     walks toward us. */
+  const L = back ? 18 : 9;
+  const trainAt = j => {
+    const t = j / L;
+    return back
+      ? { hw: 4 + 11 * Math.sin(Math.min(1, t * 1.15) * Math.PI * 0.62), y: b - 3 + j * 0.85 }
+      // walking toward us the train lies behind her, so only the silk
+      // pooled around the hem shows past the skirt
+      : { hw: 15 - t * 5, y: b - 2 - j * 0.9 };
+  };
+  for (let j = L; j >= 0; j--) {
+    const { hw, y } = trainAt(j);
+    if (y < 1 || y > p.h - 1) continue;
+    R(p, cx - hw, y, hw * 2, 1, G.m);
+    D(p, cx - hw, y, G.d); D(p, cx + hw - 1, y, G.d);
+    if (j % 4 === 0) { D(p, cx - hw + 2, y, G.l); D(p, cx + hw - 3, y, G.l); }
   }
-  const S = W.scale = Math.max(1, Math.min(4, Math.round(Math.min(cw, chh) / 300)));
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.imageSmoothingEnabled = true;
-  g.imageSmoothingQuality = 'high';
+  // lace scalloping along the outer edge of the train
+  for (let j = 2; j < L; j += 3) {
+    const { hw, y } = trainAt(j);
+    if (y < 1 || y > p.h - 1) continue;
+    D(p, Math.round(cx - hw - 1), y, G.s); D(p, Math.round(cx + hw), y, G.s);
+  }
+  ELL(p, cx, b - 1, 9, 2.6, '#00000038');
 
-  const TW = WT * S, TH = WT * PY * S;
-  const mapW = W_COLS * TW, mapH = W_ROWS * TH;
-  let camX = W.x * S - cw / 2, camY = W.y * PY * S - chh * 0.58;
-  camX = mapW <= cw ? (mapW - cw) / 2 : Math.max(0, Math.min(mapW - cw, camX));
-  camY = mapH <= chh ? (mapH - chh) / 2 : Math.max(-WALL_H * S, Math.min(mapH - chh, camY));
+  /* skirt — a smooth A-line, no stepping */
+  const skTop = b - 15, skH = 14;
+  for (let j = 0; j < skH; j++) {
+    const t = j / (skH - 1);
+    const hw = (side ? 3.6 : 4.2) + t * (side ? 6.4 : 7.6);
+    R(p, cx - hw + sway * 0.3, skTop + j, hw * 2, 1, G.l);
+    D(p, Math.round(cx + hw - 1 + sway * 0.3), skTop + j, G.m);
+    D(p, Math.round(cx + hw - 2 + sway * 0.3), skTop + j, G.m);
+    D(p, Math.round(cx - hw + sway * 0.3), skTop + j, G.m);
+  }
+  // pleats and hem
+  for (const px2 of [-5, 0, 4]) {
+    for (let j = 3; j < skH - 1; j++) {
+      const t = j / (skH - 1);
+      D(p, Math.round(cx + px2 * (0.6 + t)), skTop + j, px2 === 0 ? G.l : G.d);
+    }
+  }
+  const hemHw = (side ? 10 : 11.8);
+  R(p, cx - hemHw, b - 2, hemHw * 2, 1, G.d);
+  R(p, cx - hemHw, b - 1, hemHw * 2, 1, G.s);
+  for (let x = -Math.round(hemHw) + 1; x < hemHw; x += 3) D(p, cx + x, b - 2, G.l);
 
-  g.fillStyle = '#0a0810';
-  g.fillRect(0, 0, cw, chh);
-  g.save();
-  g.translate(-Math.round(camX), -Math.round(camY));
+  /* bodice */
+  R(p, cx - 4, b - 24, 8, 10, G.l);
+  R(p, cx + 2, b - 24, 2, 10, G.m);
+  R(p, cx - 4, b - 24, 1, 10, G.d);
+  R(p, cx - 4, b - 24, 8, 1, G.l);
+  R(p, cx - 4, b - 16, 8, 2, G.m);              // the waist seam
+  for (const [dx, dy] of [[-2,-21],[1,-20],[0,-18],[2,-22],[-1,-17]]) D(p, cx + dx, b + dy, C.goldL);
+  if (!back) { R(p, cx - 2, b - 25, 4, 2, sk[0]); D(p, cx, b - 23, sk[1]); }
 
-  const c0 = Math.max(0, Math.floor(camX / TW) - 1);
-  const c1 = Math.min(W_COLS - 1, Math.ceil((camX + cw) / TW));
-  const r0 = Math.max(0, Math.floor(camY / TH) - 1);
-  const r1 = Math.min(W_ROWS - 1, Math.ceil((camY + chh) / TH) + 2);
-  for (let r = r0; r <= r1; r++)
-    for (let c = c0; c <= c1; c++) wDrawTile(g, wTileAt(c, r), c, r, S);
-
-  if (r0 <= 3) wDrawBackWall(g, camX, camY, cw, S);
-
-  // light pools on the floor beneath every fixture
-  for (const ch2 of W_CHANDELIERS) {
-    const gx = (ch2.col + 0.5) * TW, gy = (ch2.row + 0.5) * TH;
-    const rad = (ch2.big ? 5 : 3.2) * TW;
-    const glow = g.createRadialGradient(gx, gy, 0, gx, gy, rad);
-    const flick = 0.86 + 0.14 * Math.sin(W.t / 700 + ch2.row);
-    glow.addColorStop(0, `rgba(255,226,170,${(ch2.big ? 0.15 : 0.09) * flick})`);
-    glow.addColorStop(0.5, `rgba(255,214,150,${0.06 * flick})`);
-    glow.addColorStop(1, 'rgba(255,214,150,0)');
-    g.save(); g.translate(gx, gy); g.scale(1, PY); g.translate(-gx, -gy);
-    g.fillStyle = glow; g.beginPath(); g.arc(gx, gy, rad, 0, TAU); g.fill();
-    g.restore();
+  /* arms and bouquet */
+  if (!back) {
+    R(p, cx - 6, b - 24, 2, 6, G.l); R(p, cx + 4, b - 24, 2, 6, G.l);
+    R(p, cx - 6, b - 24, 1, 6, G.m); R(p, cx + 5, b - 24, 1, 6, G.m);
+    BLOB(p, cx - 4, b - 18, 1.6, 1.5, sk[0]); BLOB(p, cx + 4, b - 18, 1.6, 1.5, sk[0]);
+    R(p, cx - 1, b - 17, 2, 4, C.gr2);
+    BLOB(p, cx, b - 18, 4.4, 3.2, C.gr1);
+    for (const [dx, dy, cc] of [[-3,-18,C.pk2],[-1,-19,C.wh1],[2,-18,C.pk1],[0,-17,C.pk3],
+                                [3,-19,C.wh1],[-2,-16,C.pk1],[2,-16,C.pk2],[0,-20,C.pk1]])
+      BLOB(p, cx + dx, b + dy, 1.5, 1.3, cc);
+  } else {
+    R(p, cx - 6, b - 24, 2, 8, G.l); R(p, cx + 4, b - 24, 2, 8, G.l);
+    R(p, cx - 6, b - 24, 1, 8, G.m); R(p, cx + 5, b - 24, 1, 8, G.m);
+    BLOB(p, cx - 5, b - 16, 1.6, 1.5, sk[0]); BLOB(p, cx + 5, b - 16, 1.6, 1.5, sk[0]);
   }
 
-  const inView = (col, row, pad = 5) =>
-    col > c0 - pad && col < c1 + pad && row > r0 - pad && row < r1 + pad;
-  const draw = [];
-  const push = (row, f) => draw.push({ y: row, f });
+  /* the long veil, behind her — drawn before the head so it reads as
+     falling from the crown rather than sitting on top of her face */
+  const ty = b - 35;
+  p.g.globalAlpha = back ? 0.5 : 0.3;
+  const vL = back ? 22 : 12;
+  for (let j = 0; j < vL; j++) {
+    const t = j / vL, hw = (back ? 5 : 4.5) + t * (back ? 7 : 2.5);
+    R(p, cx - hw, ty + 4 + j, hw * 2, 1, j > vL - 4 ? '#ded6ea' : '#ffffff');
+  }
+  p.g.globalAlpha = 1;
 
-  for (let r = r0; r <= r1; r++)
-    for (let c = c0; c <= c1; c++)
-      if (wTileAt(c, r) === 'F') push(r + 0.9, () => wDrawBorderTile(g, c, r, S));
+  /* neck and head */
+  R(p, cx - 1, b - 26, 3, 2, sk[1]);
+  if (side) pxHeadSide(p, cx, ty, sk, hr, { hairStyle: 3, blush: 1 });
+  else      pxHead(p, cx, ty, sk, hr, { view: back ? 'back' : 'front', hairStyle: 3, blush: 1 });
 
-  push(3.6, () => wDrawStageFlowers(g, S));
-  push(6.0, () => wDrawPodium(g, S));
-  push(6.05, () => wDrawMcStand(g, S));
-  push(45.4, () => wDrawGate(g, S));
-  for (const lt of W_LONG_TABLES)
-    if (inView(lt.col, W.y / WT, 40)) push(lt.row0 + 0.5, () => wDrawLongTable(g, lt, S));
-  for (const tb of W_TABLES) if (inView(tb.col, tb.row)) push(tb.row + 2, () => wDrawTable(g, tb, S));
-  for (const pr of W_PARENTS) if (inView(pr.col, pr.row)) push(pr.row + 1, () => wDrawParent(g, pr, S));
-  for (const cd of W_CANDELABRA) if (inView(cd.col, cd.row, 4)) push(cd.row + 0.95, () => wCandelabra(g, cd, S));
-  for (const fl of W_ENTRY_FLOWERS) if (inView(fl.col, fl.row, 4)) push(fl.row + 1, () => wDrawEntryFlowers(g, fl, S));
-  for (const pl of W_PLACES) push(pl.groom ? pl.row + 1.2 : pl.row + 1, () => wDrawPlace(g, pl, S));
-  push(W.y / WT, () => wDrawGirl(g, Math.round(W.x * S), Math.round(W.y * PY * S), W.dir, W.step, S));
+  /* the veil's front edge and the tiara */
+  p.g.globalAlpha = 0.4;
+  R(p, cx - 5, ty + 1, 10, 1, '#ffffff');
+  if (side) R(p, cx - 7, ty + 2, 3, 8, '#ffffff');
+  else { R(p, cx - 7, ty + 3, 2, 7, '#ffffff'); R(p, cx + 5, ty + 3, 2, 7, '#ffffff'); }
+  p.g.globalAlpha = 1;
+  R(p, cx - 5, ty, 10, 1, C.ivoryL);
+  D(p, cx - 2, ty - 1, C.goldL); D(p, cx, ty - 2, C.goldL); D(p, cx + 2, ty - 1, C.goldL);
+  D(p, cx - 1, ty - 1, C.gold);  D(p, cx + 1, ty - 1, C.gold);
+}
 
-  draw.sort((a, b) => a.y - b.y).forEach(d => d.f());
+/* ── the groom, waiting at the end of the aisle ───────────── */
+function pxGroom(p, cx, b, t) {
+  const sk = SKIN[1], hr = HAIR[0];
+  const bob = Math.sin(t / 900) > 0 ? 0 : 1;
+  pxPerson(p, cx, b - bob, {
+    skin: sk, hair: hr, hairStyle: 4, view: 'front',
+    wear: ['#1b1a24', '#111018', '#2e2c3c'],
+    trouser: ['#1b1a24', '#111018'],
+    jacket: 1, tie: C.ivoryL, pocket: 1, arms: 2,
+  });
+  // white tie and waistcoat, drawn over the jacket
+  R(p, cx - 1, b - 19 - bob, 2, 4, C.ivoryL);
+  D(p, cx, b - 15 - bob, C.ivoryS);
+  D(p, cx - 2, b - 20 - bob, C.wh1); D(p, cx + 1, b - 20 - bob, C.wh1);
+  // boutonnière
+  D(p, cx + 3, b - 19 - bob, C.pk2); D(p, cx + 3, b - 18 - bob, C.gr1);
+}
 
-  // chandeliers hang between us and the floor, so they go last
-  for (const ch2 of W_CHANDELIERS) {
-    const gx = (ch2.col + 0.5) * TW;
-    const gy = (ch2.row + 0.5) * TH - (ch2.big ? 1.9 : 1.5) * WT * S;
-    const tw2 = 0.88 + 0.12 * Math.sin(W.t / 640 + ch2.col * 1.7 + ch2.row);
-    const R = (ch2.big ? 0.62 : 0.42) * TW;
-    g.strokeStyle = 'rgba(210,190,150,0.30)'; g.lineWidth = Math.max(1, S * 0.8);
-    g.beginPath(); g.moveTo(gx, gy - R * 1.2); g.lineTo(gx, gy - R * 4.5); g.stroke();
-    for (const [ring, cnt, al, dy] of [[1, 10, 0.45, 0.9], [0.66, 7, 0.7, 0.5], [0.34, 5, 0.95, 0.2]]) {
-      for (let k = 0; k < cnt; k++) {
-        const ang = k / cnt * TAU + ring * 3 + ch2.row;
-        const dx2 = gx + Math.cos(ang) * R * ring;
-        const dy2 = gy + Math.sin(ang) * R * ring * 0.5 + R * dy;
-        g.fillStyle = `rgba(255,250,232,${al * tw2})`;
-        g.beginPath(); g.arc(dx2, dy2, R * 0.075, 0, TAU); g.fill();
-        g.strokeStyle = `rgba(255,244,210,${0.25 * al * tw2})`; g.lineWidth = Math.max(1, S * 0.5);
-        g.beginPath(); g.moveTo(dx2, dy2 - R * 0.3); g.lineTo(dx2, dy2); g.stroke();
+/* ══════════════════════════════════════════════════════════
+   PROPS
+══════════════════════════════════════════════════════════ */
+
+/* a cluster of blooms, used for every arrangement in the hall */
+function pxFlowers(p, cx, by, rw, rh, seed, pink) {
+  const g = mulberry(seed);
+  for (let k = 0; k < rw * rh * 0.5; k++) {
+    const a = g() * TAU, rr = Math.sqrt(g());
+    const x = cx + Math.cos(a) * rw * rr, y = by - rh * 0.5 + Math.sin(a) * rh * rr;
+    D(p, Math.round(x), Math.round(y), g() > 0.5 ? C.gr2 : C.gr3);
+  }
+  for (let k = 0; k < rw * rh * 0.32; k++) {
+    const a = g() * TAU, rr = Math.sqrt(g()) * 0.94;
+    const x = cx + Math.cos(a) * rw * rr, y = by - rh * 0.5 + Math.sin(a) * rh * rr;
+    const u = g();
+    const col = pink
+      ? (u > 0.74 ? C.wh1 : u > 0.48 ? C.pk1 : u > 0.22 ? C.pk2 : C.pk3)
+      : (u > 0.6 ? C.wh1 : u > 0.3 ? C.wh2 : C.cr1);
+    BLOB(p, Math.round(x), Math.round(y), 1.5, 1.4, col);
+    D(p, Math.round(x), Math.round(y) - 1, u > 0.74 ? C.wh1 : C.pk1);
+  }
+  // trailing greenery
+  for (let k = 0; k < rw * 0.6; k++) {
+    const x = cx - rw + g() * rw * 2;
+    const len = 2 + g() * rh * 0.7;
+    for (let j = 0; j < len; j++) D(p, Math.round(x + Math.sin(j * 0.7) * 1.5), Math.round(by + j - 1), C.gr3);
+  }
+}
+
+/* the long banquet tables running the length of the aisle */
+function texLongTable(rows) {
+  const w = 34, h = rows * AH + 16;
+  return TEX('lt' + rows, w, h, p => {
+    const cx = 17, top = 8, bot = h - 6;
+    ELL(p, cx, bot + 2, 14, 4, '#00000040');
+    R(p, cx - 11, top, 22, bot - top, C.blkD);          // floor-length black cloth
+    SPEC(p, cx - 11, top, 22, bot - top, C.blk, 0.2, rows * 3 + 1);
+    R(p, cx - 11, top, 22, 2, C.blkL);                  // the lit far edge
+    R(p, cx + 8, top, 3, bot - top, '#0e0d13');         // the near edge falls away
+    R(p, cx - 11, top, 2, bot - top, C.blk);
+    R(p, cx - 5, top + 2, 11, bot - top - 4, C.ivoryL); // cream runner down the middle
+    R(p, cx - 5, top + 2, 1, bot - top - 4, C.wh1);
+    R(p, cx + 5, top + 2, 1, bot - top - 4, C.ivoryD);
+    const g = mulberry(rows * 71 + 5);
+    let k = 0;
+    for (let y = top + 8; y < bot - 8; y += 12, k++) {
+      // charger plate with cutlery laid either side, turned toward the aisle
+      ELL(p, cx + 1, y + 2, 3.4, 2.2, C.gold);
+      ELL(p, cx + 1, y + 2, 2.6, 1.5, C.wh1);
+      D(p, cx + 1, y + 2, C.ivoryS);
+      R(p, cx - 3, y + 1, 1, 3, C.goldL); R(p, cx + 5, y + 1, 1, 3, C.goldL);
+      // two glasses, catching the candlelight
+      R(p, cx - 3, y - 2, 1, 2, C.glass); D(p, cx - 3, y - 3, C.ivoryL);
+      R(p, cx - 1, y - 3, 1, 3, C.glass); D(p, cx - 1, y - 4, C.wh1);
+      // a candlestick or a low bowl of blooms between the settings
+      if (k % 2 === 0) {
+        R(p, cx + 3, y - 8, 1, 5, C.goldL);
+        R(p, cx + 2, y - 3, 3, 1, C.gold);
+        D(p, cx + 3, y - 9, C.flame); D(p, cx + 3, y - 10, C.flameL);
+      } else {
+        pxFlowers(p, cx + 2, y - 3, 5, 4, y * 13 + rows, g() > 0.4);
       }
     }
-    const halo = g.createRadialGradient(gx, gy, 0, gx, gy, R * 1.15);
-    halo.addColorStop(0, `rgba(255,254,248,${0.95 * tw2})`);
-    halo.addColorStop(0.28, `rgba(255,246,214,${0.6 * tw2})`);
-    halo.addColorStop(1, 'rgba(255,228,170,0)');
-    g.fillStyle = halo; g.beginPath(); g.arc(gx, gy, R * 1.15, 0, TAU); g.fill();
+  });
+}
+
+/* round tables out towards the walls */
+function texRoundTable() {
+  return TEX('rt', 60, 48, p => {
+    const cx = 30, cy = 26, rx = 23, ry = 11;
+    ELL(p, cx, cy + 9, 24, 6, '#00000040');
+    // the cloth falls to the floor: a short skirt with soft folds
+    for (let j2 = 8; j2 >= 1; j2--)
+      ELL(p, cx, cy + j2, rx - j2 * 0.35, ry - j2 * 0.28, j2 > 5 ? C.ivoryD : C.ivoryS);
+    for (let a2 = -1; a2 <= 1; a2 += 0.16) {           // folds down the near face
+      const x2 = cx + a2 * rx * 0.94;
+      const y2 = cy + Math.sqrt(Math.max(0, 1 - a2 * a2)) * ry * 0.9;
+      R(p, Math.round(x2), Math.round(y2), 1, 5, C.ivoryD);
+    }
+    ELL(p, cx, cy, rx, ry, C.ivory);                   // the top
+    ELL(p, cx, cy - 1, rx - 1, ry - 1.5, C.ivoryL);
+    // place settings round the rim
+    for (let k = 0; k < 8; k++) {
+      const a = k / 8 * TAU + 0.4;
+      const x = cx + Math.cos(a) * (rx - 5), y = cy + Math.sin(a) * (ry - 3);
+      ELL(p, x, y, 2.8, 1.8, C.gold); ELL(p, x, y, 2, 1.2, C.wh1);
+      D(p, x + 4, y - 1, C.glass); D(p, x + 4, y - 2, C.ivoryL);
+      D(p, x - 4, y, C.goldL);
+    }
+    // centrepiece, lifted on a glass stand
+    R(p, cx - 1, cy - 10, 3, 8, C.glass);
+    R(p, cx - 3, cy - 3, 7, 2, C.glass);
+    pxFlowers(p, cx, cy - 10, 10, 8, 9911, true);
+    for (const [dx, dy] of [[-14, 0], [14, 0]]) {
+      R(p, cx + dx, cy + dy - 7, 1, 7, C.goldL);
+      D(p, cx + dx, cy + dy - 8, C.flame);
+      R(p, cx + dx - 1, cy + dy, 3, 1, C.gold);
+    }
+  });
+}
+
+/* candelabra standing along the flower line */
+function texCandelabra(f) {
+  return TEX('cd' + f, 22, 52, p => {
+    const cx = 11, b = 50;
+    ELL(p, cx, b, 6, 2.4, '#00000040');
+    R(p, cx - 5, b - 3, 11, 3, C.goldD);                // base
+    R(p, cx - 5, b - 3, 11, 1, C.gold);
+    R(p, cx - 3, b - 5, 7, 2, C.gold);
+    R(p, cx - 1, b - 30, 2, 26, C.gold);                // stem
+    R(p, cx - 1, b - 30, 1, 26, C.goldL);
+    R(p, cx - 3, b - 22, 7, 2, C.goldD);                // knop
+    // arms
+    for (const s of [-1, 1]) {
+      for (let j = 0; j < 7; j++) D(p, cx + s * (1 + j), b - 30 - Math.round(Math.sin(j / 6 * 1.6) * 5), C.gold);
+      R(p, cx + s * 7 - 1, b - 36, 3, 1, C.goldD);
+      R(p, cx + s * 7, b - 42, 1, 6, C.ivoryL);         // candle
+      D(p, cx + s * 7, b - 43, f ? C.flameL : C.flame);
+      D(p, cx + s * 7, b - 44, f ? C.flame : C.flameL);
+    }
+    R(p, cx - 1, b - 36, 3, 1, C.goldD);
+    R(p, cx, b - 44, 1, 8, C.ivoryL);
+    D(p, cx, b - 45, f ? C.flame : C.flameL);
+    D(p, cx, b - 46, f ? C.flameL : C.flame);
+    // a spray of blooms cradled at the top
+    pxFlowers(p, cx, b - 32, 7, 5, 3131, true);
+  });
+}
+
+/* the big pillar arrangements at the mouth of the aisle */
+function texEntryFlowers() {
+  return TEX('ef', 36, 60, p => {
+    const cx = 18, b = 58;
+    ELL(p, cx, b, 9, 3, '#00000045');
+    R(p, cx - 6, b - 4, 13, 4, C.marbleD);              // plinth
+    R(p, cx - 6, b - 4, 13, 1, C.marbleL);
+    R(p, cx - 4, b - 26, 9, 22, C.marble);
+    R(p, cx - 4, b - 26, 2, 22, C.marbleL);
+    R(p, cx + 3, b - 26, 2, 22, C.marbleD);
+    R(p, cx - 6, b - 29, 13, 3, C.marbleL);
+    R(p, cx - 6, b - 29, 13, 1, C.ivoryS);
+    pxFlowers(p, cx, b - 30, 14, 12, 7717, true);
+    pxFlowers(p, cx, b - 42, 9, 7, 2233, false);
+  });
+}
+
+/* the flower bank across the front of the dais — symmetric by construction */
+function texStageFlowers() {
+  return TEX('sf', 260, 46, p => {
+    const cx = 130, b = 44;
+    // draw the left half, then mirror it so the two sides match exactly
+    const half = pxc(130, 46);
+    ELL(half, 96, b, 40, 5, '#00000038');
+    for (let x = 0; x < 130; x += 9) {
+      const t = x / 130;
+      const hh = 12 + t * 16;
+      pxFlowers(half, x + 4, b - 1, 7, hh * 0.55, 400 + x, true);
+    }
+    pxFlowers(half, 108, b - 12, 14, 12, 991, false);
+    pxFlowers(half, 76, b - 6, 12, 9, 992, true);
+    pxFlowers(half, 40, b - 3, 11, 7, 993, true);
+    p.g.drawImage(half.c, 0, 0);
+    p.g.save();
+    p.g.translate(260, 0); p.g.scale(-1, 1);
+    p.g.drawImage(half.c, 0, 0);
+    p.g.restore();
+    // the centre, over the aisle mouth
+    pxFlowers(p, cx, b - 2, 13, 11, 994, true);
+    pxFlowers(p, cx, b - 14, 8, 7, 995, false);
+  });
+}
+
+/* the ceremonial backdrop standing behind the dais: a pleated drapery
+   wall under a gold cornice, with a lit arch at its centre */
+function texBackdrop() {
+  return TEX('bd', 330, 82, p => {
+    const w = 330, h = 82, cx = 165, b = h - 1;
+    // drapery, pleat by pleat
+    for (let x = 0; x < w; x += 7) {
+      R(p, x, 6, 5, h - 6, '#3c2c4c');
+      R(p, x, 6, 2, h - 6, '#4d3a60');
+      R(p, x + 5, 6, 2, h - 6, '#2a1e38');
+      if ((x / 7) % 3 === 0) R(p, x + 1, 6, 1, h - 6, '#5c4674');
+    }
+    // gold cornice
+    R(p, 0, 0, w, 5, C.wall);
+    R(p, 0, 2, w, 2, C.gold);
+    R(p, 0, 4, w, 1, C.goldD);
+    R(p, 0, 5, w, 1, C.goldL);
+    // swagged pelmet
+    for (let x = 0; x <= w; x += 30) {
+      for (let k = 0; k <= 30; k++) {
+        const yy = 6 + Math.round(Math.sin(k / 30 * Math.PI) * 7);
+        R(p, x + k, 6, 1, yy - 5, '#5c4674');
+        D(p, x + k, yy, C.gold);
+      }
+      D(p, x, 7, C.goldL); D(p, x, 8, C.goldL);
+    }
+    // the lit arch at the centre
+    const arw = 46, arh = h - 18, spr = arh - arw * 0.8;
+    const half = y => y <= spr ? arw : arw * Math.sqrt(Math.max(0, 1 - Math.pow((y - spr) / (arw * 0.8), 2)));
+    for (let y = 0; y < arh; y++) {
+      const hw = half(y);
+      if (hw < 1) continue;
+      const t = y / arh;
+      R(p, cx - hw, b - y, hw * 2, 1, t > 0.6 ? '#6b5a86' : t > 0.28 ? '#5a4b73' : '#4a3d61');
+    }
+    for (let y = 0; y < arh; y++) {
+      const hw = half(y);
+      if (hw < 1) continue;
+      D(p, Math.round(cx - hw), b - y, C.gold); D(p, Math.round(cx + hw - 1), b - y, C.gold);
+      D(p, Math.round(cx - hw - 1), b - y, C.goldD); D(p, Math.round(cx + hw), b - y, C.goldD);
+    }
+    // a warm glow spilling out of the opening
+    for (let y = 2; y < arh - 4; y += 1) {
+      const hw = half(y) - 4;
+      if (hw < 2) continue;
+      const a = 1 - y / arh;
+      if (a > 0.45) R(p, cx - hw, b - y, hw * 2, 1, '#7b6a96');
+    }
+    // fairy lights and blooms round the opening
+    for (let y = 3; y < arh - 2; y += 4) {
+      const hw = half(y) - 3;
+      if (hw < 1) continue;
+      D(p, Math.round(cx - hw), b - y, C.goldL); D(p, Math.round(cx + hw), b - y, C.goldL);
+    }
+    for (const s of [-1, 1]) {
+      pxFlowers(p, cx + s * (arw + 4), b - 2, 11, 9, 4400 + s, true);
+      pxFlowers(p, cx + s * (arw - 2), b - arh + 8, 8, 7, 4500 + s, false);
+      pxFlowers(p, cx + s * 118, b - 2, 13, 11, 4600 + s, true);
+    }
+    // uplights washing the drapery — brightest at the floor, fading up
+    for (const x of [40, 100, 230, 290]) {
+      for (let y = 0; y < 30; y++) {
+        const hw = Math.round(3 + y * 0.32), t = y / 30;
+        const col = t < 0.3 ? '#61507e' : t < 0.6 ? '#54456c' : '#48395e';
+        if (t < 0.72) R(p, x - hw, b - 4 - y, hw * 2, 1, col);
+        else SPEC(p, x - hw, b - 4 - y, hw * 2, 1, col, 1 - (t - 0.72) * 3.4, x * 7 + y);
+      }
+      R(p, x - 2, b - 4, 5, 4, '#241c2e');       // the lamp itself
+      R(p, x - 2, b - 4, 5, 1, C.goldD);
+      D(p, x, b - 5, C.goldL);
+    }
+  });
+}
+
+/* 주례단상 — the officiant's podium on the dais */
+function texPodium() {
+  return TEX('pd', 30, 44, p => {
+    const cx = 15, b = 42;
+    ELL(p, cx, b, 9, 3, '#00000040');
+    R(p, cx - 8, b - 5, 17, 5, C.woodD ? '#3a2a20' : C.wood);
+    R(p, cx - 6, b - 24, 13, 20, C.wood);
+    R(p, cx - 6, b - 24, 3, 20, C.woodL);
+    R(p, cx + 4, b - 24, 3, 20, '#4c3527');
+    R(p, cx - 5, b - 20, 11, 12, '#5b402f');
+    R(p, cx - 4, b - 19, 9, 10, C.woodL);
+    R(p, cx - 8, b - 27, 17, 3, C.wood);                // slanted top
+    R(p, cx - 8, b - 27, 17, 1, C.woodL);
+    R(p, cx - 8, b - 28, 17, 1, C.goldD);
+    R(p, cx - 5, b - 30, 11, 2, C.ivoryL);              // an open book
+    R(p, cx, b - 30, 1, 2, C.ivoryD);
+    pxFlowers(p, cx + 7, b - 26, 5, 4, 1717, true);
+    D(p, cx - 7, b - 29, C.gold);
+  });
+}
+
+/* 사회자 단상 — the MC's lectern, off to the side */
+function texMcStand() {
+  return TEX('mc', 24, 38, p => {
+    const cx = 12, b = 36;
+    ELL(p, cx, b, 7, 2.4, '#00000040');
+    R(p, cx - 5, b - 3, 11, 3, '#2b2130');
+    R(p, cx - 4, b - 20, 9, 17, C.marble);
+    R(p, cx - 4, b - 20, 2, 17, C.marbleL);
+    R(p, cx + 3, b - 20, 2, 17, C.marbleD);
+    R(p, cx - 5, b - 23, 11, 3, C.marbleL);
+    R(p, cx - 5, b - 24, 11, 1, C.gold);
+    R(p, cx - 1, b - 30, 1, 7, '#3a3a44');              // microphone
+    BLOB(p, cx - 1, b - 31, 1.6, 1.6, '#55555f');
+    pxFlowers(p, cx, b - 22, 5, 4, 818, true);
+  });
+}
+
+/* the entrance arch at the foot of the aisle */
+function texGate() {
+  return TEX('gt', 180, 70, p => {
+    const cx = 90, b = 68;
+    const arw = 52, arh = 54;
+    for (const s of [-1, 1]) {
+      R(p, cx + s * 46 - 4, b - 40, 9, 40, C.marble);
+      R(p, cx + s * 46 - 4, b - 40, 3, 40, C.marbleL);
+      R(p, cx + s * 46 + 2, b - 40, 3, 40, C.marbleD);
+      R(p, cx + s * 46 - 6, b - 3, 13, 3, C.marbleD);
+      R(p, cx + s * 46 - 6, b - 43, 13, 3, C.marbleL);
+    }
+    // the arch
+    for (let a = 0; a <= 180; a += 1) {
+      const rad = a * Math.PI / 180;
+      const x = cx - Math.cos(rad) * arw, y = b - 40 - Math.sin(rad) * 22;
+      R(p, x - 1, y - 3, 3, 4, C.marble);
+      D(p, x, y - 3, C.marbleL);
+    }
+    // greenery and blooms wound over it
+    for (let a = 0; a <= 180; a += 5) {
+      const rad = a * Math.PI / 180;
+      const x = cx - Math.cos(rad) * arw, y = b - 41 - Math.sin(rad) * 22;
+      pxFlowers(p, x, y + 2, 4, 4, a * 37 + 3, a % 15 === 0);
+    }
+    for (const s of [-1, 1]) {
+      pxFlowers(p, cx + s * 46, b - 42, 8, 7, s * 51 + 900, true);
+      pxFlowers(p, cx + s * 46, b - 6, 7, 6, s * 61 + 901, true);
+    }
+  });
+}
+
+/* a memory stand: the framed photo waiting beside the aisle */
+function texStand(ep, lit) {
+  return TEX('st' + ep + lit, 32, 56, p => {
+    const cx = 16, b = 54;
+    ELL(p, cx, b, 8, 2.6, '#00000042');
+    // easel legs
+    R(p, cx - 7, b - 24, 2, 24, C.goldD);
+    R(p, cx + 5, b - 24, 2, 24, C.goldD);
+    R(p, cx - 7, b - 24, 1, 24, C.gold);
+    R(p, cx - 6, b - 12, 12, 1, C.gold);
+    // frame
+    R(p, cx - 11, b - 46, 23, 24, C.goldD);
+    R(p, cx - 10, b - 45, 21, 22, C.gold);
+    // a photograph of the two of them, dimmed until it is her turn to see it
+    const bgc = lit ? '#5b4f78' : '#3b3350', flr = lit ? '#6d5f8c' : '#463c5e';
+    R(p, cx - 9, b - 44, 19, 20, bgc);
+    R(p, cx - 9, b - 30, 19, 6, flr);
+    for (let k = 0; k < 14; k++) D(p, cx - 9 + (k * 7 % 19), b - 43 + (k * 5 % 13), lit ? '#7f70a2' : '#544a6e');
+    const sk1 = lit ? '#f6d3b2' : '#b9a292', sk2 = lit ? '#e0b28c' : '#a89283';
+    BLOB(p, cx - 3, b - 35, 2.4, 2.6, sk1); BLOB(p, cx + 3, b - 35, 2.4, 2.6, sk2);
+    R(p, cx - 4, b - 34, 1, 3, lit ? '#2a1c18' : '#3a3040');
+    R(p, cx + 2, b - 34, 3, 2, lit ? '#2a1c18' : '#3a3040');
+    R(p, cx - 5, b - 31, 5, 8, lit ? '#d76a94' : '#7a6280');
+    R(p, cx + 1, b - 31, 5, 8, lit ? '#3f5f8a' : '#4d566e');
+    R(p, cx - 10, b - 45, 21, 1, C.goldL);
+    // number plaque
+    R(p, cx - 4, b - 22, 9, 4, C.goldD);
+    R(p, cx - 4, b - 22, 9, 1, C.goldL);
+    R(p, cx - 2, b - 21, 1, 2, lit ? C.wh1 : C.ivoryD);
+    for (let k = 0; k < ep; k++) D(p, cx - 2 + k * 2 + 2, b - 20, lit ? C.wh1 : C.ivoryD);
+    pxFlowers(p, cx, b - 2, 9, 7, ep * 313 + 5, true);
+  });
+}
+
+/* chandeliers hung the length of the hall */
+function texChandelier(big) {
+  const w = big ? 28 : 20, h = big ? 30 : 22;
+  return TEX('ch' + big, w, h, p => {
+    const cx = w >> 1, ty = 0;
+    const R0 = big ? 11 : 8;
+    R(p, cx, 0, 1, big ? 8 : 6, C.goldD);               // chain
+    const top = big ? 8 : 6;
+    R(p, cx - 3, top, 7, 2, C.gold);
+    // tiers of arms
+    const tiers = big ? [[R0, 6], [R0 * 0.55, 4]] : [[R0, 5]];
+    let yy = top + 3;
+    for (const [rad, n] of tiers) {
+      for (let x = -rad; x <= rad; x++) {
+        const y = yy + Math.round(Math.sqrt(Math.max(0, 1 - (x / rad) * (x / rad))) * 2);
+        D(p, cx + x, y, C.gold);
+        D(p, cx + x, y + 1, C.goldD);
+      }
+      for (let k = 0; k < n; k++) {
+        const x = cx - rad + Math.round(k / (n - 1) * rad * 2);
+        R(p, x, yy - 4, 1, 4, C.ivoryL);                // candle
+        D(p, x, yy - 5, C.flame);
+        R(p, x, yy + 3, 1, 2, C.goldL);                 // crystal drop
+        D(p, x, yy + 5, C.glass);
+      }
+      yy += big ? 8 : 7;
+    }
+    R(p, cx - 1, top + 2, 3, big ? 14 : 9, C.gold);     // central body
+    R(p, cx - 1, top + 2, 1, big ? 14 : 9, C.goldL);
+    BLOB(p, cx, yy - 1, 3, 3, C.goldL);
+    D(p, cx, yy + 2, C.glass);
+  });
+}
+
+/* a soft pool of light — the only smooth texture in the hall */
+function texGlow() {
+  return TEXS('glow', 96, 96, p => {
+    const gr = p.g.createRadialGradient(48, 48, 0, 48, 48, 48);
+    gr.addColorStop(0, 'rgba(255,238,200,1)');
+    gr.addColorStop(0.35, 'rgba(255,224,164,0.42)');
+    gr.addColorStop(1, 'rgba(255,214,150,0)');
+    p.g.fillStyle = gr; p.g.fillRect(0, 0, 96, 96);
+  });
+}
+function texVignette() {
+  return TEXS('vig', 128, 128, p => {
+    const gr = p.g.createRadialGradient(64, 64, 18, 64, 64, 78);
+    gr.addColorStop(0, 'rgba(0,0,0,0)');
+    gr.addColorStop(0.62, 'rgba(0,0,0,0.20)');
+    gr.addColorStop(1, 'rgba(0,0,0,0.62)');
+    p.g.fillStyle = gr; p.g.fillRect(0, 0, 128, 128);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   THE CAST — every guest is generated from one seed, so the
+   hall is full of different people but nobody is random twice.
+══════════════════════════════════════════════════════════ */
+const GUEST_KINDS = 18;
+function guestSpec(kind) {
+  const g = mulberry(kind * 1103515245 + 12345);
+  const male = g() > 0.46;
+  const skin = SKIN[(g() * SKIN.length) | 0];
+  const hair = HAIR[(g() * HAIR.length) | 0];
+  const o = { skin, hair, blush: g() > 0.55 ? 1 : 0 };
+  if (male) {
+    o.wear = SUITS[(g() * SUITS.length) | 0];
+    o.trouser = [o.wear[0], o.wear[1]];
+    o.jacket = 1;
+    o.tie = [C.pk3, '#4a5f8a', '#7a5a3a', C.ivoryS, '#5b4c86'][(g() * 5) | 0];
+    o.pocket = g() > 0.6 ? 1 : 0;
+    o.hairStyle = g() > 0.3 ? 4 : 2;
+  } else {
+    o.wear = DRESSY[(g() * DRESSY.length) | 0];
+    o.trouser = [o.wear[0], o.wear[1]];
+    o.skirt = 1;
+    o.neckline = 1;
+    o.necklace = g() > 0.4 ? 1 : 0;
+    o.sleeve = g() > 0.5;
+    o.hairStyle = [0, 1, 1, 3, 2][(g() * 5) | 0];
+  }
+  return o;
+}
+/* one texture per (person, facing, pose) — cached, so the whole
+   congregation costs a few hundred kilobytes of tiny bitmaps */
+function texGuest(kind, view, seated, arms) {
+  return TEX(`g${kind}${view}${seated}${arms}`, 20, 32, p => {
+    const o = Object.assign({}, guestSpec(kind), { view, arms });
+    if (seated) { if (view === 'side') pxSeatedSide(p, 10, 30, o); else pxSeatedFront(p, 10, 30, o); }
+    else        { if (view === 'side') pxPersonSide(p, 10, 30, o); else pxPerson(p, 10, 30, o); }
+  });
+}
+
+/* 혼주 — the parents, seated at the front facing the aisle */
+function texParent(who, arms, v) {
+  return TEX(`pa${who}${arms}${v}`, 22, 34, p => {
+    const father = who === 'father';
+    const chair = ['#c9a24a', '#e8cd85', '#8a6a34'], chairPad = '#7d3f60';
+    // 한복: a short 저고리 over a full 치마, the skirt filling the lap
+    const hb = v ? ['#e9f2ec', '#cddcd4', '#ffffff', '#6d2f5e', '#4e1f44', '#8f4a7e']
+                 : ['#f4ece0', '#dcd0bd', '#fffaf2', '#8a2f46', '#651f32', '#b04d63'];
+    const o = father
+      ? { skin: SKIN[2], hair: HAIR[2], hairStyle: 4, view: 'side', arms,
+          wear: ['#232130', '#14131c', '#35323f'], trouser: ['#232130', '#14131c'],
+          jacket: 1, tie: v ? C.ivoryS : '#8a2f46', pocket: 1, chair, chairPad }
+      : { skin: SKIN[1], hair: HAIR[0], hairStyle: 0, view: 'side', arms,
+          wear: [hb[0], hb[1], hb[2]], trouser: [hb[3], hb[4]],
+          skirt: 1, lap: hb[3], lapD: hb[4], lapL: hb[5],
+          neckline: 1, necklace: 1, sash: hb[5], hanbok: 1, chair, chairPad };
+    pxSeatedSide(p, 11, 32, o);
+  });
+}
+
+function texBride(dir, step) {
+  return TEX(`br${dir}${step}`, 44, 56, p => pxBride(p, 22, 40, dir, step));
+}
+
+/* ══════════════════════════════════════════════════════════
+   SCENE
+══════════════════════════════════════════════════════════ */
+let PX = null;
+
+function wBuildScene() {
+  const app = PX.app;
+  const cam = PX.cam = new PIXI.Container();
+  app.stage.addChild(cam);
+
+  /* backdrop — wall and floor, one baked texture */
+  const bt = PIXI.Texture.from(bakeBackdrop());
+  bt.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+  const bg = new PIXI.Sprite(bt);
+  bg.y = -WALLA;
+  cam.addChild(bg);
+
+  /* pools of light on the floor, under the fixtures */
+  const glowL = PX.glowL = new PIXI.Container();
+  glowL.blendMode = PIXI.BLEND_MODES.ADD;
+  cam.addChild(glowL);
+
+  /* everything that stands on the floor, sorted back to front */
+  const props = PX.props = new PIXI.Container();
+  props.sortableChildren = true;
+  cam.addChild(props);
+
+  /* the chandeliers hang between us and the floor */
+  const ceil = PX.ceil = new PIXI.Container();
+  cam.addChild(ceil);
+
+  const add = (layer, tex, ax, ay, z, baseFrac) => {
+    const s = new PIXI.Sprite(tex);
+    s.anchor.set(0.5, baseFrac === undefined ? 1 : baseFrac);
+    s.x = Math.round(ax); s.y = Math.round(ay); s.zIndex = z;
+    layer.addChild(s);
+    return s;
+  };
+  const T = (col, row) => [(col + 0.5) * AW, (row + 0.5) * AH];
+
+  /* ── the dais: warm light washes the platform, so the end of the
+       aisle is the brightest thing in the hall ── */
+  const spot = new PIXI.Sprite(texGlow());
+  spot.anchor.set(0.5); spot.x = (AISLE_MID + 0.5) * AW; spot.y = 5 * AH;
+  spot.width = 320; spot.height = 150; spot.alpha = 0.5; spot.tint = 0xffe6bc;
+  PX.glowL.addChild(spot);
+  const spot2 = new PIXI.Sprite(texGlow());
+  spot2.anchor.set(0.5); spot2.x = spot.x; spot2.y = 4.5 * AH;
+  spot2.width = 150; spot2.height = 96; spot2.alpha = 0.42; spot2.tint = 0xfff0d4;
+  PX.glowL.addChild(spot2);
+
+  const daisY = 8 * AH - 8;
+  add(props, texBackdrop(), (AISLE_MID + 0.5) * AW, 3 * AH + 4, -60);
+  add(props, texStageFlowers(), (AISLE_MID + 0.5) * AW, daisY + 4, -40);
+  add(props, texPodium(), ...(() => { const [x, y] = T(12, 6); return [x, y, y]; })());
+  add(props, texMcStand(), ...(() => { const [x, y] = T(17.4, 6.4); return [x, y, y]; })());
+
+  /* ── banquet tables ── */
+  for (const lt of W_LONG_TABLES) {
+    const rows = lt.row1 - lt.row0 + 1;
+    const t = texLongTable(rows);
+    const s = add(props, t, (lt.col + 0.5) * AW, (lt.row1 + 1) * AH + 6, -30);
+  }
+  /* ── round tables ── */
+  for (const tb of W_TABLES) {
+    const [x, y] = T(tb.col, tb.row);
+    add(props, texRoundTable(), x, y + 18, y + 11);
   }
 
-  g.restore();
+  /* ── the congregation ── */
+  PX.guests = [];
+  const seatGuest = (ax, ay, faceRight, seated, kind, seed) => {
+    const g = mulberry(seed);
+    const beh = g();
+    const gu = {
+      kind, seated, view: 'side', flip: !faceRight,
+      beh: beh > 0.62 ? 'clap' : beh > 0.3 ? 'clasp' : 'rest',
+      phase: (g() * 6000) | 0, period: 4200 + ((g() * 3600) | 0), frame: -1,
+    };
+    const sp = add(props, texGuest(kind, 'side', seated ? 1 : 0, 0), ax, ay, ay + 0.4);
+    sp.scale.x = faceRight ? 1 : -1;
+    gu.sp = sp; gu.ax = ax; gu.ay = ay;
+    PX.guests.push(gu);
+    return gu;
+  };
 
-  const grade = g.createLinearGradient(0, 0, 0, chh);
-  grade.addColorStop(0, 'rgba(255,214,150,0.07)');
-  grade.addColorStop(0.5, 'rgba(255,226,180,0.03)');
-  grade.addColorStop(1, 'rgba(80,70,140,0.09)');
-  g.fillStyle = grade; g.fillRect(0, 0, cw, chh);
+  let gseed = 7;
+  for (const lt of W_LONG_TABLES) {
+    const cx = (lt.col + 0.5) * AW;
+    const ax = cx + (lt.side < 0 ? 17 : -17);
+    for (let r = lt.row0 + 0.6; r <= lt.row1; r += 2) {
+      seatGuest(ax, (r + 0.5) * AH, lt.side < 0, true, (gseed * 7) % GUEST_KINDS, gseed++);
+    }
+  }
+  for (const tb of W_TABLES) {
+    const [cx, cy] = T(tb.col, tb.row);
+    const toAisle = tb.col < AISLE_MID;
+    for (let k = 0; k < 6; k++) {
+      const a = k / 6 * TAU + 0.52;
+      seatGuest(cx + Math.cos(a) * 21, cy + Math.sin(a) * 15,
+                toAisle, true, (gseed * 5 + 3) % GUEST_KINDS, gseed++);
+    }
+  }
 
-  const vig = g.createRadialGradient(cw / 2, chh * 0.46, Math.min(cw, chh) * 0.24,
-                                     cw / 2, chh * 0.46, Math.max(cw, chh) * 0.8);
-  vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(0,0,0,0.46)');
-  g.fillStyle = vig;
-  g.fillRect(0, 0, cw, chh);
+  /* ── 혼주석 ── */
+  PX.parents = [];
+  W_PARENTS.forEach((pr, i) => {
+    const [x, y] = T(pr.col, pr.row);
+    const right = pr.col < AISLE_MID;
+    const v = i < 2 ? 0 : 1;
+    const sp = add(props, texParent(pr.who, 0, v), x, y + 6, y + 6);
+    sp.scale.x = right ? 1 : -1;
+    PX.parents.push({ sp, who: pr.who, v, phase: i * 1700 + 400 });
+  });
+
+  /* ── candelabra ── */
+  PX.candles = [];
+  for (const cd of W_CANDELABRA) {
+    const [x, y] = T(cd.col, cd.row);
+    PX.candles.push(add(props, texCandelabra(0), x, y + 4, y + 4));
+  }
+
+  /* ── the entrance ── */
+  for (const fl of W_ENTRY_FLOWERS) {
+    const [x, y] = T(fl.col, fl.row);
+    add(props, texEntryFlowers(), x, y + 4, y + 4);
+  }
+  add(props, texGate(), (AISLE_MID + 0.5) * AW, 45 * AH + 4, 45 * AH + 4);
+
+  /* ── memory stands and the groom ── */
+  PX.stands = [];
+  for (const pl of W_PLACES) {
+    const y = (pl.row + 0.5) * AH;
+    if (pl.groom) {
+      const sp = add(props, TEX('groom', 24, 34, p => pxGroom(p, 12, 32, 0)),
+                     (AISLE_MID + 0.5) * AW, y + 6, y + 6);
+      PX.groom = sp;
+      continue;
+    }
+    const x = (pl.side < 0 ? AISLE_L - 0.5 : AISLE_R + 1.5) * AW;
+    const sp = add(props, texStand(pl.ep + 1, 0), x, y + 6, y + 6);
+    const gl = new PIXI.Sprite(texGlow());
+    gl.anchor.set(0.5); gl.x = x; gl.y = y; gl.width = 74; gl.height = 42; gl.alpha = 0;
+    gl.tint = 0xffd8a0;
+    PX.glowL.addChild(gl);
+    PX.stands.push({ pl, sp, gl });
+  }
+
+  /* ── chandeliers ── */
+  PX.chandeliers = [];
+  for (const ch2 of W_CHANDELIERS) {
+    const [x, y] = T(ch2.col, ch2.row);
+    const hang = ch2.big ? 52 : 42;
+    const sp = new PIXI.Sprite(texChandelier(ch2.big ? 1 : 0));
+    sp.anchor.set(0.5, 1); sp.x = Math.round(x); sp.y = Math.round(y - hang);
+    PX.ceil.addChild(sp);
+    const halo = new PIXI.Sprite(texGlow());
+    halo.anchor.set(0.5); halo.x = sp.x; halo.y = sp.y - (ch2.big ? 12 : 8);
+    halo.width = ch2.big ? 54 : 38; halo.height = ch2.big ? 54 : 38;
+    halo.blendMode = PIXI.BLEND_MODES.ADD; halo.alpha = 0.3;
+    PX.ceil.addChild(halo);
+    const pool = new PIXI.Sprite(texGlow());
+    pool.anchor.set(0.5); pool.x = sp.x; pool.y = y;
+    pool.width = ch2.big ? 220 : 150; pool.height = ch2.big ? 136 : 92;
+    pool.alpha = ch2.big ? 0.22 : 0.14; pool.tint = 0xffe0b0;
+    PX.glowL.addChild(pool);
+    PX.chandeliers.push({ sp, halo, pool, big: ch2.big, phase: x * 3 + y });
+  }
+
+  /* ── the bride ── */
+  const br = PX.bride = new PIXI.Sprite(texBride('down', 0));
+  br.anchor.set(0.5, 40 / 56);
+  PX.props.addChild(br);
+
+  /* ── grade and vignette, over everything ── */
+  const grade = PX.grade = new PIXI.Sprite(TEXS('grade', 4, 64, p => {
+    const gr = p.g.createLinearGradient(0, 0, 0, 64);
+    gr.addColorStop(0, 'rgba(255,206,140,0.13)');
+    gr.addColorStop(0.45, 'rgba(255,224,182,0.05)');
+    gr.addColorStop(1, 'rgba(64,56,124,0.16)');
+    p.g.fillStyle = gr; p.g.fillRect(0, 0, 4, 64);
+  }));
+  app.stage.addChild(grade);
+  const vig = PX.vig = new PIXI.Sprite(texVignette());
+  app.stage.addChild(vig);
 }
+
+function wInitPixi() {
+  const view = $('world-canvas');
+  const app = new PIXI.Application({
+    view, width: 640, height: 360, resolution: 1, autoDensity: false,
+    antialias: false, autoStart: false, backgroundColor: 0x0a0810,
+    powerPreference: 'high-performance',
+  });
+  app.ticker.stop();
+  PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
+  PX = { app, Z: 0, bw: 0, bh: 0 };
+  wBuildScene();
+}
+
+/* ══════════════════════════════════════════════════════════
+   FRAME
+══════════════════════════════════════════════════════════ */
+function wRender() {
+  if (!PX) {
+    if (typeof PIXI === 'undefined') return;
+    wInitPixi();
+  }
+  const app = PX.app, view = app.view;
+  const cw = view.clientWidth || window.innerWidth;
+  const chh = view.clientHeight || window.innerHeight;
+  // Pixel art is already upscaled, so a third device pixel per art pixel
+  // buys almost nothing and costs half the fill rate.
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const bw = Math.round(cw * dpr), bh = Math.round(chh * dpr);
+  if (bw !== PX.bw || bh !== PX.bh) {
+    // The backing store is sized in device pixels while CSS keeps the
+    // element at 100% — that way one art pixel covers a whole number of
+    // device pixels and nothing lands on a half-pixel.
+    PX.bw = bw; PX.bh = bh;
+    app.renderer.resize(bw, bh);
+    PX.Z = 0;
+  }
+  // integer scale, so every art pixel lands on a whole block of device pixels
+  const Z = Math.max(2, Math.min(9, Math.round(Math.min(bw, bh) / 285)));
+  if (Z !== PX.Z) {
+    PX.Z = Z;
+    PX.cam.scale.set(Z);
+    PX.grade.width = bw; PX.grade.height = bh;
+    PX.vig.width = bw; PX.vig.height = bh;
+  }
+  W.scale = Z;
+
+  /* camera, in art pixels */
+  const vw = bw / Z, vh = bh / Z;
+  const ax = w2ax(W.x), ay = w2ay(W.y);
+  let camX = ax - vw / 2, camY = ay - vh * 0.56;
+  camX = MAPW <= vw ? (MAPW - vw) / 2 : Math.max(0, Math.min(MAPW - vw, camX));
+  camY = MAPH <= vh ? (MAPH - vh) / 2 : Math.max(-WALLA, Math.min(MAPH - vh, camY));
+  PX.cam.x = -Math.round(camX * Z);
+  PX.cam.y = -Math.round(camY * Z);
+
+  const vx0 = camX - 40, vx1 = camX + vw + 40, vy0 = camY - 70, vy1 = camY + vh + 40;
+  const seen = s => s.x > vx0 && s.x < vx1 && s.y > vy0 - 60 && s.y < vy1 + 40;
+
+  /* the congregation: some applaud, some keep their hands folded */
+  const t = W.t;
+  for (const gu of PX.guests) {
+    const vis = seen(gu.sp);
+    gu.sp.visible = vis;
+    if (!vis) continue;
+    let arms = 0;
+    if (gu.beh === 'clasp') arms = 2;
+    else if (gu.beh === 'clap') {
+      const c = (t + gu.phase) % gu.period;
+      arms = (c < 1150 && (c % 290) < 150) ? 1 : 0;
+    }
+    if (arms !== gu.frame) {
+      gu.frame = arms;
+      gu.sp.texture = texGuest(gu.kind, 'side', gu.seated ? 1 : 0, arms);
+    }
+  }
+  for (const pa of PX.parents) {
+    const c = (t + pa.phase) % 7400;
+    const arms = c < 900 && (c % 300) < 160 ? 1 : 2;
+    if (arms !== pa.frame) { pa.frame = arms; pa.sp.texture = texParent(pa.who, arms, pa.v); }
+  }
+
+  /* candle flicker */
+  const flick = ((t / 105) | 0) & 1;
+  if (flick !== PX.flick) {
+    PX.flick = flick;
+    const tx = texCandelabra(flick);
+    for (const s of PX.candles) s.texture = tx;
+  }
+
+  /* Chandeliers breathe — and step out of the way. They hang between us
+     and the aisle, so any fixture the bride is walking under fades back
+     until she is never hidden behind one. */
+  const bax = w2ax(W.x), bay = w2ay(W.y);
+  for (const ch2 of PX.chandeliers) {
+    const tw = 0.86 + 0.14 * Math.sin(t / 620 + ch2.phase);
+    const near = Math.abs(ch2.sp.x - bax) < 34 &&
+                 bay > ch2.sp.y - ch2.sp.height - 6 && bay < ch2.sp.y + 40;
+    const want = near ? 0 : 1;
+    ch2.fade = ch2.fade === undefined ? want : ch2.fade + (want - ch2.fade) * 0.12;
+    ch2.sp.alpha = 0.16 + 0.84 * ch2.fade;
+    ch2.halo.alpha = (ch2.big ? 0.26 : 0.2) * tw * ch2.fade;
+    ch2.pool.alpha = (ch2.big ? 0.22 : 0.14) * tw;
+  }
+
+  /* the next memory glows until she has seen it */
+  for (const st of PX.stands) {
+    const done = W.visited.has(st.pl.ep);
+    const lock = wLocked(st.pl);
+    const lit = !done && !lock;
+    if (lit !== st.lit) {
+      st.lit = lit;
+      st.sp.texture = texStand(st.pl.ep + 1, lit ? 1 : 0);
+    }
+    st.gl.alpha = lit ? 0.34 + 0.16 * Math.sin(t / 460) : 0;
+  }
+  if (PX.groom) {
+    const ready = W.visited.size >= 4;
+    PX.groom.y = Math.round((5 + 0.5) * AH + 6 - (ready ? (Math.sin(t / 420) > 0 ? 1 : 0) : 0));
+  }
+
+  /* the bride */
+  const br = PX.bride;
+  const dir = W.dir === 'up' ? 'up' : W.dir === 'down' ? 'down' : 'side';
+  const step = W.moving ? (W.step || 1) : 0;
+  if (dir !== PX.bdir || step !== PX.bstep) {
+    PX.bdir = dir; PX.bstep = step;
+    br.texture = texBride(dir, step);
+  }
+  br.scale.x = W.dir === 'left' ? -1 : 1;
+  br.x = Math.round(ax);
+  br.y = Math.round(ay) + (W.moving && step === 2 ? -1 : 0);
+  br.zIndex = ay + 1;
+
+  app.renderer.render(app.stage);
+}
+
 
 function wCanMove(nx, ny) {
   const pts = [[nx - 9, ny - 5], [nx + 9, ny - 5], [nx - 9, ny], [nx + 9, ny]];

@@ -9,7 +9,7 @@
       ]
     },
     {
-      "source": "/(photos|videos)/(.*)",
+      "source": "/(photos|videos|vendor)/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]

@@ -27,6 +27,11 @@ for f in $(find videos -name '*.mov'); do
     --cache-control "public,max-age=31536000,immutable" >/dev/null
 done
 
+# PixiJS is pinned to one version, so it can be cached just as long.
+echo "==> uploading vendor libraries"
+aws s3 sync vendor "s3://$BUCKET/vendor" \
+  --region "$REGION" --cache-control "public,max-age=31536000,immutable" --size-only
+
 # The page itself must never be cached, or edits won't show up.
 echo "==> uploading index.html"
 aws s3 cp index.html "s3://$BUCKET/index.html" \

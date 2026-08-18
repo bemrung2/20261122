@@ -1,6 +1,8 @@
 # S3 배포
 
-빌드 과정이 없습니다. `index.html` 하나와 그 안에서 불러오는 `photos/`, `videos/`가 전부입니다.
+빌드 과정이 없습니다. `index.html` 하나와 그 안에서 불러오는 `photos/`, `videos/`,
+그리고 픽셀 월드를 그리는 `vendor/pixi.min.js`(PixiJS 7, MIT)가 전부입니다.
+번들러도, `npm install`도 필요 없습니다 — 파일 4개를 그대로 올리면 됩니다.
 
 ## 1. 버킷 만들기 + 정적 호스팅 켜기
 
