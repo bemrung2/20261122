@@ -3044,7 +3044,7 @@ const WORLD_MAP = (() => {
   box(0, 1, 0, W_COLS - 1, '#'); box(W_ROWS - 1, W_ROWS - 1, 0, W_COLS - 1, '#');
 
   box(2, 7, 2, W_COLS - 3, 's');          // stage floor
-  box(3, 6, 11, 17, 'd');                 // the narrow dais the groom stands on
+  box(3, 7, 11, 17, 'd');                 // the dais, open to the runner below
   box(4, 4, 12, 16, 'H');                 // head table
   box(8, 42, AISLE_L, AISLE_R, 'r');      // runner — no steps at its head
   box(8, 42, AISLE_L - 1, AISLE_L - 1, 'F');
@@ -3073,22 +3073,20 @@ const W_TABLES = (() => {
 
 /* 혼주석 — two parents seated either side, right at the head of the aisle */
 const W_PARENTS = [
-  { col: AISLE_L - 2.6, row: 9,    who: 'father' },
-  { col: AISLE_L - 2.6, row: 10.6, who: 'mother' },
-  { col: AISLE_R + 1.6, row: 9,    who: 'father' },
-  { col: AISLE_R + 1.6, row: 10.6, who: 'mother' },
+  { col: AISLE_L - 2.9, row: 8.4,  who: 'father' },
+  { col: AISLE_L - 2.9, row: 10.1, who: 'mother' },
+  { col: AISLE_R + 2.9, row: 8.4,  who: 'mother' },
+  { col: AISLE_R + 2.9, row: 10.1, who: 'father' },
 ];
 
 /* Guests standing along the flower line, turned in to watch her pass */
 const W_STANDING = (() => {
   const out = [];
-  for (let r = 12; r <= 41; r += 1.7) {
-    out.push({ col: AISLE_L - 1.75, row: r, face: 1,  seed: wHash(r * 3, 1) });
-    out.push({ col: AISLE_R + 1.75, row: r + 0.8, face: -1, seed: wHash(r * 5, 7) });
-    if (r % 5 < 1.7) {
-      out.push({ col: AISLE_L - 2.7, row: r + 0.5, face: 1,  seed: wHash(r * 7, 3) });
-      out.push({ col: AISLE_R + 2.7, row: r + 1.2, face: -1, seed: wHash(r * 11, 9) });
-    }
+  for (let r = 12; r <= 41; r += 1.6) {
+    out.push({ col: AISLE_L - 2.3, row: r,       face: 1,  seed: wHash(r * 3, 1) });
+    out.push({ col: AISLE_R + 2.3, row: r + 0.7, face: -1, seed: wHash(r * 5, 7) });
+    out.push({ col: AISLE_L - 3.3, row: r + 0.9, face: 1,  seed: wHash(r * 7, 3) });
+    out.push({ col: AISLE_R + 3.3, row: r + 1.4, face: -1, seed: wHash(r * 11, 9) });
   }
   return out;
 })();
@@ -3113,7 +3111,7 @@ const W_CHANDELIERS = (() => {
   return out;
 })();
 
-const wSolid = ch => '#FtHBcdG'.includes(ch);
+const wSolid = ch => '#FtHBcG'.includes(ch);
 function wTileAt(c, r) {
   if (c < 0 || r < 0 || c >= W_COLS || r >= W_ROWS) return 'T';
   return WORLD_MAP[r][c];
@@ -3143,56 +3141,22 @@ function wHash(c, r) {
 }
 
 const TAU = Math.PI * 2;
+const PY  = 0.62;          // vertical squash — the hall is seen at an angle,
+                           // not straight down, so we see the front of things
+const WALL_H = 132;        // how tall the back wall stands, in world units
 
-/* Round shapes are drawn properly now — smooth edges, a lit side and a
-   shaded one — instead of the stepped scanlines this used to use. */
-function pxDisc(g, cx, cy, rad, col, _q) {
+/* ── small drawing helpers ── */
+function pxDisc(g, cx, cy, rad, col) {
   if (rad <= 0) return;
-  g.beginPath(); g.arc(cx, cy, rad, 0, TAU);
+  g.beginPath(); g.arc(cx, cy, rad, 0, TAU); g.fillStyle = col; g.fill();
+}
+function wEllipse(g, cx, cy, rx, ry, col) {
+  g.beginPath(); g.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, TAU);
   g.fillStyle = col; g.fill();
 }
-
-/* A bloom: petal lobes around a shaded body, lit from above-left. */
-function wBloom(g, cx, cy, rad, col) {
-  if (rad <= 0.9) { g.fillStyle = col; g.beginPath(); g.arc(cx, cy, Math.max(0.4, rad), 0, TAU); g.fill(); return; }
-  g.fillStyle = col;
-  if (rad > 2) {                                   // petals break the circle
-    const n = rad > 4 ? 6 : 5, ph = cx * 0.07 + cy * 0.05;
-    for (let i = 0; i < n; i++) {
-      const a2 = i / n * TAU + ph;
-      g.beginPath();
-      g.arc(cx + Math.cos(a2) * rad * 0.44, cy + Math.sin(a2) * rad * 0.44, rad * 0.6, 0, TAU);
-      g.fill();
-    }
-  }
-  g.beginPath(); g.arc(cx, cy, rad * 0.82, 0, TAU); g.fill();
-  g.save();
-  g.beginPath(); g.arc(cx, cy, rad * 1.08, 0, TAU); g.clip();
-  g.beginPath(); g.arc(cx + rad * 0.4, cy + rad * 0.46, rad * 0.95, 0, TAU);
-  g.fillStyle = 'rgba(70,25,60,0.22)'; g.fill();
-  g.beginPath(); g.arc(cx - rad * 0.34, cy - rad * 0.38, rad * 0.6, 0, TAU);
-  g.fillStyle = 'rgba(255,255,255,0.30)'; g.fill();
-  g.restore();
-  g.beginPath(); g.arc(cx, cy, rad * 0.2, 0, TAU);
-  g.fillStyle = 'rgba(120,60,90,0.30)'; g.fill();          // seed centre
-  g.beginPath(); g.arc(cx - rad * 0.24, cy - rad * 0.28, rad * 0.2, 0, TAU);
-  g.fillStyle = 'rgba(255,255,255,0.78)'; g.fill();
-}
-
-/* Soft contact shadow — a real falloff rather than a flat grey ellipse. */
-function wShadow(g, cx, cy, rx, ry, strength) {
-  const gr = g.createRadialGradient(cx, cy, 0, cx, cy, rx);
-  gr.addColorStop(0, `rgba(0,0,0,${strength})`);
-  gr.addColorStop(0.6, `rgba(0,0,0,${strength * 0.5})`);
-  gr.addColorStop(1, 'rgba(0,0,0,0)');
-  g.save(); g.translate(cx, cy); g.scale(1, ry / rx); g.translate(-cx, -cy);
-  g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, rx, 0, TAU); g.fill();
-  g.restore();
-}
-
-/* A rounded, softly lit body — used for torsos, cloth and furniture. */
-function wSoftRect(g, x, y, w, h, col, r) {
-  const rr = Math.min(r === undefined ? Math.min(w, h) * 0.28 : r, w / 2, h / 2);
+function wRound(g, x, y, w, h, col, r) {
+  if (w <= 0 || h <= 0) return;
+  const rr = Math.min(r === undefined ? Math.min(w, h) * 0.3 : r, w / 2, h / 2);
   g.beginPath();
   if (g.roundRect) g.roundRect(x, y, w, h, rr);
   else {
@@ -3203,495 +3167,573 @@ function wSoftRect(g, x, y, w, h, col, r) {
   }
   g.fillStyle = col; g.fill();
 }
-
-function wDrawTile(g, ch, c, r, S) {
-  const U = WT / 16;                       // art authored in 16ths of a tile
-  const X = c * WT * S, Y = r * WT * S;
-  const px = (ox, oy, w, h, col) => {
-    g.fillStyle = col;
-    g.fillRect(X + ox * U * S, Y + oy * U * S, w * U * S, h * U * S);
-  };
-  const n = wHash(c, r);
-
-  // polished stone floor — graded slab with faint veining
-  const fg = g.createLinearGradient(X, Y, X + 16 * U * S, Y + 16 * U * S);
-  fg.addColorStop(0, n > 0.5 ? '#342d3f' : '#312a3b');
-  fg.addColorStop(1, n > 0.5 ? '#292332' : '#26202e');
-  g.fillStyle = fg; g.fillRect(X, Y, 16 * U * S, 16 * U * S);
-  if (n > 0.42) {                                   // vein
-    g.save(); g.beginPath(); g.rect(X, Y, 16 * U * S, 16 * U * S); g.clip();
-    g.beginPath();
-    g.moveTo(X + n * 16 * U * S, Y);
-    g.quadraticCurveTo(X + (1 - n) * 18 * U * S, Y + 8 * U * S, X + n * 12 * U * S, Y + 16 * U * S);
-    g.strokeStyle = 'rgba(255,255,255,0.045)'; g.lineWidth = Math.max(1, 0.5 * U * S); g.stroke();
+/* soft ground shadow beneath anything standing on the floor */
+function wShadow(g, cx, cy, rx, strength) {
+  const gr = g.createRadialGradient(cx, cy, 0, cx, cy, rx);
+  gr.addColorStop(0, `rgba(0,0,0,${strength})`);
+  gr.addColorStop(0.55, `rgba(0,0,0,${strength * 0.45})`);
+  gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.save(); g.translate(cx, cy); g.scale(1, 0.42); g.translate(-cx, -cy);
+  g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, rx, 0, TAU); g.fill();
+  g.restore();
+}
+/* a bloom: petal lobes, shaded underside, lit crown */
+function wBloom(g, cx, cy, rad, col) {
+  if (rad <= 0.9) { pxDisc(g, cx, cy, Math.max(0.4, rad), col); return; }
+  g.fillStyle = col;
+  if (rad > 2) {
+    const n = rad > 4 ? 6 : 5, ph = cx * 0.07 + cy * 0.05;
+    for (let i = 0; i < n; i++) {
+      const a = i / n * TAU + ph;
+      g.beginPath();
+      g.arc(cx + Math.cos(a) * rad * 0.44, cy + Math.sin(a) * rad * 0.44, rad * 0.6, 0, TAU);
+      g.fill();
+    }
+  }
+  g.beginPath(); g.arc(cx, cy, rad * 0.82, 0, TAU); g.fill();
+  g.save();
+  g.beginPath(); g.arc(cx, cy, rad * 1.1, 0, TAU); g.clip();
+  g.beginPath(); g.arc(cx + rad * 0.4, cy + rad * 0.46, rad * 0.95, 0, TAU);
+  g.fillStyle = 'rgba(70,25,60,0.22)'; g.fill();
+  g.beginPath(); g.arc(cx - rad * 0.34, cy - rad * 0.4, rad * 0.6, 0, TAU);
+  g.fillStyle = 'rgba(255,255,255,0.32)'; g.fill();
+  g.restore();
+  pxDisc(g, cx, cy, rad * 0.19, 'rgba(120,60,90,0.28)');
+  pxDisc(g, cx - rad * 0.24, cy - rad * 0.3, rad * 0.19, 'rgba(255,255,255,0.8)');
+}
+/* a mass of blooms with foliage — used for every arrangement in the hall */
+function wArrangement(g, cx, baseY, w, h, seed, dense) {
+  const N = Math.max(10, Math.round(w * h / (dense ? 26 : 46)));
+  wEllipse(g, cx, baseY, w * 0.52, w * 0.17, 'rgba(0,0,0,0.34)');
+  for (let i = 0; i < N * 0.5; i++) {                       // foliage behind
+    const a = wHash(seed + i * 3, 11), b = wHash(seed + 7, i * 5);
+    g.save();
+    g.translate(cx + (a - 0.5) * w * 1.05, baseY - b * h * 0.95);
+    g.rotate((wHash(seed + i, 3) - 0.5) * 2.2);
+    wEllipse(g, 0, 0, w * 0.15, w * 0.05, i % 2 ? '#4c7454' : '#2f4d37');
     g.restore();
   }
-  if (r % 2 === 0) px(0, 0, 16, 0.35, 'rgba(0,0,0,0.30)');
-  if (c % 2 === 0) px(0, 0, 0.35, 16, 'rgba(0,0,0,0.30)');
-  px(0, 0.35, 16, 0.3, 'rgba(255,255,255,0.035)');
-
-  if (ch === '#') {
-    // pleated drapery wall, gold sconce every few tiles
-    px(0, 0, 16, 16, '#100d16');
-    for (let i = 0; i < 8; i++) px(i * 2, 0, 1, 16, i % 2 ? '#171320' : '#131019');
-    px(0, 0, 16, 0.5, '#0b0910');
-    if ((r + c * 3) % 6 === 0) {
-      px(6, 2, 4, 12, '#3a2f1c'); px(6.5, 2.5, 3, 11, '#241d11');
-      px(7, 3, 2, 10, '#c9a961'); px(7, 3, 0.5, 10, '#f0dcae');
-      px(6.5, 2.5, 3, 1, '#e8d5a0');
-    }
-  } else if (ch === 's') {
-    px(0, 0, 16, 16, n > 0.5 ? '#332b3b' : '#2f2836');
-    if (r === 2) {                          // pleated backdrop
-      px(0, 0, 16, 16, '#181422');
-      for (let i = 0; i < 8; i++) px(i * 2, 0, 1, 16, i % 2 ? '#221c2e' : '#1b1626');
-      px(0, 15, 16, 1, '#2a2336');
-    }
-    if (r === 3 && c % 3 === 0) {           // urns of blossom along the back
-      px(6.5, 9, 3, 6, '#3a3348'); px(6, 14.5, 4, 1.5, '#2a2436');
-      pxDisc(g, X + 8 * U * S, Y + 6 * U * S, 4.5 * U * S, '#f6c2d4', Math.max(1, S));
-      px(5, 4, 2, 2, '#ffffff'); px(9.5, 6, 1.5, 1.5, '#fdeaf0');
-    }
-    if (r === 7) { px(0, 13.5, 16, 2.5, '#8d7440'); px(0, 13.5, 16, 0.6, '#e0c07a'); }
-  } else if (ch === 'd') {
-    // the narrow dais the couple stand on
-    px(0, 0, 16, 16, '#3a3143');
-    px(0, 0, 16, 1, '#463c52');
-    if (r === 6) { px(0, 13, 16, 3, '#241e2c'); px(0, 13, 16, 0.7, '#c9a961'); }
-    if (c === 11) { px(0, 0, 1, 16, '#2c2536'); px(0.6, 0, 0.5, 16, '#c9a961'); }
-    if (c === 17) { px(15, 0, 1, 16, '#2c2536'); px(14.9, 0, 0.5, 16, '#c9a961'); }
-  } else if (ch === 'P') {
-    // low podium at the mouth of the aisle
-    px(0, 0, 16, 16, '#332c3d');
-    px(0, 0, 16, 1.2, '#41384d');
-    px(0, 14.4, 16, 1.6, '#231e2c');
-    px(0, 13.8, 16, 0.6, '#c9a961');
-    if (n > 0.6) px(3 + (n * 8 | 0), 5, 2, 1, '#3c3448');
-  } else if (ch === 'G') {
-    // the gateway she comes through
-    px(0, 0, 16, 16, '#15111d');
-    px(0, 0, 16, 6, '#241d2e');
-    px(0, 0, 16, 1.2, '#c9a961');
-    px(0, 5.2, 16, 0.8, '#8d7440');
-    for (let i = 0; i < 4; i++) px(i * 4 + 1, 6.5, 2, 9.5, '#2e2740');
-    for (let i = 0; i < 4; i++) px(i * 4 + 1.4, 6.9, 1.2, 8.7, '#1c1728');
-    if (c === AISLE_L - 2 || c === AISLE_R + 2) {
-      px(c === AISLE_L - 2 ? 0 : 12, 0, 4, 16, '#2a2337');
-      px(c === AISLE_L - 2 ? 1 : 13, 1, 2, 14, '#c9a961');
-      px(c === AISLE_L - 2 ? 1 : 13, 1, 1, 14, '#f0dcae');
-    }
-  } else if (ch === 'r') {
-    // the runner — deep navy weave with a pale selvedge and fallen petals
-    const gr = g.createLinearGradient(X, Y, X + 16 * U * S, Y);
-    if (c === AISLE_MID) { gr.addColorStop(0, '#20213a'); gr.addColorStop(0.5, '#262745'); gr.addColorStop(1, '#20213a'); }
-    else { gr.addColorStop(0, '#1a1b2e'); gr.addColorStop(1, '#1e1f36'); }
-    g.fillStyle = gr; g.fillRect(X, Y, 16 * U * S, 16 * U * S);
-    for (let i = 0; i < 4; i++) px(0, i * 4 + (c % 2), 16, 0.4, 'rgba(255,255,255,0.028)');
-    if (c === AISLE_L) { px(0, 0, 1.5, 16, '#262742'); px(1, 0, 0.5, 16, '#4a4b6b'); }
-    if (c === AISLE_R) { px(14.5, 0, 1.5, 16, '#262742'); px(14.5, 0, 0.5, 16, '#4a4b6b'); }
-    if (n > 0.9) {
-      const petal = ['#f0c6d6', '#e8bfe0', '#fbe4ee'][(n * 3) | 0];
-      px(4 + (n * 8 | 0), 3 + (n * 9 | 0), 1.5, 1, petal);
-    }
-    if (n < 0.08) px(9, 11, 1, 1.5, '#e6bdd0');
-  } else if (ch === 'F') {
-    // an unbroken bank of blooms hugging the runner
-    px(0, 0, 16, 16, '#2b2534');
-    const gy = g.createLinearGradient(X, Y, X, Y + 16 * U * S);
-    gy.addColorStop(0, '#3f6244'); gy.addColorStop(0.55, '#33523a'); gy.addColorStop(1, '#26402c');
-    g.fillStyle = gy; g.fillRect(X, Y + 3 * U * S, 16 * U * S, 13 * U * S);
-    for (let i = 0; i < 6; i++) {                       // foliage
-      const lx = wHash(c + i * 3, r) * 15, ly = 2 + wHash(c, r + i * 4) * 12;
-      g.save(); g.translate(X + lx * U * S, Y + ly * U * S);
-      g.rotate((wHash(c + i, r + i) - 0.5) * 2);
-      g.fillStyle = i % 2 ? '#4a7150' : '#2e4c34';
-      g.beginPath(); g.ellipse(0, 0, 2.6 * U * S, 1.1 * U * S, 0, 0, TAU); g.fill();
-      g.restore();
-    }
-    const pinks = ['#f9c8d8','#f4aac6','#fde0ea','#eeb4dd','#ffffff','#f8cdb8','#e9bbe8'];
-    for (let i = 0; i < 15; i++) {
-      const bx = wHash(c + i * 5, r) * 15.5;
-      const by = wHash(c, r + i * 3) * 15;
-      const bs = (1.3 + wHash(c + i, r + i) * 1.7) * U * S;
-      wBloom(g, X + bx * U * S, Y + by * U * S, bs, pinks[(wHash(c + i * 2, r + i) * 7) | 0]);
-    }
-    for (let i = 0; i < 5; i++) {                       // baby's breath
-      const bx = wHash(c + i * 13, r + 2) * 15, by = wHash(c + 5, r + i * 7) * 15;
-      g.fillStyle = 'rgba(255,255,255,0.92)';
-      g.beginPath(); g.arc(X + bx * U * S, Y + by * U * S, 0.45 * U * S, 0, TAU); g.fill();
-    }
-  } else if (ch === 'H') {
-    // long head table in white linen
-    px(0, 2, 16, 11, '#eee8de'); px(0, 2, 16, 1.5, '#fbf7f0');
-    px(0, 11.5, 16, 2, '#c3b9ad'); px(0, 13.5, 16, 1, '#8f877d');
-    if (c % 2 === 0) { px(5, -1, 1.6, 4, '#efe6d6'); px(5, -2.4, 1.6, 1.6, '#ffd98a'); px(5.4, -3, 0.8, 1, '#fff4d0'); }
-    if (c % 3 === 1) { pxDisc(g, X + 9 * U * S, Y + 6 * U * S, 3 * U * S, '#f6c2d4', Math.max(1, S)); px(8, 4, 1, 1, '#fff'); }
-  }
-}
-
-/* ── a guest: seated at a table, or standing along the aisle ── */
-function wDrawPerson(g, cx, cy, S, seed, faceX, standing) {
-  const U = WT / 16, u = U * S;
-  const p = (ox, oy, w, h, col) => { g.fillStyle = col; g.fillRect(cx + ox * u, cy + oy * u, w * u, h * u); };
-  const q = Math.max(1, S);
-  const s2 = wHash(seed * 977, 31), s3 = wHash(seed * 613, 57);
-  const fem = s2 > 0.46;
-  const suits  = ['#232032','#2e2438','#1d2433','#33283a','#262d3c','#2b2129'];
-  const dress  = ['#5b3f56','#3f4d63','#6b4a52','#45385c','#7a5a63','#3d5052','#5d4a6e'];
-  const wear   = fem ? dress[(s2 * 7) | 0] : suits[(s2 * 6) | 0];
-  const hairC  = ['#241810','#3a2717','#171009','#4a3320','#2b2028'][(s3 * 5) | 0];
-  const skin   = s3 > 0.55 ? '#ffdcbc' : (s3 > 0.25 ? '#f6d0ab' : '#e8bd97');
-  const H = standing ? 1.15 : 1;
-
-  if (standing) wShadow(g, cx, cy + 4.6 * u, 4.4 * u, 2 * u, 0.45);
-
-  // body — rounded shoulders with a lit top edge
-  wSoftRect(g, cx - 3 * H * u, cy - 1.4 * u, 6 * H * u, 6.4 * H * u, wear, 2.1 * u);
-  const bg = g.createLinearGradient(cx, cy - 1.4 * u, cx, cy + 5 * u);
-  bg.addColorStop(0, 'rgba(255,244,220,0.18)'); bg.addColorStop(0.5, 'rgba(0,0,0,0)');
-  bg.addColorStop(1, 'rgba(0,0,0,0.32)');
-  g.save(); wSoftRect(g, cx - 3 * H * u, cy - 1.4 * u, 6 * H * u, 6.4 * H * u, 'rgba(0,0,0,0)', 2.1 * u);
-  g.clip(); g.fillStyle = bg; g.fillRect(cx - 4 * u, cy - 2 * u, 8 * u, 8 * u); g.restore();
-  if (fem) {                                   // a wrap or shawl
-    p(-3 * H, -1.4, 6 * H, 2.2, 'rgba(255,255,255,0.10)');
-    if (s2 > 0.78) p(-1, -1.2, 2, 4.2, '#e6dfe8');
-  } else {
-    p(-0.9, -1.4, 1.8, 4.6, '#efeae2');        // shirt
-    p(-0.45, -1.1, 0.9, 3, ['#7a2f3a','#2f3f6b','#4a3a2a','#3f5a4a'][(s3 * 4) | 0]);
-  }
-  // arms
-  wSoftRect(g, cx - 4.2 * H * u, cy - u, 1.4 * u, 4.6 * u, wear, 0.7 * u);
-  wSoftRect(g, cx + 2.9 * H * u, cy - u, 1.4 * u, 4.6 * u, wear, 0.7 * u);
-  // head — hair behind, then a lit face
-  pxDisc(g, cx, cy - 3.9 * u, 2.55 * u, hairC);
-  if (fem) { pxDisc(g, cx - 1.9 * u, cy - 2.5 * u, 1.5 * u, hairC); pxDisc(g, cx + 1.9 * u, cy - 2.5 * u, 1.5 * u, hairC); }
-  const hg = g.createRadialGradient(cx - 0.9 * u, cy - 4.1 * u, 0.2 * u, cx, cy - 3.3 * u, 2.5 * u);
-  hg.addColorStop(0, skin); hg.addColorStop(0.72, skin); hg.addColorStop(1, 'rgba(150,95,60,0.55)');
-  g.beginPath(); g.arc(cx, cy - 3.2 * u, 2.3 * u, 0, TAU); g.fillStyle = hg; g.fill();
-  g.beginPath(); g.arc(cx, cy - 4.2 * u, 2.45 * u, Math.PI * 1.02, Math.PI * 1.98);
-  g.lineTo(cx + 2.45 * u, cy - 3.4 * u); g.lineTo(cx - 2.45 * u, cy - 3.4 * u);
-  g.closePath(); g.fillStyle = hairC; g.fill();
-  if (fem) {                                   // longer hair falling past the shoulders
-    p(-2.9, -3.9, 5.8, 3.2, hairC);
-    if (s2 > 0.7) { p(-3.2, -3.6, 0.9, 4.4, hairC); p(2.3, -3.6, 0.9, 4.4, hairC); }
-    if (s3 > 0.8) p(-1, -5.6, 2, 0.9, '#e6b8cc');   // a small clip
-  }
-  // face, turned toward the runner
-  const fx = faceX * 0.55;
-  p(-1.25 + fx, -3.45, 0.75, 0.85, '#241a14');
-  p(0.5 + fx, -3.45, 0.75, 0.85, '#241a14');
-  p(-1.35 + fx, -4.1, 0.95, 0.4, hairC);
-  p(0.4 + fx, -4.1, 0.95, 0.4, hairC);
-  p(-0.35 + fx, -2.3, 0.8, 0.35, '#d9a184');
-  if (s3 > 0.62) { p(-1.9 + fx, -2.6, 0.6, 0.5, '#f0b2b8'); p(1.3 + fx, -2.6, 0.6, 0.5, '#f0b2b8'); }
-}
-
-/* ── round banquet table, every seat taken ── */
-function wDrawTable(g, tb, S) {
-  const U = WT / 16, u = U * S;
-  const cx = (tb.col + 1.5) * WT * S, cy = (tb.row + 1.5) * WT * S;
-  const rad = 1.15 * WT * S;
-  const toAisle = tb.col < AISLE_L ? 1 : -1;
-
-  // chairs first, so the table sits over them
-  for (let i = 0; i < tb.seats; i++) {
-    const a = i / tb.seats * Math.PI * 2 + 0.4;
-    const chx = cx + Math.cos(a) * rad * 1.42, chy = cy + Math.sin(a) * rad * 1.42;
-    wShadow(g, chx, chy + 0.18 * WT * S, 0.6 * WT * S, 0.32 * WT * S, 0.42);
-    pxDisc(g, chx, chy, 0.42 * WT * S, '#1c1826');
-    pxDisc(g, chx, chy - 0.09 * WT * S, 0.34 * WT * S, '#2b2438');
-  }
-  // guests, back rows drawn first
-  const order = [...Array(tb.seats).keys()].sort((i, j) =>
-    Math.sin(i / tb.seats * Math.PI * 2 + 0.4) - Math.sin(j / tb.seats * Math.PI * 2 + 0.4));
-  for (const i of order) {
-    const a = i / tb.seats * Math.PI * 2 + 0.4;
-    wDrawPerson(g, cx + Math.cos(a) * rad * 1.42, cy + Math.sin(a) * rad * 1.42,
-                S, wHash(tb.col + i * 7, tb.row + i * 3), toAisle, false);
-  }
-  // cloth, then the top
-  wShadow(g, cx, cy + rad * 0.34, rad * 1.5, rad * 0.9, 0.5);
-  pxDisc(g, cx, cy + 0.16 * WT * S, rad * 1.06, '#14111c');
-  const tg = g.createRadialGradient(cx - rad * 0.35, cy - rad * 0.4, rad * 0.1, cx, cy, rad);
-  tg.addColorStop(0, '#3b3350'); tg.addColorStop(0.65, '#2a2438'); tg.addColorStop(1, '#1b1725');
-  g.beginPath(); g.arc(cx, cy, rad, 0, TAU); g.fillStyle = tg; g.fill();
-  g.beginPath(); g.arc(cx, cy, rad * 0.98, Math.PI * 1.12, Math.PI * 1.78);
-  g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = rad * 0.07; g.stroke();
-  // a full centrepiece of blooms — no plates, no food
-  const q = Math.max(1, S);
-  pxDisc(g, cx, cy, rad * 0.56, '#33523a', q);
-  const petals = ['#f7bfd2','#e9b3d8','#fbe4ee','#f2a8c4','#ffffff','#f6c9b6','#dcb4e8'];
-  for (let i = 0; i < 16; i++) {
-    const a = i / 16 * Math.PI * 2 + tb.row;
-    const rr = rad * (0.18 + wHash(tb.col + i, tb.row + i * 3) * 0.44);
-    wBloom(g, cx + Math.cos(a) * rr, cy + Math.sin(a) * rr,
-           rad * (0.11 + wHash(tb.col + i * 2, tb.row) * 0.08),
-           petals[(wHash(tb.col + i * 5, tb.row + i) * 7) | 0]);
-  }
-  pxDisc(g, cx, cy - rad * 0.06, rad * 0.17, '#fdf3f7', q);
-}
-
-/* ── 혼주석: father in a suit, mother in hanbok ── */
-function wDrawParent(g, pr, S) {
-  const U = WT / 16, u = U * S;
-  const cx = (pr.col + 0.5) * WT * S, cy = (pr.row + 0.5) * WT * S;
-  const p = (ox, oy, w, h, col) => { g.fillStyle = col; g.fillRect(cx + ox * u, cy + oy * u, w * u, h * u); };
-  const faceX = pr.col < AISLE_L ? 1 : -1;
-
-  wShadow(g, cx, cy + 5.6 * u, 6.4 * u, 2.6 * u, 0.45);
-  pxDisc(g, cx, cy + 4.6 * u, 3.4 * u, '#241d2f');                   // chair back
-  pxDisc(g, cx, cy + 4.2 * u, 2.9 * u, '#31283f');
-
-  if (pr.who === 'father') {
-    p(-3.4, -1, 6.8, 7, '#171420');                    // suit
-    p(-3.4, -1, 6.8, 1, '#241f2e');
-    p(-1.1, -1, 2.2, 5.6, '#f4f0e8');                  // shirt
-    p(-0.5, -0.6, 1, 4.2, '#7a2f3a');                  // tie
-    p(-3.4, -1, 1.5, 7, '#12101a'); p(1.9, -1, 1.5, 7, '#12101a');
-    p(2.2, 0.4, 1.1, 1.1, '#f7c9d8');                  // boutonniere
-  } else {
-    p(-3.8, 1.4, 7.6, 5.8, '#c98fb4');                 // hanbok chima
-    p(-3.8, 1.4, 7.6, 0.8, '#dba6c6');
-    p(-3.2, 5.6, 6.4, 1.4, '#b57aa2');
-    p(-3, -1.2, 6, 3.2, '#f3ece0');                    // jeogori
-    p(-3, -1.2, 6, 0.8, '#fbf6ee');
-    p(-0.4, -1.2, 0.9, 3.2, '#9c3f52');                // goreum ribbon
-    p(0.5, 0.9, 2.2, 0.9, '#9c3f52');
-    p(-3, 1.6, 6, 0.7, '#6d8fb0');                     // trim
-  }
-  // head
-  pxDisc(g, cx, cy - 3.4 * u, 2.6 * u, pr.who === 'father' ? '#ffdcbc' : '#ffdcbc', Math.max(1, S));
-  const hair = pr.who === 'father' ? '#3a3438' : '#2c2028';
-  pxDisc(g, cx, cy - 4.2 * u, 2.7 * u, hair, Math.max(1, S));
-  p(-2.7, -5.2, 5.4, 1.8, hair);
-  if (pr.who === 'mother') { p(-2.9, -4.2, 5.8, 2.4, hair); p(-1, -6, 2, 1, '#9c3f52'); }
-  p(-1.3 + faceX * 0.4, -3.7, 0.8, 0.8, '#241a14');
-  p(0.5 + faceX * 0.4, -3.7, 0.8, 0.8, '#241a14');
-  p(-0.4, -2.5, 0.8, 0.4, '#d9a184');
-}
-
-/* ── massed pillar arrangement at the mouth of the aisle ── */
-function wDrawEntryFlowers(g, fl, S) {
-  const U = WT / 16, u = U * S, q = Math.max(1, S);
-  const cx = (fl.col + 0.5) * WT * S, cy = (fl.row + 0.5) * WT * S;
-  const R  = (fl.big ? 1.55 : 1.1) * WT * S;
-  wShadow(g, cx, cy + R * 0.72, R * 1.15, R * 0.55, 0.5);
-  pxDisc(g, cx, cy + R * 0.3, R * 0.66, '#2b4530', q);     // greenery mound
-  pxDisc(g, cx, cy, R * 0.74, '#33523a', q);
-  const petals = ['#f7bfd2','#f2a8c4','#e9b3d8','#fbe4ee','#ffffff','#f6c9b6','#dcb4e8','#fdd7e4'];
-  const N = fl.big ? 34 : 22;
+  const pinks = ['#f9c8d8','#f4aac6','#fde0ea','#eeb4dd','#ffffff','#f8cdb8','#e9bbe8','#fbd7e3'];
   for (let i = 0; i < N; i++) {
-    const a2 = wHash(fl.col + i * 3, fl.row + i) * Math.PI * 2;
-    const rr = R * (0.1 + wHash(fl.col + i, fl.row + i * 5) * 0.86);
-    const sz = R * (0.11 + wHash(fl.col + i * 7, fl.row) * 0.1);
-    const px2 = cx + Math.cos(a2) * rr, py2 = cy + Math.sin(a2) * rr * 0.92;
-    wBloom(g, px2, py2, sz, petals[(wHash(fl.col + i * 2, fl.row + i * 3) * 8) | 0]);
+    const a = wHash(seed + i * 5, 17), b = wHash(seed + 13, i * 3);
+    const bx = cx + (a - 0.5) * w;
+    const by = baseY - 3 - b * h;
+    const rad = (0.055 + wHash(seed + i, i * 7) * 0.075) * w;
+    wBloom(g, bx, by, rad, pinks[(wHash(seed + i * 2, i) * 8) | 0]);
   }
-  for (let i = 0; i < 8; i++) {                            // baby's breath
-    const a2 = wHash(fl.col + i * 11, fl.row + 4) * Math.PI * 2;
-    const rr = R * (0.5 + wHash(fl.col, fl.row + i) * 0.6);
-    g.fillStyle = '#ffffff';
-    g.fillRect(cx + Math.cos(a2) * rr, cy + Math.sin(a2) * rr, u, u);
-  }
-  if (fl.big) {                                            // candle lanterns at its foot
-    g.fillStyle = '#efe6d6'; g.fillRect(cx - R * 0.75, cy + R * 0.5, 2.4 * u, 5 * u);
-    g.fillStyle = '#ffd98a'; g.fillRect(cx - R * 0.75, cy + R * 0.5 - 2 * u, 2.4 * u, 2 * u);
+  for (let i = 0; i < N * 0.35; i++) {                      // baby's breath
+    const a = wHash(seed + i * 11, 29), b = wHash(seed + 3, i * 13);
+    g.fillStyle = 'rgba(255,255,255,0.9)';
+    g.beginPath();
+    g.arc(cx + (a - 0.5) * w * 1.08, baseY - 2 - b * h * 1.06, w * 0.022, 0, TAU);
+    g.fill();
   }
 }
 
-/* ── memory stands down the aisle, and the groom at the top of it ── */
-function wDrawPlace(g, pl, S) {
-  const U = WT / 16, u = U * S;
-  const X = pl.col * WT * S, Y = (pl.row - 3) * WT * S;
-  const px = (ox, oy, w, h, col) => {
-    g.fillStyle = col;
-    g.fillRect(X + ox * u, Y + oy * u, w * u, h * u);
-  };
-  const done = W.visited.has(pl.ep);
+/* ══════════════════════════════════════════════════════════════
+   PEOPLE — drawn upright, so we see faces and clothes rather than
+   the tops of heads. Base point is where the feet meet the floor.
+══════════════════════════════════════════════════════════════ */
+function wFigure(g, bx, by, H, o) {
+  const skin = o.skin, hair = o.hair;
+  const shoulderW = H * 0.30, hipW = H * 0.25;
+  const hipY = by - H * 0.40, shoulderY = by - H * 0.645;
+  const headR = H * 0.112, headCY = by - H * 0.80;
 
-  if (pl.groom) {
-    // Groom: black tux, white shirt and tie, waiting at the head of the aisle
-    const sway = Math.sin(W.t / 900) * 0.35;
-    const gx = 8, gy = 30 + sway;
-    wShadow(g, X + gx * u, Y + (gy + 21.5) * u, 8 * u, 3 * u, 0.5);
-    px(gx - 4.2, gy, 8.4, 12.5, '#141119');                    // jacket
-    px(gx - 4.2, gy, 8.4, 1, '#1e1a26');
-    px(gx - 1.6, gy - 0.4, 3.2, 9, '#f6f2ea');                 // shirt
-    px(gx - 0.9, gy + 0.4, 1.8, 7, '#ffffff');                 // white tie
-    px(gx - 4.2, gy, 1.8, 12.5, '#0d0b12'); px(gx + 2.4, gy, 1.8, 12.5, '#0d0b12');
-    px(gx - 6, gy + 0.8, 1.9, 9.5, '#141119');                 // arms
-    px(gx + 4.1, gy + 0.8, 1.9, 9.5, '#141119');
-    px(gx + 2.6, gy + 2.4, 1.6, 1.6, '#f7c9d8');               // boutonniere
-    px(gx - 3.2, gy + 12.5, 3, 8.5, '#141119');                // legs
-    px(gx + 0.2, gy + 12.5, 3, 8.5, '#141119');
-    px(gx - 3.4, gy + 20, 3.4, 1.8, '#08060c');
-    px(gx + 0.1, gy + 20, 3.4, 1.8, '#08060c');
-    // head — small eyes with skin between them, not a dark bar
-    pxDisc(g, X + gx * u, Y + (gy - 4.4) * u, 3.2 * u, '#ffdcbc', Math.max(1, S));
-    pxDisc(g, X + gx * u, Y + (gy - 5.6) * u, 3.4 * u, '#2a1c12', Math.max(1, S));
-    px(gx - 3.4, gy - 7.2, 6.8, 2, '#2a1c12');
-    px(gx - 3.4, gy - 7.2, 6.8, 0.7, '#3d2a18');
-    px(gx - 1.9, gy - 4.9, 0.9, 0.9, '#241a14');               // left eye
-    px(gx + 1, gy - 4.9, 0.9, 0.9, '#241a14');                 // right eye
-    px(gx - 2.1, gy - 5.7, 1.3, 0.5, '#3a2a1c');               // brows
-    px(gx + 0.8, gy - 5.7, 1.3, 0.5, '#3a2a1c');
-    px(gx - 0.6, gy - 3.2, 1.2, 0.4, '#d9a184');               // mouth
-    if (!done) {
-      const by = 12 - Math.sin(W.t / 320) * 2.5;
-      px(gx - 3, by + 1, 2.4, 1.6, '#ff9ab5'); px(gx + 0.6, by + 1, 2.4, 1.6, '#ff9ab5');
-      px(gx - 3, by + 2.6, 6, 1.6, '#ff9ab5'); px(gx - 2.2, by + 4.2, 4.4, 1.6, '#ff9ab5');
-      px(gx - 1, by + 5.8, 2, 1.6, '#ff9ab5');
+  wShadow(g, bx, by, H * 0.30, 0.5);
+
+  // legs / lower body
+  if (o.kind === 'gown' || o.kind === 'dress' || o.kind === 'hanbok') {
+    const skirtW = o.kind === 'gown' ? H * 0.62 : H * 0.44;
+    g.beginPath();
+    g.moveTo(bx - hipW * 0.5, hipY);
+    g.quadraticCurveTo(bx - skirtW * 0.56, by - H * 0.1, bx - skirtW * 0.5, by);
+    g.lineTo(bx + skirtW * 0.5, by);
+    g.quadraticCurveTo(bx + skirtW * 0.56, by - H * 0.1, bx + hipW * 0.5, hipY);
+    g.closePath();
+    const sg = g.createLinearGradient(bx - skirtW * 0.5, 0, bx + skirtW * 0.5, 0);
+    sg.addColorStop(0, o.wear2); sg.addColorStop(0.34, o.wear);
+    sg.addColorStop(0.62, o.wear); sg.addColorStop(1, o.wear2);
+    g.fillStyle = sg; g.fill();
+    wEllipse(g, bx, by, skirtW * 0.5, skirtW * 0.09, o.wear2);
+  } else {
+    const lw = H * 0.09;
+    wRound(g, bx - hipW * 0.46, hipY, lw, by - hipY, o.trouser || '#171420', lw * 0.4);
+    wRound(g, bx + hipW * 0.46 - lw, hipY, lw, by - hipY, o.trouser || '#171420', lw * 0.4);
+    wEllipse(g, bx - hipW * 0.32, by, lw * 0.75, lw * 0.32, '#0a0810');
+    wEllipse(g, bx + hipW * 0.32, by, lw * 0.75, lw * 0.32, '#0a0810');
+  }
+
+  // torso
+  g.beginPath();
+  g.moveTo(bx - shoulderW * 0.5, shoulderY);
+  g.lineTo(bx + shoulderW * 0.5, shoulderY);
+  g.lineTo(bx + hipW * 0.5, hipY + H * 0.02);
+  g.lineTo(bx - hipW * 0.5, hipY + H * 0.02);
+  g.closePath();
+  const tg = g.createLinearGradient(bx - shoulderW * 0.5, 0, bx + shoulderW * 0.5, 0);
+  tg.addColorStop(0, o.wear2); tg.addColorStop(0.38, o.wear);
+  tg.addColorStop(1, o.wear2);
+  g.fillStyle = tg; g.fill();
+
+  // shirt / neckline
+  if (o.kind === 'suit' || o.kind === 'tux') {
+    g.beginPath();
+    g.moveTo(bx - shoulderW * 0.16, shoulderY);
+    g.lineTo(bx + shoulderW * 0.16, shoulderY);
+    g.lineTo(bx + shoulderW * 0.11, hipY);
+    g.lineTo(bx - shoulderW * 0.11, hipY);
+    g.closePath(); g.fillStyle = '#f6f2ea'; g.fill();
+    g.beginPath();
+    g.moveTo(bx, shoulderY + H * 0.03);
+    g.lineTo(bx + shoulderW * 0.06, shoulderY + H * 0.06);
+    g.lineTo(bx, hipY - H * 0.02);
+    g.lineTo(bx - shoulderW * 0.06, shoulderY + H * 0.06);
+    g.closePath(); g.fillStyle = o.tie || '#7a2f3a'; g.fill();
+    // lapels
+    g.beginPath();
+    g.moveTo(bx - shoulderW * 0.5, shoulderY);
+    g.lineTo(bx - shoulderW * 0.1, shoulderY + H * 0.02);
+    g.lineTo(bx - shoulderW * 0.2, hipY - H * 0.04);
+    g.closePath(); g.fillStyle = 'rgba(255,255,255,0.07)'; g.fill();
+    g.beginPath();
+    g.moveTo(bx + shoulderW * 0.5, shoulderY);
+    g.lineTo(bx + shoulderW * 0.1, shoulderY + H * 0.02);
+    g.lineTo(bx + shoulderW * 0.2, hipY - H * 0.04);
+    g.closePath(); g.fillStyle = 'rgba(255,255,255,0.07)'; g.fill();
+  } else if (o.kind === 'hanbok') {
+    wRound(g, bx - shoulderW * 0.52, shoulderY - H * 0.01,
+           shoulderW * 1.04, H * 0.20, o.jeogori || '#f3ece0', H * 0.05);
+    g.fillStyle = o.goreum || '#9c3f52';
+    g.fillRect(bx - H * 0.02, shoulderY + H * 0.03, H * 0.045, H * 0.20);
+    g.fillRect(bx + H * 0.01, shoulderY + H * 0.16, H * 0.11, H * 0.04);
+  } else if (o.kind === 'dress' || o.kind === 'gown') {
+    wEllipse(g, bx, shoulderY + H * 0.015, shoulderW * 0.34, H * 0.028, skin);
+    if (o.sash) { g.fillStyle = o.sash; g.fillRect(bx - hipW * 0.5, hipY - H * 0.04, hipW, H * 0.035); }
+  }
+
+  // arms
+  const aw = H * 0.062;
+  wRound(g, bx - shoulderW * 0.5 - aw * 0.55, shoulderY + H * 0.01, aw, H * 0.235,
+         o.kind === 'dress' || o.kind === 'gown' ? skin : o.wear2, aw * 0.45);
+  wRound(g, bx + shoulderW * 0.5 - aw * 0.45, shoulderY + H * 0.01, aw, H * 0.235,
+         o.kind === 'dress' || o.kind === 'gown' ? skin : o.wear2, aw * 0.45);
+
+  // neck + head
+  g.fillStyle = o.skinShade || '#e8b894';
+  g.fillRect(bx - H * 0.035, shoulderY - H * 0.045, H * 0.07, H * 0.06);
+  const hg = g.createRadialGradient(bx - headR * 0.4, headCY - headR * 0.42, headR * 0.1,
+                                    bx, headCY, headR * 1.08);
+  hg.addColorStop(0, '#fff0dc'); hg.addColorStop(0.55, skin);
+  hg.addColorStop(1, o.skinShade || '#dda37c');
+  pxDisc(g, bx, headCY, headR, '#00000000');
+  g.beginPath(); g.arc(bx, headCY, headR, 0, TAU); g.fillStyle = hg; g.fill();
+
+  // hair
+  g.beginPath();
+  g.arc(bx, headCY - headR * 0.1, headR * 1.06, Math.PI * 1.02, Math.PI * 1.98);
+  g.lineTo(bx + headR * 1.02, headCY - headR * 0.05);
+  g.lineTo(bx - headR * 1.02, headCY - headR * 0.05);
+  g.closePath(); g.fillStyle = hair; g.fill();
+  if (o.longHair) {
+    wRound(g, bx - headR * 1.12, headCY - headR * 0.5, headR * 0.5, headR * 2.3, hair, headR * 0.25);
+    wRound(g, bx + headR * 0.62, headCY - headR * 0.5, headR * 0.5, headR * 2.3, hair, headR * 0.25);
+  }
+  if (o.updo) pxDisc(g, bx, headCY - headR * 1.15, headR * 0.42, hair);
+  g.beginPath();
+  g.arc(bx - headR * 0.3, headCY - headR * 0.62, headR * 0.5, 0, TAU);
+  g.fillStyle = 'rgba(255,255,255,0.13)'; g.fill();
+
+  // face
+  const ex = headR * 0.36, ey = headCY + headR * 0.08;
+  g.fillStyle = '#33241c';
+  g.beginPath(); g.ellipse(bx - ex, ey, headR * 0.13, headR * 0.17, 0, 0, TAU); g.fill();
+  g.beginPath(); g.ellipse(bx + ex, ey, headR * 0.13, headR * 0.17, 0, 0, TAU); g.fill();
+  g.fillStyle = 'rgba(255,255,255,0.75)';
+  g.beginPath(); g.arc(bx - ex + headR * 0.05, ey - headR * 0.05, headR * 0.05, 0, TAU); g.fill();
+  g.beginPath(); g.arc(bx + ex + headR * 0.05, ey - headR * 0.05, headR * 0.05, 0, TAU); g.fill();
+  g.strokeStyle = 'rgba(60,40,28,0.6)'; g.lineWidth = Math.max(0.6, headR * 0.1);
+  g.beginPath(); g.moveTo(bx - ex - headR * 0.16, ey - headR * 0.34);
+  g.lineTo(bx - ex + headR * 0.16, ey - headR * 0.4); g.stroke();
+  g.beginPath(); g.moveTo(bx + ex - headR * 0.16, ey - headR * 0.4);
+  g.lineTo(bx + ex + headR * 0.16, ey - headR * 0.34); g.stroke();
+  g.strokeStyle = 'rgba(150,80,70,0.75)'; g.lineWidth = Math.max(0.6, headR * 0.1);
+  g.beginPath(); g.arc(bx, headCY + headR * 0.36, headR * 0.22, 0.25, Math.PI - 0.25); g.stroke();
+  if (o.blush) {
+    g.fillStyle = 'rgba(240,150,160,0.4)';
+    g.beginPath(); g.ellipse(bx - ex - headR * 0.1, ey + headR * 0.3, headR * 0.2, headR * 0.12, 0, 0, TAU); g.fill();
+    g.beginPath(); g.ellipse(bx + ex + headR * 0.1, ey + headR * 0.3, headR * 0.2, headR * 0.12, 0, 0, TAU); g.fill();
+  }
+}
+
+const W_SUITS  = ['#232032','#2e2438','#1d2433','#33283a','#262d3c','#2b2129','#20293a'];
+const W_DRESSES= ['#6b4a68','#3f4d63','#7c5560','#4a3c66','#8a6470','#3d5052','#65517a','#5d4550'];
+const W_HAIRS  = ['#241810','#3a2717','#171009','#4a3320','#2b2028','#503826'];
+const W_SKINS  = ['#ffdcbc','#f6d0ab','#eec5a0','#e0b189'];
+
+function wGuestOpts(seed) {
+  const a = wHash(seed * 977, 31), b = wHash(seed * 613, 57), c = wHash(seed * 331, 83);
+  const fem = a > 0.45;
+  return {
+    kind: fem ? 'dress' : 'suit',
+    wear:  fem ? W_DRESSES[(a * 8) | 0] : W_SUITS[(a * 7) | 0],
+    wear2: fem ? W_DRESSES[(b * 8) | 0] : '#151220',
+    trouser: '#171420',
+    tie: ['#7a2f3a','#2f3f6b','#4a3a2a','#3f5a4a','#5a3a52'][(c * 5) | 0],
+    hair: W_HAIRS[(b * 6) | 0],
+    skin: W_SKINS[(c * 4) | 0],
+    longHair: fem && b > 0.35,
+    updo: fem && b <= 0.35,
+    blush: fem,
+    sash: c > 0.7 ? '#e8dfe8' : null,
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FLOOR
+══════════════════════════════════════════════════════════════ */
+function wDrawTile(g, ch, c, r, S) {
+  const TW = WT * S, TH = WT * PY * S;
+  const X = c * TW, Y = r * TH;
+  const n = wHash(c, r);
+
+  if (ch === '#') { g.fillStyle = '#0d0a12'; g.fillRect(X, Y, TW, TH); return; }
+
+  if (ch === 'r') {                       // the runner
+    const gr = g.createLinearGradient(X, 0, X + TW, 0);
+    if (c === AISLE_MID) { gr.addColorStop(0, '#22233c'); gr.addColorStop(0.5, '#2a2b4a'); gr.addColorStop(1, '#22233c'); }
+    else { gr.addColorStop(0, '#1b1c30'); gr.addColorStop(1, '#20213a'); }
+    g.fillStyle = gr; g.fillRect(X, Y, TW, TH);
+    g.fillStyle = 'rgba(255,255,255,0.03)';
+    for (let i = 0; i < 3; i++) g.fillRect(X, Y + i * TH / 3, TW, TH * 0.05);
+    if (c === AISLE_L) { g.fillStyle = '#4a4b6b'; g.fillRect(X, Y, TW * 0.06, TH); }
+    if (c === AISLE_R) { g.fillStyle = '#4a4b6b'; g.fillRect(X + TW * 0.94, Y, TW * 0.06, TH); }
+    if (n > 0.9) wBloom(g, X + n * TW, Y + TH * 0.5, TW * 0.05, '#f0c6d6');
+    return;
+  }
+  if (ch === 's' || ch === 'd' || ch === 'P') {
+    const base = ch === 'd' ? '#3f3549' : (ch === 'P' ? '#342d3f' : '#332b3d');
+    const fg = g.createLinearGradient(X, Y, X + TW, Y + TH);
+    fg.addColorStop(0, base); fg.addColorStop(1, ch === 'd' ? '#2f2739' : '#282230');
+    g.fillStyle = fg; g.fillRect(X, Y, TW, TH);
+    g.fillStyle = 'rgba(255,255,255,0.035)'; g.fillRect(X, Y, TW, TH * 0.12);
+    // riser at the front edge of the dais, so it reads as a step up
+    if (ch === 'd' && wTileAt(c, r + 1) !== 'd') {
+      const rh = TH * 0.55;
+      const rg = g.createLinearGradient(0, Y + TH - rh, 0, Y + TH);
+      rg.addColorStop(0, '#4a3f55'); rg.addColorStop(1, '#1d1826');
+      g.fillStyle = rg; g.fillRect(X, Y + TH - rh, TW, rh);
+      g.fillStyle = '#c9a961'; g.fillRect(X, Y + TH - rh, TW, Math.max(1, S));
+    }
+    if (ch === 'P' && wTileAt(c, r + 1) !== 'P') {
+      g.fillStyle = '#c9a961'; g.fillRect(X, Y + TH - Math.max(1, S * 1.4), TW, Math.max(1, S * 1.4));
     }
     return;
   }
 
-  // Memory stand: a gilt-framed photo on an easel, banked with blooms
-  if (!done) {
-    const halo = 0.5 + 0.5 * Math.sin(W.t / 520);
-    const cx = X + 8 * u, cy = Y + 34 * u, rad = 34 * u;
-    const grd = g.createRadialGradient(cx, cy, rad * 0.1, cx, cy, rad);
-    grd.addColorStop(0, `rgba(255,228,190,${0.16 + halo * 0.16})`);
-    grd.addColorStop(1, 'rgba(255,228,190,0)');
-    g.fillStyle = grd;
-    g.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+  // polished stone floor
+  const fg = g.createLinearGradient(X, Y, X + TW, Y + TH);
+  fg.addColorStop(0, n > 0.5 ? '#352e40' : '#322b3c');
+  fg.addColorStop(1, n > 0.5 ? '#2a2433' : '#27212f');
+  g.fillStyle = fg; g.fillRect(X, Y, TW, TH);
+  if (n > 0.45) {
+    g.save(); g.beginPath(); g.rect(X, Y, TW, TH); g.clip();
+    g.beginPath(); g.moveTo(X + n * TW, Y);
+    g.quadraticCurveTo(X + (1 - n) * TW * 1.2, Y + TH * 0.5, X + n * TW * 0.7, Y + TH);
+    g.strokeStyle = 'rgba(255,255,255,0.05)'; g.lineWidth = Math.max(1, S * 0.5); g.stroke();
+    g.restore();
+  }
+  g.fillStyle = 'rgba(0,0,0,0.26)'; g.fillRect(X, Y, TW, Math.max(1, S * 0.5));
+  g.fillStyle = 'rgba(0,0,0,0.26)'; g.fillRect(X, Y, Math.max(1, S * 0.5), TH);
+  g.fillStyle = 'rgba(255,255,255,0.03)'; g.fillRect(X, Y + S * 0.5, TW, Math.max(1, S * 0.4));
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STANDING PIECES — each drawn upward from its footprint
+══════════════════════════════════════════════════════════════ */
+function baseOf(col, row, S) {
+  return { x: (col + 0.5) * WT * S, y: (row + 1) * WT * PY * S };
+}
+
+/* the drapery wall behind the stage */
+function wDrawBackWall(g, camX, camY, cw, S) {
+  const wallBase = 2 * WT * PY * S;
+  const top = wallBase - WALL_H * S;
+  const gr = g.createLinearGradient(0, top, 0, wallBase);
+  gr.addColorStop(0, '#0a0810'); gr.addColorStop(0.55, '#171223'); gr.addColorStop(1, '#221a30');
+  g.fillStyle = gr; g.fillRect(camX - 40, top, cw + 80, wallBase - top);
+  // pleats
+  const step = WT * S * 0.5;
+  for (let x = Math.floor((camX - 40) / step) * step; x < camX + cw + 40; x += step) {
+    g.fillStyle = 'rgba(0,0,0,0.30)'; g.fillRect(x, top, step * 0.34, wallBase - top);
+    g.fillStyle = 'rgba(255,255,255,0.035)'; g.fillRect(x + step * 0.42, top, step * 0.16, wallBase - top);
+  }
+  // gold cornice
+  g.fillStyle = '#8d7440'; g.fillRect(camX - 40, top, cw + 80, S * 5);
+  g.fillStyle = '#e0c07a'; g.fillRect(camX - 40, top, cw + 80, S * 1.6);
+  g.fillStyle = 'rgba(0,0,0,0.4)'; g.fillRect(camX - 40, wallBase - S * 3, cw + 80, S * 3);
+}
+
+/* round banquet table with guests seated all round it */
+function wDrawTable(g, tb, S) {
+  const b = baseOf(tb.col + 1, tb.row + 1, S);
+  const cx = b.x, floorY = b.y;
+  const rx = 1.5 * WT * S, ry = rx * 0.44;
+  const topY = floorY - WT * S * 0.52;
+
+  // guests behind the table first
+  for (let i = 0; i < tb.seats; i++) {
+    const a = i / tb.seats * TAU + 0.35;
+    if (Math.sin(a) > -0.1) continue;
+    wFigure(g, cx + Math.cos(a) * rx * 1.16, floorY + Math.sin(a) * ry * 1.16,
+            WT * S * 1.15, wGuestOpts(wHash(tb.col + i * 7, tb.row + i * 3)));
+  }
+  // cloth
+  wShadow(g, cx, floorY + ry * 0.5, rx * 1.35, 0.55);
+  g.beginPath();
+  g.moveTo(cx - rx, topY);
+  g.lineTo(cx - rx, floorY - ry * 0.1);
+  g.ellipse(cx, floorY - ry * 0.1, rx, ry, 0, Math.PI, 0, true);
+  g.lineTo(cx + rx, topY);
+  g.closePath();
+  const cg = g.createLinearGradient(cx - rx, 0, cx + rx, 0);
+  cg.addColorStop(0, '#171320'); cg.addColorStop(0.4, '#2b2438'); cg.addColorStop(1, '#12101a');
+  g.fillStyle = cg; g.fill();
+  // top
+  const tgr = g.createRadialGradient(cx - rx * 0.3, topY - ry * 0.3, ry * 0.1, cx, topY, rx);
+  tgr.addColorStop(0, '#41374f'); tgr.addColorStop(0.6, '#2f2740'); tgr.addColorStop(1, '#221c2e');
+  wEllipse(g, cx, topY, rx, ry, '#000');
+  g.beginPath(); g.ellipse(cx, topY, rx, ry, 0, 0, TAU); g.fillStyle = tgr; g.fill();
+  g.beginPath(); g.ellipse(cx, topY, rx * 0.98, ry * 0.98, 0, Math.PI * 1.1, Math.PI * 1.85);
+  g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = Math.max(1, S); g.stroke();
+  // centrepiece
+  wArrangement(g, cx, topY + ry * 0.15, rx * 1.15, WT * S * 0.85, tb.col * 31 + tb.row, true);
+  // candles
+  for (const sx of [-0.55, 0.55]) {
+    const px2 = cx + rx * sx;
+    g.fillStyle = '#efe6d6'; g.fillRect(px2 - S * 1.2, topY - S * 7, S * 2.4, S * 7);
+    const fl = g.createRadialGradient(px2, topY - S * 8.4, 0, px2, topY - S * 8.4, S * 4);
+    fl.addColorStop(0, 'rgba(255,240,190,0.95)'); fl.addColorStop(1, 'rgba(255,220,150,0)');
+    g.fillStyle = fl; g.beginPath(); g.arc(px2, topY - S * 8.4, S * 4, 0, TAU); g.fill();
+  }
+  // guests in front
+  for (let i = 0; i < tb.seats; i++) {
+    const a = i / tb.seats * TAU + 0.35;
+    if (Math.sin(a) <= -0.1) continue;
+    wFigure(g, cx + Math.cos(a) * rx * 1.16, floorY + Math.sin(a) * ry * 1.16,
+            WT * S * 1.15, wGuestOpts(wHash(tb.col + i * 7, tb.row + i * 3)));
+  }
+}
+
+/* a guest standing along the aisle */
+function wDrawStanding(g, st, S) {
+  const b = baseOf(st.col, st.row, S);
+  wFigure(g, b.x, b.y, WT * S * 1.5, wGuestOpts(st.seed));
+}
+
+/* 혼주 — a parent on a chair */
+function wDrawParent(g, pr, S) {
+  const b = baseOf(pr.col, pr.row, S);
+  const H = WT * S * 1.45;
+  // chair
+  wShadow(g, b.x, b.y, H * 0.3, 0.45);
+  wRound(g, b.x - H * 0.19, b.y - H * 0.62, H * 0.38, H * 0.62, '#241d2f', H * 0.06);
+  wRound(g, b.x - H * 0.17, b.y - H * 0.60, H * 0.34, H * 0.5, '#33293f', H * 0.05);
+  const o = pr.who === 'father'
+    ? { kind:'suit', wear:'#1a1622', wear2:'#12101a', trouser:'#141119', tie:'#7a2f3a',
+        hair:'#3a3438', skin:'#f6d0ab' }
+    : { kind:'hanbok', wear:'#c98fb4', wear2:'#a9739a', jeogori:'#f6efe4', goreum:'#9c3f52',
+        hair:'#2c2028', skin:'#ffdcbc', updo:true, blush:true };
+  wFigure(g, b.x, b.y - H * 0.10, H, o);
+}
+
+/* the tall pillar arrangements at the mouth of the aisle */
+function wDrawEntryFlowers(g, fl, S) {
+  const b = baseOf(fl.col, fl.row, S);
+  const w = (fl.big ? 2.3 : 1.6) * WT * S;
+  const h = (fl.big ? 2.6 : 1.7) * WT * S;
+  // stand
+  g.fillStyle = '#2a2336';
+  g.fillRect(b.x - w * 0.07, b.y - h * 0.42, w * 0.14, h * 0.42);
+  wEllipse(g, b.x, b.y, w * 0.18, w * 0.06, '#1a1524');
+  wArrangement(g, b.x, b.y - h * 0.34, w, h, fl.col * 53 + fl.row * 11, true);
+  if (fl.big) {
+    const px2 = b.x - w * 0.52;
+    g.fillStyle = '#efe6d6'; g.fillRect(px2 - S * 1.6, b.y - S * 11, S * 3.2, S * 11);
+    const fg2 = g.createRadialGradient(px2, b.y - S * 13, 0, px2, b.y - S * 13, S * 6);
+    fg2.addColorStop(0, 'rgba(255,240,190,0.95)'); fg2.addColorStop(1, 'rgba(255,220,150,0)');
+    g.fillStyle = fg2; g.beginPath(); g.arc(px2, b.y - S * 13, S * 6, 0, TAU); g.fill();
+  }
+}
+
+/* the unbroken flower border either side of the runner */
+function wDrawBorderTile(g, c, r, S) {
+  const b = baseOf(c, r, S);
+  wArrangement(g, b.x, b.y + WT * PY * S * 0.1, WT * S * 1.15, WT * S * 0.95,
+               c * 97 + r * 7, true);
+}
+
+/* memory stand, and the groom on the dais */
+function wDrawPlace(g, pl, S) {
+  const b = baseOf(pl.col, pl.row, S);
+  const done = W.visited.has(pl.ep);
+
+  if (pl.groom) {
+    const H = WT * S * 1.62;
+    wFigure(g, b.x, b.y, H, {
+      kind:'tux', wear:'#151119', wear2:'#0d0b12', trouser:'#121017',
+      tie:'#ffffff', hair:'#2a1c12', skin:'#f6d0ab',
+    });
+    g.fillStyle = '#f7c9d8';
+    g.beginPath(); g.arc(b.x + H * 0.11, b.y - H * 0.58, H * 0.032, 0, TAU); g.fill();
+    if (!done) {
+      const hy = b.y - H * 1.15 - Math.sin(W.t / 320) * S * 3;
+      g.fillStyle = '#ff6b8f';
+      g.beginPath();
+      g.moveTo(b.x, hy + S * 7);
+      g.bezierCurveTo(b.x - S * 9, hy - S * 2, b.x - S * 3, hy - S * 6, b.x, hy - S * 1);
+      g.bezierCurveTo(b.x + S * 3, hy - S * 6, b.x + S * 9, hy - S * 2, b.x, hy + S * 7);
+      g.fill();
+    }
+    return;
   }
 
-  wShadow(g, X + 8 * u, Y + 45.5 * u, 8 * u, 3 * u, 0.55);
-  px(6.4, 33, 3.2, 12, '#7a6436'); px(6.4, 33, 1, 12, '#c9a961');
-  px(3.5, 43.5, 9, 1.6, '#6d5a33');
-  px(0.6, 13, 14.8, 21, '#8d7440');                    // frame
-  px(1.4, 13.8, 13.2, 19.4, '#e0c07a');
-  px(2.4, 14.8, 11.2, 17.4, '#c9a961');
-  px(3.4, 15.8, 9.2, 15.4, done ? '#403752' : '#241f30');
+  // easel with a framed photo
+  const H = WT * S * 1.8, w = WT * S * 0.95;
+  wShadow(g, b.x, b.y, w * 0.8, 0.5);
+  g.strokeStyle = '#7a6436'; g.lineWidth = Math.max(1.4, S * 1.6);
+  g.beginPath(); g.moveTo(b.x - w * 0.42, b.y); g.lineTo(b.x - w * 0.1, b.y - H * 0.75); g.stroke();
+  g.beginPath(); g.moveTo(b.x + w * 0.42, b.y); g.lineTo(b.x + w * 0.1, b.y - H * 0.75); g.stroke();
+  if (!done) {
+    const gl = g.createRadialGradient(b.x, b.y - H * 0.55, 0, b.x, b.y - H * 0.55, H * 0.9);
+    const pulse = 0.5 + 0.5 * Math.sin(W.t / 520);
+    gl.addColorStop(0, `rgba(255,228,190,${0.14 + pulse * 0.14})`);
+    gl.addColorStop(1, 'rgba(255,228,190,0)');
+    g.fillStyle = gl;
+    g.beginPath(); g.arc(b.x, b.y - H * 0.55, H * 0.9, 0, TAU); g.fill();
+  }
+  const fw = w * 1.05, fh = H * 0.52, fy = b.y - H * 0.95;
+  wRound(g, b.x - fw / 2, fy, fw, fh, '#8d7440', S * 2);
+  wRound(g, b.x - fw / 2 + S * 2, fy + S * 2, fw - S * 4, fh - S * 4, '#e0c07a', S * 1.4);
+  wRound(g, b.x - fw / 2 + S * 4, fy + S * 4, fw - S * 8, fh - S * 8,
+         done ? '#4a405e' : '#241f30', S);
   if (done) {
-    px(4.6, 19, 6.8, 6.8, '#f6c2d4'); px(4, 27, 8, 3.4, '#e0b6e8');
-    px(5.6, 20.4, 2, 2, '#fbe4ee');
-  } else {
-    px(4.6, 20, 6.8, 5.6, '#4a4260'); px(4, 27, 8, 3.4, '#413a55');
+    wBloom(g, b.x - fw * 0.12, fy + fh * 0.42, fw * 0.16, '#f6c2d4');
+    wBloom(g, b.x + fw * 0.14, fy + fh * 0.58, fw * 0.13, '#e0b6e8');
   }
-  px(3.4, 15.8, 9.2, 1.4, 'rgba(255,255,255,0.20)');
-
-  const blooms = ['#f7bfd2', '#e6bfee', '#fad6bb', '#fbf4f7', '#f2aecb'];
-  px(0, 35, 16, 9, '#2f4a33'); px(1, 33.5, 14, 3, '#3c5c40');
-  for (let i = 0; i < 11; i++) {
-    const bx = ((wHash(pl.col + i * 3, pl.row) * 14) | 0);
-    const by = 33 + ((wHash(pl.col, pl.row + i * 4) * 10) | 0);
-    wBloom(g, X + (bx + 1.4) * u, Y + (by + 1.4) * u, 1.6 * u,
-           blooms[(wHash(pl.col + i, pl.row + i) * 5) | 0]);
-  }
-  const cx2 = pl.side < 0 ? 13.2 : 0.6;
-  px(cx2, 39, 2.4, 6, '#efe6d6'); px(cx2, 36.8, 2.4, 2.2, '#ffd98a');
-  px(cx2 + 0.7, 35.4, 1, 1.6, '#fff4d0');
-
+  g.fillStyle = 'rgba(255,255,255,0.16)';
+  g.fillRect(b.x - fw / 2 + S * 4, fy + S * 4, fw - S * 8, fh * 0.16);
+  wArrangement(g, b.x, b.y, w * 1.5, H * 0.34, pl.col * 17 + pl.row, true);
   if (!done) {
-    const by = 3 - Math.sin(W.t / 320) * 2.5;
-    px(3, by, 10, 8, '#ffffff'); px(5, by + 8, 6, 2.6, '#ffffff');
-    px(7, by + 10.6, 2, 1.8, '#ffffff');
-    px(6, by + 2, 4, 4, '#ff6b8f');
+    const my = fy - H * 0.28 - Math.sin(W.t / 320) * S * 3;
+    wRound(g, b.x - S * 7, my, S * 14, S * 11, '#ffffff', S * 2);
+    g.beginPath(); g.moveTo(b.x - S * 3, my + S * 11); g.lineTo(b.x + S * 3, my + S * 11);
+    g.lineTo(b.x, my + S * 15); g.closePath(); g.fillStyle = '#ffffff'; g.fill();
+    g.fillStyle = '#ff6b8f';
+    g.beginPath(); g.arc(b.x, my + S * 5, S * 3.4, 0, TAU); g.fill();
   }
 }
 
-/* ── the bride: gown, veil and a long trailing train ── */
-function wDrawGirl(g, sx, sy, dir, step, S) {
-  const U = WT / 16, u = U * S;
-  const p = (ox, oy, w, h, col) => {
-    g.fillStyle = col;
-    g.fillRect(sx + ox * u, sy + oy * u, w * u, h * u);
-  };
-  const HAIR='#3d2416', HAIR2='#5c3720', SKIN='#ffdcbc', SKIN2='#e8b894',
-        GOWN='#fbf8f2', GOWN2='#e9e3d9', GOWN3='#d3ccc1',
-        PINK='#f2b8cc', LILAC='#ddb6e8', PEACH='#f7cdb0', LEAF='#5d7a55',
-        EYE='#2b1b12';
-  const la = step === 1 ? 1 : 0, ra = step === 2 ? 1 : 0;
-  const sway = step ? 0.6 : 0;
-
-  wShadow(g, sx + 8 * u, sy + 21 * u, 8 * u, 3.4 * u, 0.5);
-
-  /* Veil and train always fall away from the way she is facing: behind her
-     back when she walks up the aisle, and above her when she turns round. */
-  const tiers = [[6.2, 3.6, 0.16], [5.2, 5.6, 0.26], [4.2, 7.6, 0.38],
-                 [3.2, 9.6, 0.50], [2.2, 11.6, 0.62], [1.6, 12.8, 0.74]];
-  const veilAt = (ox, ow, len, al) => {
-    if (dir === 'down')       p(ox, 4 - len, ow, len, `rgba(252,249,244,${al})`);
-    else if (dir === 'up')    p(ox, 17, ow, len, `rgba(252,249,244,${al})`);
-    else if (dir === 'left')  p(11, 6, len, ow, `rgba(252,249,244,${al})`);
-    else                      p(5 - len, 6, len, ow, `rgba(252,249,244,${al})`);
-  };
-  let off = 0;
-  for (let i = tiers.length - 1; i >= 0; i--) {
-    const [ox, ow, al] = tiers[i];
-    const len = 6 + i * 1.4;
-    if (dir === 'down')      p(ox, -off - len + 4, ow, len, `rgba(252,249,244,${al})`);
-    else if (dir === 'up')   p(ox, 15 + off, ow, len, `rgba(252,249,244,${al})`);
-    else if (dir === 'left') p(9 + off, 4 + (16 - ow) / 2 - 2, len, ow, `rgba(252,249,244,${al})`);
-    else                     p(7 - off - len, 4 + (16 - ow) / 2 - 2, len, ow, `rgba(252,249,244,${al})`);
-    off += len * 0.72;
+/* the head table on the dais */
+function wDrawHeadTable(g, S) {
+  const b = baseOf(14, 4, S);
+  const w = 7 * WT * S, h = WT * S * 0.62;
+  const x = b.x - w / 2, y = b.y - h;
+  wShadow(g, b.x, b.y + S * 2, w * 0.55, 0.45);
+  const gr = g.createLinearGradient(0, y, 0, y + h);
+  gr.addColorStop(0, '#fbf7f0'); gr.addColorStop(0.5, '#eee8de'); gr.addColorStop(1, '#c3b9ad');
+  g.fillStyle = gr; g.fillRect(x, y, w, h);
+  g.fillStyle = '#fdfbf6'; g.fillRect(x, y, w, S * 2);
+  g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x, y + h - S * 2, w, S * 2);
+  for (let i = 0; i < 6; i++) {
+    const px2 = x + w * (0.1 + i * 0.16);
+    g.fillStyle = '#efe6d6'; g.fillRect(px2 - S * 1.4, y - S * 9, S * 2.8, S * 9);
+    const fl = g.createRadialGradient(px2, y - S * 10.6, 0, px2, y - S * 10.6, S * 5);
+    fl.addColorStop(0, 'rgba(255,240,190,0.95)'); fl.addColorStop(1, 'rgba(255,220,150,0)');
+    g.fillStyle = fl; g.beginPath(); g.arc(px2, y - S * 10.6, S * 5, 0, TAU); g.fill();
   }
-  // veil over the shoulders, and its cap on the back of her head
-  if (dir === 'up')        { p(2, 10, 12, 8, 'rgba(255,253,250,0.30)'); p(2.4, 2.6, 11.2, 11, 'rgba(255,253,250,0.42)'); p(3.2, 1.6, 9.6, 4, 'rgba(255,255,255,0.34)'); }
-  else if (dir === 'down') { p(2.6, 1, 10.8, 4, 'rgba(255,253,250,0.34)'); p(3.4, 0.4, 9.2, 2, 'rgba(255,255,255,0.40)'); }
-  else                     { p(dir === 'left' ? 7 : 2.2, 2, 6.8, 12, 'rgba(255,253,250,0.30)'); }
-
-  if (dir === 'up') {
-    p(3,1,10,9,HAIR); p(2,3,2,6,HAIR); p(12,3,2,6,HAIR);
-    p(4,2,8,3,HAIR2);
-    p(4.5,0,7,2,'#f6eef2'); p(5.5,0,2,1,PINK); p(9,0,2,1,LILAC);
-    p(6,10,4,1,SKIN2);
-    p(5,11,6,4,GOWN); p(4,14,8,4,GOWN); p(2.4,17,11.2,4.5,GOWN);
-    p(2.4,20.6,11.2,1,GOWN3); p(4,15,8,0.8,GOWN2);
-    p(3,11,2,4,SKIN); p(11,11,2,4,SKIN);
-  } else if (dir === 'down') {
-    p(3,1,10,9,HAIR);
-    p(4,3,8,7,SKIN);
-    p(3,1,10,3,HAIR); p(3,2,2,5,HAIR); p(11,2,2,5,HAIR);
-    p(5,6,1.8,1.8,EYE); p(9.2,6,1.8,1.8,EYE);
-    p(5,6,0.7,0.7,'#ffffff'); p(9.2,6,0.7,0.7,'#ffffff');
-    p(4,8,1,1,PINK); p(11,8,1,1,PINK);
-    p(7,8.4,2,0.8,SKIN2);
-    p(4,0,8,2,'#f6eef2'); p(5,0,2,1,PINK); p(9,0,2,1,LILAC);
-    p(7,10,2,1,SKIN2);
-    p(5,11,6,4,GOWN); p(4,14,8,4,GOWN); p(2.4,17,11.2,4.5,GOWN);
-    p(2.4,20.6,11.2,1,GOWN3); p(4,15,8,0.8,GOWN2); p(5,11,6,0.8,GOWN2);
-    p(3,11,2,4,SKIN); p(11,11,2,4,SKIN);
-    p(5,13,6,5,LEAF);                                  // bouquet
-    pxDisc(g, sx + 6.4 * u, sy + 14.4 * u, 2 * u, PINK, Math.max(1, S));
-    pxDisc(g, sx + 9.4 * u, sy + 13.6 * u, 1.9 * u, LILAC, Math.max(1, S));
-    pxDisc(g, sx + 8 * u, sy + 16.6 * u, 1.8 * u, PEACH, Math.max(1, S));
-    p(5.8,13.4,0.7,0.7,'#ffffff'); p(8.9,12.8,0.7,0.7,'#ffffff');
-  } else {
-    const flip = dir === 'left';
-    const q = (ox, oy, w, h, col) => p(flip ? 16 - ox - w : ox, oy, w, h, col);
-    q(3,1,10,9,HAIR);
-    q(6,3,6,7,SKIN);
-    q(3,1,9,3,HAIR); q(3,2,3,7,HAIR);
-    q(9,6,1.8,1.8,EYE); q(9,6,0.7,0.7,'#ffffff');
-    q(11,8,1,1,PINK);
-    q(4,0,7,2,'#f6eef2'); q(5,0,2,1,PINK);
-    q(7,10,3,1,SKIN2);
-    q(5,11,7,4,GOWN); q(4,14,9,4,GOWN); q(3,17,10.6,4.5,GOWN);
-    q(3,20.6,10.6,1,GOWN3); q(4,15,9,0.8,GOWN2);
-    q(10,11,2,4,SKIN);
-    q(9,13,5,4,LEAF); q(9,13,3,3,PINK); q(11,14,3,3,LILAC);
-  }
-
-  // satin sheen down the gown
-  const sg = g.createLinearGradient(sx + 2 * u, sy, sx + 14 * u, sy);
-  sg.addColorStop(0, 'rgba(120,110,130,0.22)'); sg.addColorStop(0.34, 'rgba(255,255,255,0.30)');
-  sg.addColorStop(0.62, 'rgba(255,255,255,0.06)'); sg.addColorStop(1, 'rgba(110,100,120,0.26)');
-  g.save(); g.beginPath();
-  g.moveTo(sx + 5 * u, sy + 11 * u); g.lineTo(sx + 11 * u, sy + 11 * u);
-  g.lineTo(sx + 13.6 * u, sy + 21.4 * u); g.lineTo(sx + 2.4 * u, sy + 21.4 * u);
-  g.closePath(); g.clip(); g.fillStyle = sg;
-  g.fillRect(sx, sy + 10 * u, 16 * u, 12 * u); g.restore();
-
-  // hem shifts a touch as she walks — a gown shows no stride
-  p(3 + sway, 21.4, 4, 0.8, GOWN2);
-  p(9 - sway, 21.4, 4, 0.8, GOWN2);
-  if (la) p(3, 20.6, 3, 0.8, GOWN);
-  if (ra) p(10, 20.6, 3, 0.8, GOWN);
+  for (const t of [0.28, 0.72])
+    wArrangement(g, x + w * t, y + S * 1, w * 0.2, h * 1.5, t * 977, true);
 }
 
-/* ── frame ── */
+/* the gateway she walks in through */
+function wDrawGate(g, S) {
+  const b = baseOf(AISLE_MID, 44, S);
+  const w = 6.4 * WT * S, h = 3.1 * WT * S;
+  const x = b.x - w / 2, y = b.y - h;
+  g.fillStyle = '#15111d'; g.fillRect(x, y, w, h);
+  const gr = g.createLinearGradient(0, y, 0, y + h * 0.3);
+  gr.addColorStop(0, '#2f2740'); gr.addColorStop(1, '#1b1626');
+  g.fillStyle = gr; g.fillRect(x, y, w, h * 0.3);
+  g.fillStyle = '#8d7440'; g.fillRect(x, y, w, S * 4);
+  g.fillStyle = '#e0c07a'; g.fillRect(x, y, w, S * 1.5);
+  for (const sx of [x + S * 4, x + w - S * 10]) {
+    g.fillStyle = '#2a2337'; g.fillRect(sx, y, S * 6, h);
+    g.fillStyle = '#c9a961'; g.fillRect(sx + S * 1.4, y + S * 5, S * 3.2, h - S * 8);
+    g.fillStyle = '#f0dcae'; g.fillRect(sx + S * 1.4, y + S * 5, S * 1.1, h - S * 8);
+  }
+  const open = w - S * 26;
+  const og = g.createLinearGradient(0, y + h * 0.28, 0, y + h);
+  og.addColorStop(0, '#0c0a12'); og.addColorStop(1, '#191324');
+  g.fillStyle = og; g.fillRect(b.x - open / 2, y + h * 0.28, open, h * 0.72);
+  for (let i = 0; i < 6; i++) {
+    g.fillStyle = i % 2 ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.3)';
+    g.fillRect(b.x - open / 2 + i * open / 6, y + h * 0.28, open / 12, h * 0.72);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   THE BRIDE
+══════════════════════════════════════════════════════════════ */
+function wDrawGirl(g, bx, by, dir, step, S) {
+  const H = WT * S * 1.62;
+  const sway = step ? Math.sin(W.t / 90) * H * 0.012 : 0;
+  const back = dir === 'up';
+
+  // veil and train, always falling away from the way she faces
+  const tl = H * 1.45, tw = H * 0.68;
+  g.save();
+  g.translate(bx, by);
+  if (dir === 'left')  g.rotate(Math.PI * 0.5);
+  if (dir === 'right') g.rotate(-Math.PI * 0.5);
+  if (back)            g.rotate(Math.PI);
+  g.beginPath();
+  g.moveTo(-tw * 0.32, -H * 0.34);
+  g.quadraticCurveTo(-tw * 0.55, tl * 0.45, 0, tl * 0.62);
+  g.quadraticCurveTo(tw * 0.55, tl * 0.45, tw * 0.32, -H * 0.34);
+  g.closePath();
+  const vg = g.createLinearGradient(0, -H * 0.3, 0, tl * 0.6);
+  vg.addColorStop(0, 'rgba(255,253,250,0.62)');
+  vg.addColorStop(0.5, 'rgba(255,253,250,0.34)');
+  vg.addColorStop(1, 'rgba(255,253,250,0.06)');
+  g.fillStyle = vg; g.fill();
+  g.restore();
+
+  g.save(); g.translate(0, sway);
+  wFigure(g, bx, by, H, {
+    kind:'gown', wear:'#fdfbf7', wear2:'#ded7cd', trouser:'#fdfbf7',
+    hair:'#3d2416', skin:'#ffdcbc', updo:true, blush:true, sash:'#f4d9e2',
+  });
+  // veil cap and flower crown
+  const headCY = by - H * 0.80, headR = H * 0.112;
+  g.fillStyle = 'rgba(255,255,255,0.5)';
+  g.beginPath(); g.ellipse(bx, headCY - headR * 0.85, headR * 1.2, headR * 0.55, 0, 0, TAU); g.fill();
+  for (let i = 0; i < 5; i++) {
+    const a = -0.35 - i * 0.62;
+    wBloom(g, bx + Math.cos(a) * headR * 1.02, headCY + Math.sin(a) * headR * 1.02,
+           headR * 0.3, ['#f9c8d8','#ffffff','#eeb4dd','#fde0ea','#f8cdb8'][i]);
+  }
+  // bouquet, only when we can see her front
+  if (!back) {
+    const by2 = by - H * 0.40;
+    wArrangement(g, bx, by2 + H * 0.06, H * 0.42, H * 0.28, 4242, true);
+  }
+  g.restore();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FRAME
+══════════════════════════════════════════════════════════════ */
 function wRender() {
   const cv = $('world-canvas'), g = cv.getContext('2d');
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -3699,136 +3741,112 @@ function wRender() {
   if (cv.width !== (cw * dpr | 0) || cv.height !== (chh * dpr | 0)) {
     cv.width = cw * dpr | 0; cv.height = chh * dpr | 0;
   }
-  const S = W.scale = Math.max(1, Math.min(3, Math.round(Math.min(cw, chh) / 300)));
+  const S = W.scale = Math.max(1, Math.min(4, Math.round(Math.min(cw, chh) / 300)));
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.imageSmoothingEnabled = true;
   g.imageSmoothingQuality = 'high';
 
-  // camera — centred on the girl, clamped to the map
-  const mapW = W_COLS * WT * S, mapH = W_ROWS * WT * S;
-  let camX = W.x * S - cw / 2, camY = W.y * S - chh / 2;
+  const TW = WT * S, TH = WT * PY * S;
+  const mapW = W_COLS * TW, mapH = W_ROWS * TH;
+  let camX = W.x * S - cw / 2, camY = W.y * PY * S - chh * 0.58;
   camX = mapW <= cw ? (mapW - cw) / 2 : Math.max(0, Math.min(mapW - cw, camX));
-  camY = mapH <= chh ? (mapH - chh) / 2 : Math.max(0, Math.min(mapH - chh, camY));
+  camY = mapH <= chh ? (mapH - chh) / 2 : Math.max(-WALL_H * S, Math.min(mapH - chh, camY));
 
-  g.fillStyle = '#141119';
+  g.fillStyle = '#0a0810';
   g.fillRect(0, 0, cw, chh);
   g.save();
   g.translate(-Math.round(camX), -Math.round(camY));
 
-  // only draw the tiles the camera can see
-  const c0 = Math.max(0, Math.floor(camX / (WT * S)) - 1);
-  const c1 = Math.min(W_COLS - 1, Math.ceil((camX + cw) / (WT * S)));
-  const r0 = Math.max(0, Math.floor(camY / (WT * S)) - 1);
-  const r1 = Math.min(W_ROWS - 1, Math.ceil((camY + chh) / (WT * S)));
+  const c0 = Math.max(0, Math.floor(camX / TW) - 1);
+  const c1 = Math.min(W_COLS - 1, Math.ceil((camX + cw) / TW));
+  const r0 = Math.max(0, Math.floor(camY / TH) - 1);
+  const r1 = Math.min(W_ROWS - 1, Math.ceil((camY + chh) / TH) + 2);
   for (let r = r0; r <= r1; r++)
-    for (let c = c0; c <= c1; c++) {
-      wDrawTile(g, wTileAt(c, r), c, r, S);
-    }
+    for (let c = c0; c <= c1; c++) wDrawTile(g, wTileAt(c, r), c, r, S);
 
-  // pools of warm light under every fixture
+  if (r0 <= 3) wDrawBackWall(g, camX, camY, cw, S);
+
+  // light pools on the floor beneath every fixture
   for (const ch2 of W_CHANDELIERS) {
-    const gx = (ch2.col + 0.5) * WT * S, gy = (ch2.row + 0.5) * WT * S;
-    const rad = (ch2.big ? 5.2 : 3.4) * WT * S;
+    const gx = (ch2.col + 0.5) * TW, gy = (ch2.row + 0.5) * TH;
+    const rad = (ch2.big ? 5 : 3.2) * TW;
     const glow = g.createRadialGradient(gx, gy, 0, gx, gy, rad);
     const flick = 0.86 + 0.14 * Math.sin(W.t / 700 + ch2.row);
-    glow.addColorStop(0, `rgba(255,226,170,${(ch2.big ? 0.24 : 0.15) * flick})`);
-    glow.addColorStop(0.5, `rgba(255,214,150,${0.07 * flick})`);
+    glow.addColorStop(0, `rgba(255,226,170,${(ch2.big ? 0.15 : 0.09) * flick})`);
+    glow.addColorStop(0.5, `rgba(255,214,150,${0.06 * flick})`);
     glow.addColorStop(1, 'rgba(255,214,150,0)');
-    g.fillStyle = glow;
-    g.fillRect(gx - rad, gy - rad, rad * 2, rad * 2);
+    g.save(); g.translate(gx, gy); g.scale(1, PY); g.translate(-gx, -gy);
+    g.fillStyle = glow; g.beginPath(); g.arc(gx, gy, rad, 0, TAU); g.fill();
+    g.restore();
   }
 
-  // the floor is polished, so the fixtures streak back down it
-  for (const ch2 of W_CHANDELIERS) {
-    if (!ch2.big) continue;
-    const gx = (ch2.col + 0.5) * WT * S, gy = (ch2.row + 0.5) * WT * S;
-    const h = 3.6 * WT * S, w = 0.9 * WT * S;
-    const refl = g.createLinearGradient(gx, gy, gx, gy + h);
-    refl.addColorStop(0, 'rgba(255,232,180,0.16)');
-    refl.addColorStop(1, 'rgba(255,232,180,0)');
-    g.fillStyle = refl; g.fillRect(gx - w / 2, gy, w, h);
-  }
-
-  // depth sort so she passes in front of a stand she has walked past
-  const inView = (col, row, pad = 4) =>
+  const inView = (col, row, pad = 5) =>
     col > c0 - pad && col < c1 + pad && row > r0 - pad && row < r1 + pad;
-  const drawables = W_PLACES.map(pl => ({
-    y: pl.groom ? (pl.row - 3) * WT + 51 * (WT / 16) : pl.row * WT + 8,
-    f: () => wDrawPlace(g, pl, S),
-  }));
-  for (const tb of W_TABLES)
-    if (inView(tb.col, tb.row))
-      drawables.push({ y: (tb.row + 3) * WT, f: () => wDrawTable(g, tb, S) });
-  for (const pr of W_PARENTS)
-    if (inView(pr.col, pr.row))
-      drawables.push({ y: (pr.row + 1) * WT, f: () => wDrawParent(g, pr, S) });
-  for (const st of W_STANDING)
-    if (inView(st.col, st.row, 3))
-      drawables.push({ y: (st.row + 0.6) * WT,
-        f: () => wDrawPerson(g, (st.col + 0.5) * WT * S, (st.row + 0.5) * WT * S, S, st.seed, st.face, true) });
-  for (const fl of W_ENTRY_FLOWERS)
-    if (inView(fl.col, fl.row, 3))
-      drawables.push({ y: (fl.row + 0.8) * WT, f: () => wDrawEntryFlowers(g, fl, S) });
-  drawables.push({ y: W.y, f: () => wDrawGirl(g, Math.round(W.x * S) - WT / 2 * S, Math.round(W.y * S) - 21 * (WT / 16) * S, W.dir, W.step, S) });
-  drawables.sort((a, b) => a.y - b.y).forEach(d => d.f());
+  const draw = [];
+  const push = (row, f) => draw.push({ y: row, f });
 
-  // crystal chandeliers, seen from below — tiered drops around a bright core
+  for (let r = r0; r <= r1; r++)
+    for (let c = c0; c <= c1; c++)
+      if (wTileAt(c, r) === 'F') push(r + 0.9, () => wDrawBorderTile(g, c, r, S));
+
+  push(4.9, () => wDrawHeadTable(g, S));
+  push(44.9, () => wDrawGate(g, S));
+  for (const tb of W_TABLES) if (inView(tb.col, tb.row)) push(tb.row + 2, () => wDrawTable(g, tb, S));
+  for (const pr of W_PARENTS) if (inView(pr.col, pr.row)) push(pr.row + 1, () => wDrawParent(g, pr, S));
+  for (const st of W_STANDING) if (inView(st.col, st.row, 4)) push(st.row + 1, () => wDrawStanding(g, st, S));
+  for (const fl of W_ENTRY_FLOWERS) if (inView(fl.col, fl.row, 4)) push(fl.row + 1, () => wDrawEntryFlowers(g, fl, S));
+  for (const pl of W_PLACES) push(pl.groom ? pl.row + 1.2 : pl.row + 1, () => wDrawPlace(g, pl, S));
+  push(W.y / WT, () => wDrawGirl(g, Math.round(W.x * S), Math.round(W.y * PY * S), W.dir, W.step, S));
+
+  draw.sort((a, b) => a.y - b.y).forEach(d => d.f());
+
+  // chandeliers hang between us and the floor, so they go last
   for (const ch2 of W_CHANDELIERS) {
-    const gx = (ch2.col + 0.5) * WT * S, gy = (ch2.row + 0.5) * WT * S;
-    const tw = 0.88 + 0.12 * Math.sin(W.t / 640 + ch2.col * 1.7 + ch2.row);
-    const R  = (ch2.big ? 0.66 : 0.44) * WT * S;
-    const q  = Math.max(1, S);
-    // a soft square of light, like the coffered crystal panels overhead
-    g.fillStyle = `rgba(255,238,198,${0.10 * tw})`;
-    g.fillRect(gx - R * 1.5, gy - R * 1.5, R * 3, R * 3);
-    const core = g.createRadialGradient(gx, gy, 0, gx, gy, R * 1.7);
-    core.addColorStop(0, `rgba(255,246,220,${0.55 * tw})`);
-    core.addColorStop(1, 'rgba(255,232,180,0)');
-    g.fillStyle = core;
-    g.fillRect(gx - R * 1.7, gy - R * 1.7, R * 3.4, R * 3.4);
-    // a couple of tiers of crystal drops, kept small so the fixture reads as
-    // a light rather than a ring of dots
-    for (const [ring, cnt, al] of [[1, 9, 0.5], [0.58, 6, 0.8]]) {
+    const gx = (ch2.col + 0.5) * TW;
+    const gy = (ch2.row + 0.5) * TH - (ch2.big ? 1.9 : 1.5) * WT * S;
+    const tw2 = 0.88 + 0.12 * Math.sin(W.t / 640 + ch2.col * 1.7 + ch2.row);
+    const R = (ch2.big ? 0.62 : 0.42) * TW;
+    g.strokeStyle = 'rgba(210,190,150,0.30)'; g.lineWidth = Math.max(1, S * 0.8);
+    g.beginPath(); g.moveTo(gx, gy - R * 1.2); g.lineTo(gx, gy - R * 4.5); g.stroke();
+    for (const [ring, cnt, al, dy] of [[1, 10, 0.45, 0.9], [0.66, 7, 0.7, 0.5], [0.34, 5, 0.95, 0.2]]) {
       for (let k = 0; k < cnt; k++) {
-        const ang = k / cnt * Math.PI * 2 + ring * 3 + ch2.row;
-        const dx2 = gx + Math.cos(ang) * R * ring, dy2 = gy + Math.sin(ang) * R * ring;
-        g.fillStyle = `rgba(255,250,232,${al * tw})`;
-        g.beginPath(); g.arc(dx2, dy2, R * 0.07, 0, TAU); g.fill();
+        const ang = k / cnt * TAU + ring * 3 + ch2.row;
+        const dx2 = gx + Math.cos(ang) * R * ring;
+        const dy2 = gy + Math.sin(ang) * R * ring * 0.5 + R * dy;
+        g.fillStyle = `rgba(255,250,232,${al * tw2})`;
+        g.beginPath(); g.arc(dx2, dy2, R * 0.075, 0, TAU); g.fill();
+        g.strokeStyle = `rgba(255,244,210,${0.25 * al * tw2})`; g.lineWidth = Math.max(1, S * 0.5);
+        g.beginPath(); g.moveTo(dx2, dy2 - R * 0.3); g.lineTo(dx2, dy2); g.stroke();
       }
     }
-    // bright body of the fixture
-    const halo = g.createRadialGradient(gx, gy, 0, gx, gy, R * 0.95);
-    halo.addColorStop(0, `rgba(255,254,248,${0.98 * tw})`);
-    halo.addColorStop(0.25, `rgba(255,246,214,${0.72 * tw})`);
-    halo.addColorStop(0.6, `rgba(255,232,178,${0.26 * tw})`);
+    const halo = g.createRadialGradient(gx, gy, 0, gx, gy, R * 1.15);
+    halo.addColorStop(0, `rgba(255,254,248,${0.95 * tw2})`);
+    halo.addColorStop(0.28, `rgba(255,246,214,${0.6 * tw2})`);
     halo.addColorStop(1, 'rgba(255,228,170,0)');
-    g.fillStyle = halo; g.beginPath(); g.arc(gx, gy, R * 0.95, 0, TAU); g.fill();
+    g.fillStyle = halo; g.beginPath(); g.arc(gx, gy, R * 1.15, 0, TAU); g.fill();
   }
 
   g.restore();
 
-  // warm grade: candlelight up the middle, cool in the corners
   const grade = g.createLinearGradient(0, 0, 0, chh);
   grade.addColorStop(0, 'rgba(255,214,150,0.07)');
-  grade.addColorStop(0.5, 'rgba(255,226,180,0.04)');
-  grade.addColorStop(1, 'rgba(90,80,150,0.07)');
+  grade.addColorStop(0.5, 'rgba(255,226,180,0.03)');
+  grade.addColorStop(1, 'rgba(80,70,140,0.09)');
   g.fillStyle = grade; g.fillRect(0, 0, cw, chh);
 
-  // hall vignette — the room is lit only where it matters
-  const vig = g.createRadialGradient(cw / 2, chh * 0.46, Math.min(cw, chh) * 0.22,
-                                     cw / 2, chh * 0.46, Math.max(cw, chh) * 0.78);
+  const vig = g.createRadialGradient(cw / 2, chh * 0.46, Math.min(cw, chh) * 0.24,
+                                     cw / 2, chh * 0.46, Math.max(cw, chh) * 0.8);
   vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(0,0,0,0.44)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.46)');
   g.fillStyle = vig;
   g.fillRect(0, 0, cw, chh);
 }
 
-/* She stays on the runner — the aisle is the only ground she walks. */
 function wCanMove(nx, ny) {
   const pts = [[nx - 9, ny - 5], [nx + 9, ny - 5], [nx - 9, ny], [nx + 9, ny]];
   return pts.every(([px2, py2]) => {
     const t = wTileAt(Math.floor(px2 / WT), Math.floor(py2 / WT));
-    return t === 'r' || t === 'P';
+    return t === 'r' || t === 'P' || t === 'd';   // runner, podium, and the dais
   });
 }
 
