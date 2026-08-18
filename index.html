@@ -3336,7 +3336,18 @@ function wFigureSide(g, bx, by, H, o, side) {
     const sg = g.createLinearGradient(-sw * 0.66, 0, sw * 0.66, 0);
     sg.addColorStop(0, wear2); sg.addColorStop(0.45, wear); sg.addColorStop(1, wear2);
     g.fillStyle = sg; g.fill();
+    // creases falling from the waist, and a lit hem
+    g.strokeStyle = 'rgba(0,0,0,0.11)'; g.lineWidth = Math.max(1, H * 0.007);
+    for (const t of [-0.3, 0.34]) {
+      g.beginPath();
+      g.moveTo(t * sw * 0.34, hipY + H * 0.05);
+      g.quadraticCurveTo(t * sw * 0.58, -H * 0.13, t * sw * 0.70, -H * 0.02);
+      g.stroke();
+    }
     wEllipse(g, 0, 0, sw * 0.66, sw * 0.11, wear2);
+    g.strokeStyle = 'rgba(255,255,255,0.13)'; g.lineWidth = Math.max(1, H * 0.007);
+    g.beginPath(); g.ellipse(0, -H * 0.004, sw * 0.63, sw * 0.10, 0, Math.PI * 1.08, Math.PI * 1.9);
+    g.stroke();
   } else {
     limb(H * 0.035, hipY, H * 0.05, -H * 0.015, H * 0.088, o.trouser || wear2);
     g.beginPath();
@@ -3360,16 +3371,28 @@ function wFigureSide(g, bx, by, H, o, side) {
   if (o.kind === 'suit' || o.kind === 'tux') {
     // a narrow strip of shirt showing at the jacket opening, tapering away
     g.beginPath();
-    g.moveTo(bodyD * 0.24, shY + H * 0.004);
-    g.quadraticCurveTo(bodyD * 0.46, shY + H * 0.03, bodyD * 0.38, shY + H * 0.115);
-    g.quadraticCurveTo(bodyD * 0.30, shY + H * 0.135, bodyD * 0.14, shY + H * 0.10);
-    g.closePath(); g.fillStyle = '#f7f3ec'; g.fill();
-    limb(bodyD * 0.30, shY + H * 0.032, bodyD * 0.27, shY + H * 0.10, H * 0.020, o.tie || '#7a2f3a');
+    g.moveTo(bodyD * 0.18, shY + H * 0.002);
+    g.quadraticCurveTo(bodyD * 0.50, shY + H * 0.03, bodyD * 0.42, shY + H * 0.125);
+    g.quadraticCurveTo(bodyD * 0.30, shY + H * 0.150, bodyD * 0.06, shY + H * 0.11);
+    g.closePath(); g.fillStyle = '#f9f6f0'; g.fill();
+    g.fillStyle = 'rgba(0,0,0,0.10)';                 // collar shadow
+    g.fillRect(bodyD * 0.10, shY + H * 0.002, bodyD * 0.36, H * 0.012);
+    if (o.bowTie) {
+      g.fillStyle = o.tie || '#20202c';
+      g.beginPath();
+      g.moveTo(bodyD * 0.34, shY + H * 0.026);
+      g.lineTo(bodyD * 0.20, shY + H * 0.012);
+      g.lineTo(bodyD * 0.20, shY + H * 0.046);
+      g.closePath(); g.fill();
+      pxDisc(g, bodyD * 0.33, shY + H * 0.029, H * 0.008, 'rgba(255,255,255,0.3)');
+    } else {
+      limb(bodyD * 0.30, shY + H * 0.032, bodyD * 0.27, shY + H * 0.10, H * 0.020, o.tie || '#7a2f3a');
+    }
     g.beginPath();                                    // lapel over it
     g.moveTo(bodyD * 0.46, shY - H * 0.006);
     g.lineTo(bodyD * 0.06, shY + H * 0.016);
     g.lineTo(bodyD * 0.22, shY + H * 0.125);
-    g.closePath(); g.fillStyle = 'rgba(255,255,255,0.10)'; g.fill();
+    g.closePath(); g.fillStyle = 'rgba(255,255,255,0.20)'; g.fill();
   } else if (o.kind === 'hanbok') {
     g.beginPath();
     g.moveTo(-bodyD * 0.5, shY - H * 0.02);
@@ -3379,12 +3402,48 @@ function wFigureSide(g, bx, by, H, o, side) {
     g.closePath(); g.fillStyle = o.jeogori || '#f6efe4'; g.fill();
     limb(bodyD * 0.26, shY + H * 0.04, bodyD * 0.24, shY + H * 0.2, H * 0.028, o.goreum || '#9c3f52');
   } else if (skirted) {
-    wEllipse(g, bodyD * 0.06, shY + H * 0.012, bodyD * 0.3, H * 0.022, skin);
-    if (o.sash) { g.fillStyle = o.sash; g.fillRect(-bodyD * 0.5, hipY - H * 0.05, bodyD, H * 0.032); }
+    // In profile you only see a sliver of décolletage at the front edge,
+    // not the whole neckline, so keep it small and scooped.
+    const depth = [0.052, 0.075, 0.032, 0.062][o.neckline || 0] * H;
+    g.beginPath();
+    g.moveTo(bodyD * 0.45, shY + H * 0.003);
+    g.quadraticCurveTo(bodyD * 0.26, shY + depth, bodyD * 0.02, shY + H * 0.006);
+    g.quadraticCurveTo(bodyD * 0.24, shY + depth * 0.42, bodyD * 0.45, shY + H * 0.003);
+    g.closePath(); g.fillStyle = skin; g.fill();
+    if ((o.neckline || 0) === 3) {                    // halter strap up to the neck
+      g.strokeStyle = wear; g.lineWidth = Math.max(1, H * 0.014);
+      g.beginPath();
+      g.moveTo(bodyD * 0.30, shY + depth * 0.6);
+      g.quadraticCurveTo(bodyD * 0.22, shY - H * 0.03, bodyD * 0.06, shY - H * 0.045);
+      g.stroke();
+    }
+    // waist seam
+    g.fillStyle = o.sash || 'rgba(0,0,0,0.18)';
+    g.fillRect(-bodyD * 0.5, hipY - H * 0.05, bodyD, H * 0.03);
+    if (o.stole) {                                    // a wrap sitting on the shoulders
+      g.strokeStyle = o.stole; g.lineWidth = H * 0.030; g.lineCap = 'round';
+      g.globalAlpha = 0.85;
+      g.beginPath();
+      g.moveTo(-bodyD * 0.44, shY + H * 0.055);
+      g.quadraticCurveTo(-bodyD * 0.1, shY - H * 0.018, bodyD * 0.34, shY + H * 0.06);
+      g.stroke();
+      g.globalAlpha = 1;
+    }
+  }
+  if (o.pocketSq) {                                   // pocket square
+    g.fillStyle = o.pocketSq;
+    g.fillRect(-bodyD * 0.30, shY + H * 0.055, H * 0.028, H * 0.014);
+  }
+  if (o.necklace) {
+    g.strokeStyle = '#e8dcc0'; g.lineWidth = Math.max(0.8, H * 0.006);
+    g.beginPath();
+    g.arc(bodyD * 0.02, shY + H * 0.012, H * 0.036, 0.25, Math.PI - 0.25);
+    g.stroke();
+    pxDisc(g, bodyD * 0.03, shY + H * 0.05, H * 0.011, '#f4e6c2');
   }
 
   // ── neck ──
-  limb(H * 0.012, neckY + H * 0.035, H * 0.022, neckY - H * 0.03, H * 0.058, skinSh);
+  limb(H * 0.012, neckY + H * 0.042, H * 0.020, neckY - H * 0.012, H * 0.062, skinSh);
 
   // ── head, as a real profile silhouette ──
   const hy = headCY;
@@ -3421,7 +3480,12 @@ function wFigureSide(g, bx, by, H, o, side) {
   g.fillStyle = hair; g.fill();
   g.beginPath();
   g.ellipse(-r * 0.30, hy - r * 0.62, r * 0.42, r * 0.24, -0.4, 0, TAU);
-  g.fillStyle = 'rgba(255,255,255,0.12)'; g.fill();
+  g.fillStyle = o.hairLight || 'rgba(255,255,255,0.12)'; g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.10)'; g.lineWidth = Math.max(0.7, r * 0.06);
+  g.beginPath();
+  g.moveTo(-r * 0.72, hy - r * 0.66);
+  g.quadraticCurveTo(r * 0.1, hy - r * 0.94, r * 0.62, hy - r * 0.44);
+  g.stroke();
 
   if (o.hairStyle === 1) {                              // bob
     g.beginPath();
@@ -3471,13 +3535,36 @@ function wFigureSide(g, bx, by, H, o, side) {
     g.fillStyle = 'rgba(238,146,156,0.36)';
     g.beginPath(); g.ellipse(r * 0.52, eyY + r * 0.30, r * 0.20, r * 0.11, 0, 0, TAU); g.fill();
   }
+  if (o.glasses) {
+    g.strokeStyle = 'rgba(40,34,30,0.75)'; g.lineWidth = Math.max(0.7, r * 0.055);
+    g.beginPath(); g.arc(eyX, eyY, r * 0.24, 0, TAU); g.stroke();
+    g.beginPath(); g.moveTo(eyX - r * 0.24, eyY - r * 0.02);
+    g.lineTo(-r * 0.1, eyY - r * 0.08); g.stroke();
+    g.fillStyle = 'rgba(210,232,244,0.16)';
+    g.beginPath(); g.arc(eyX, eyY, r * 0.22, 0, TAU); g.fill();
+  }
+  if (o.earring) pxDisc(g, -r * 0.16, hy + r * 0.32, r * 0.075, '#f0e2bc');
 
   g.restore();                       // end of the head's tilt
 
   // ── near arm, over everything ──
-  limb(shX + H * 0.02, shY + H * 0.015, handP.x, handP.y, armW,
-       skirted && o.kind !== 'hanbok' ? skin : wear);
+  const bareArm = skirted && o.kind !== 'hanbok';
+  limb(shX + H * 0.02, shY + H * 0.015, handP.x, handP.y, armW, bareArm ? skin : wear);
+  if (bareArm && o.sleeve) {                          // cap, elbow or full sleeve
+    const t = o.sleeve === 1 ? 0.22 : o.sleeve === 2 ? 0.55 : 0.92;
+    limb(shX + H * 0.02, shY + H * 0.015,
+         shX + H * 0.02 + (handP.x - shX - H * 0.02) * t,
+         shY + H * 0.015 + (handP.y - shY - H * 0.015) * t,
+         armW * 1.16, wear);
+  }
   if (o.arms !== 'down') pxDisc(g, handP.x, handP.y, armW * 0.46, skin);
+  if (o.clutch) {                                     // clutch bag in the hand
+    g.save(); g.translate(handP.x + H * 0.012, handP.y + H * 0.028); g.rotate(0.22);
+    wRound(g, -H * 0.032, -H * 0.018, H * 0.064, H * 0.036, o.clutch, H * 0.008);
+    g.fillStyle = 'rgba(255,255,255,0.28)';
+    g.fillRect(-H * 0.03, -H * 0.014, H * 0.06, H * 0.005);
+    g.restore();
+  }
 
   g.restore();
 }
@@ -3826,6 +3913,20 @@ function wGuestOpts(seed, view) {
     scale: 0.90 + wHash(seed * 53, 19) * 0.20,
     lean: (wHash(seed * 71, 13) - 0.5) * 0.09,
     nod: (wHash(seed * 97, 29) - 0.5) * 0.22,
+    // and none dressed quite the same either
+    neckline: (wHash(seed * 137, 11) * 4) | 0,
+    sleeve:   fem ? ((wHash(seed * 211, 23) * 4) | 0) : 3,
+    stole:    fem && wHash(seed * 307, 41) > 0.72
+                ? ['#e9e2ea','#d9c7cf','#cdd6dd','#efe4d4'][(wHash(seed * 17, 5) * 4) | 0] : null,
+    glasses:  wHash(seed * 419, 7)  > 0.80,
+    necklace: fem && wHash(seed * 523, 3) > 0.45,
+    earring:  fem && wHash(seed * 607, 31) > 0.5,
+    clutch:   fem && wHash(seed * 701, 19) > 0.66
+                ? ['#c9a961','#e0d6c4','#8f7a5c'][(wHash(seed * 29, 9) * 3) | 0] : null,
+    pocketSq: !fem && wHash(seed * 811, 13) > 0.5
+                ? ['#f7f3ec','#f2c6ae','#b9c8d8'][(wHash(seed * 37, 7) * 3) | 0] : null,
+    bowTie:   !fem && wHash(seed * 907, 17) > 0.72,
+    hairLight: ['rgba(255,236,200,0.16)','rgba(255,220,190,0.13)','rgba(230,215,255,0.12)'][(wHash(seed * 43, 3) * 3) | 0],
   };
 }
 
