@@ -44,3 +44,49 @@ aws s3api put-bucket-policy --bucket "$BUCKET" --policy file:///tmp/policy.json
 
 S3 정적 호스팅은 `http`만 지원합니다. `https`나 직접 만든 도메인을 쓰려면
 앞에 CloudFront를 두면 됩니다. 안 그래도 한국에서 접속이 훨씬 빨라집니다.
+
+---
+
+# 다른 호스팅 (Vercel / Netlify / GitHub Pages)
+
+빌드가 없는 정적 사이트라 어디든 그대로 올라갑니다. 설정 파일은 이미 넣어뒀습니다.
+
+## Vercel
+
+```bash
+npx vercel --prod
+```
+
+`vercel.json`이 캐시 헤더를 잡아줍니다 — 사진·영상은 1년, `index.html`은 캐시 안 함.
+
+## Netlify
+
+```bash
+npx netlify deploy --prod --dir .
+```
+
+`netlify.toml`에 동일한 설정이 들어 있습니다.
+
+## GitHub Pages
+
+저장소 Settings → Pages → Source를 `main` 브랜치 `/ (root)`로 지정하면 끝입니다.
+`.nojekyll` 파일을 넣어뒀기 때문에 Jekyll 처리 없이 파일이 그대로 서빙됩니다.
+
+---
+
+# 한글 도메인 (`셀소.com` 같은)
+
+한글 도메인은 DNS에 **퓨니코드(punycode)** 형태로 등록됩니다. 예를 들어
+`민소.com`은 실제로는 `xn--h31b13s.com`입니다.
+
+```bash
+# 내 한글 도메인의 퓨니코드 확인
+python3 -c "print('민소.com'.encode('idna').decode())"
+```
+
+1. 도메인 등록기관(가비아 등)에서 한글 도메인 구입
+2. 호스팅 쪽에 도메인 추가 — Vercel/Netlify는 **퓨니코드 형태**로 입력
+3. DNS에 CNAME 추가 (루트 도메인이면 ALIAS/ANAME 또는 등록기관의 포워딩)
+
+Vercel·Netlify는 HTTPS 인증서를 자동 발급합니다. S3 정적 호스팅만
+`http`이므로, 한글 도메인 + HTTPS를 원하면 Vercel이나 Netlify 쪽이 편합니다.
