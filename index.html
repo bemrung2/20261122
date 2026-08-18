@@ -3284,7 +3284,9 @@ function wFigureSide(g, bx, by, H, o, side) {
     ? { x: H * (0.13 + clapT * 0.045), y: shY + H * 0.145 }
     : o.arms === 'clasp'
       ? { x: H * 0.125, y: shY + H * 0.175 }
-      : { x: H * 0.035, y: shY + H * 0.235 };
+      : o.arms === 'fold'
+        ? { x: H * 0.10, y: shY + H * 0.115 }
+        : { x: H * 0.035, y: shY + H * 0.235 };
 
   g.globalAlpha = 0.62;
   limb(shX - H * 0.02, shY + H * 0.015, handP.x - H * 0.03, handP.y, armW, wear2);
@@ -3386,6 +3388,8 @@ function wFigureSide(g, bx, by, H, o, side) {
 
   // ── head, as a real profile silhouette ──
   const hy = headCY;
+  g.save();
+  if (o.nod) { g.translate(0, hy); g.rotate(o.nod); g.translate(0, -hy); }
   g.beginPath();
   g.moveTo(-r * 0.88, hy + r * 0.42);                       // nape
   g.bezierCurveTo(-r * 1.10, hy + r * 0.05, -r * 1.02, hy - r * 0.72, -r * 0.42, hy - r * 0.98);
@@ -3468,6 +3472,8 @@ function wFigureSide(g, bx, by, H, o, side) {
     g.beginPath(); g.ellipse(r * 0.52, eyY + r * 0.30, r * 0.20, r * 0.11, 0, 0, TAU); g.fill();
   }
 
+  g.restore();                       // end of the head's tilt
+
   // ── near arm, over everything ──
   limb(shX + H * 0.02, shY + H * 0.015, handP.x, handP.y, armW,
        skirted && o.kind !== 'hanbok' ? skin : wear);
@@ -3477,6 +3483,14 @@ function wFigureSide(g, bx, by, H, o, side) {
 }
 
 function wFigure(g, bx, by, H, o) {
+  if (o.scale || o.lean) {
+    const sc = o.scale || 1, ln = o.lean || 0;
+    g.save(); g.translate(bx, by); g.rotate(ln); g.translate(-bx, -by);
+    const inner = Object.assign({}, o); inner.scale = 0; inner.lean = 0;
+    wFigure(g, bx, by, H * sc, inner);
+    g.restore();
+    return;
+  }
   const side   = typeof o.view === 'number' ? o.view : 0;
   if (side) return wFigureSide(g, bx, by, H, o, side);
   const back   = o.view === 'back';
@@ -3526,7 +3540,10 @@ function wFigure(g, bx, by, H, o) {
   function drawArm(s, front) {
     const ox = shX(s), oy = bodyTopY + H * 0.02;
     let ex, ey;
-    if (armPose === 'clap') {
+    if (armPose === 'fold') {
+      ex = bx + s * H * 0.055 + side * H * 0.06;
+      ey = bodyTopY + H * 0.135;
+    } else if (armPose === 'clap') {
       ex = bx + s * H * (0.05 + clapT * 0.05) + side * H * 0.10;
       ey = bodyTopY + H * 0.16;
     } else if (armPose === 'clasp') {
@@ -3537,7 +3554,7 @@ function wFigure(g, bx, by, H, o) {
       ey = bodyTopY + H * 0.235;
     }
     limb(ox, oy, ex, ey, armW, front ? armCol : wear2);
-    if (armPose !== 'down') pxDisc(g, ex, ey, armW * 0.52, skin);
+    if (armPose !== 'down') pxDisc(g, ex, ey, armW * 0.48, skin);
   }
   drawArm(side ? -1 : -1, false);
 
@@ -3803,8 +3820,12 @@ function wGuestOpts(seed, view) {
     blush: fem,
     slim: fem,
     sash: c > 0.7 ? '#e8dfe8' : null,
-    arms: clapping ? 'clap' : (d > 0.42 ? 'clasp' : 'down'),
+    arms: clapping ? 'clap' : (d > 0.62 ? 'clasp' : d > 0.34 ? 'fold' : 'down'),
     phase: d * 6.3,
+    // no two guests quite the same height, posture or angle
+    scale: 0.90 + wHash(seed * 53, 19) * 0.20,
+    lean: (wHash(seed * 71, 13) - 0.5) * 0.09,
+    nod: (wHash(seed * 97, 29) - 0.5) * 0.22,
   };
 }
 
@@ -3932,14 +3953,26 @@ function wDrawTable(g, tb, S) {
   g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = Math.max(1, S); g.stroke();
   // centrepiece
   wArrangement(g, cx, topY + ry * 0.15, rx * 1.15, WT * S * 0.85, tb.col * 31 + tb.row, true);
-  // candles
-  for (const sx of [-0.55, 0.55]) {
-    const px2 = cx + rx * sx;
-    g.fillStyle = '#efe6d6'; g.fillRect(px2 - S * 1.2, topY - S * 7, S * 2.4, S * 7);
-    const fl = g.createRadialGradient(px2, topY - S * 8.4, 0, px2, topY - S * 8.4, S * 4);
-    fl.addColorStop(0, 'rgba(255,240,190,0.95)'); fl.addColorStop(1, 'rgba(255,220,150,0)');
-    g.fillStyle = fl; g.beginPath(); g.arc(px2, topY - S * 8.4, S * 4, 0, TAU); g.fill();
+  // Tall glass candelabrum rising out of the blooms — the striking piece
+  // each round table carries in the photographs.
+  const stalkH = WT * S * 1.85;
+  for (let i = 0; i < 5; i++) {
+    const dx = (i - 2) * WT * S * 0.16;
+    const hh = stalkH * (i === 2 ? 1 : i % 2 ? 0.70 : 0.85);
+    g.fillStyle = 'rgba(226,240,245,0.20)';
+    g.fillRect(cx + dx - S * 2.2, topY - hh, S * 4.4, hh);
+    g.fillStyle = 'rgba(255,255,255,0.30)';
+    g.fillRect(cx + dx - S * 2.2, topY - hh, S * 1.3, hh);
+    g.fillStyle = '#f6efdf';
+    g.fillRect(cx + dx - S * 1.7, topY - hh - S * 4.5, S * 3.4, S * 4.5);
+    const fl2 = g.createRadialGradient(cx + dx, topY - hh - S * 6, 0,
+                                       cx + dx, topY - hh - S * 6, S * 6.5);
+    fl2.addColorStop(0, 'rgba(255,240,196,0.95)');
+    fl2.addColorStop(1, 'rgba(255,220,150,0)');
+    g.fillStyle = fl2;
+    g.beginPath(); g.arc(cx + dx, topY - hh - S * 6, S * 6.5, 0, TAU); g.fill();
   }
+  wArrangement(g, cx, topY - stalkH * 0.40, rx * 0.85, WT * S * 0.6, tb.col * 13 + 7, true);
   // guests in front
   for (let i = 0; i < tb.seats; i++) {
     const a = i / tb.seats * TAU + 0.35;
@@ -3986,9 +4019,20 @@ function wDrawLongTable(g, lt, S) {
     wArrangement(g, cx, gy, w * 0.66, TW * 0.3, lt.col * 61 + r * 13, true);
     if ((r * 10 | 0) % 3 === 0) {
       const vx = cx + (wHash(r, lt.col) - 0.5) * w * 0.5;
-      g.fillStyle = 'rgba(220,235,240,0.30)';
-      g.fillRect(vx - S * 2, gy - TW * 0.55, S * 4, TW * 0.55);
-      wBloom(g, vx, gy - TW * 0.58, S * 4, '#f6dade');
+      const vh = TW * (0.85 + wHash(r * 3, lt.col) * 0.35);
+      g.fillStyle = 'rgba(222,238,244,0.26)';                 // clear glass
+      g.fillRect(vx - S * 2.6, gy - vh, S * 5.2, vh);
+      g.fillStyle = 'rgba(255,255,255,0.32)';
+      g.fillRect(vx - S * 2.6, gy - vh, S * 1.4, vh);
+      g.strokeStyle = '#6f8f5e'; g.lineWidth = Math.max(1, S * 0.9);
+      for (const t of [-1, 0, 1]) {                           // tulips
+        g.beginPath();
+        g.moveTo(vx + t * S * 1.3, gy - vh * 0.6);
+        g.quadraticCurveTo(vx + t * S * 2.8, gy - vh * 1.2, vx + t * S * 3.2, gy - vh * 1.42);
+        g.stroke();
+        wBloom(g, vx + t * S * 3.2, gy - vh * 1.48, S * 3,
+               ['#f7dade','#ffffff','#f3c6ae'][t + 1]);
+      }
     }
   }
 
@@ -4008,11 +4052,13 @@ function wChair(g, cx, by, S, front) {
   const w = TW * 0.5, h = TW * 0.62;
   wShadow(g, cx, by, w * 0.7, 0.4);
   if (front < 0) {                            // seen from behind: tall back
-    wRound(g, cx - w / 2, by - h, w, h, '#141319', w * 0.3);
-    wRound(g, cx - w / 2 + S, by - h + S, w - S * 2, h * 0.66, '#20202a', w * 0.26);
+    wRound(g, cx - w / 2, by - h, w, h, '#121118', w * 0.3);
+    wRound(g, cx - w / 2 + S, by - h + S, w - S * 2, h * 0.60, '#1e1d26', w * 0.26);
+    wRound(g, cx - w / 2 + S * 1.6, by - h * 0.32, w - S * 3.2, h * 0.28, '#6b6660', w * 0.15);
   } else {
-    wRound(g, cx - w / 2, by - h * 0.55, w, h * 0.55, '#141319', w * 0.22);
-    wEllipse(g, cx, by - h * 0.52, w * 0.46, w * 0.16, '#26252f');
+    wRound(g, cx - w / 2, by - h * 0.55, w, h * 0.55, '#121118', w * 0.22);
+    wRound(g, cx - w * 0.42, by - h * 0.56, w * 0.84, h * 0.26, '#75706a', w * 0.14);
+    wEllipse(g, cx, by - h * 0.5, w * 0.42, w * 0.14, '#5f5a55');
   }
 }
 
@@ -4168,11 +4214,13 @@ function wDrawStageFlowers(g, S) {
   // slim gold frame behind it
   g.strokeStyle = 'rgba(141,116,64,0.55)'; g.lineWidth = Math.max(1, S);
   g.strokeRect(b.x - w * 0.42, b.y - TW * 2.0, w * 0.84, TW * 1.6);
-  // the arrangement itself, built from overlapping clusters
-  for (let i = -6; i <= 6; i++) {
-    const cx = b.x + i * w * 0.078;
+  // Built from one half and mirrored, so the wall reads symmetrical about
+  // the couple rather than drifting to one side.
+  for (let i = 0; i <= 6; i++) {
     const hgt = TW * (1.25 + wHash(i + 30, 5) * 0.85);
-    wArrangement(g, cx, b.y - TW * 0.1, TW * 1.5, hgt, i * 71 + 3, true);
+    const dx = i * w * 0.078;
+    wArrangement(g, b.x - dx, b.y - TW * 0.1, TW * 1.5, hgt, i * 71 + 3, true);
+    if (i) wArrangement(g, b.x + dx, b.y - TW * 0.1, TW * 1.5, hgt, i * 71 + 3, true);
   }
   // gold pillar stands with candles either side
   for (const dx of [-0.34, -0.12, 0.12, 0.34]) {
@@ -4222,6 +4270,42 @@ function wDrawPodium(g, S) {
   // floral cluster at its foot
   wArrangement(g, b.x - w * 0.1, b.y, TW * 1.5, TW * 0.85, 8123, true);
 }
+/* 사회자 단상 — the MC's slim stand, stage-right of the couple */
+function wDrawMcStand(g, S) {
+  const TW = WT * S;
+  const b = baseOf(16.6, 5.8, S);
+  const H = TW * 1.62, w = TW * 0.5;
+
+  wFigure(g, b.x, b.y - H * 0.04, TW * 1.46, {
+    view: -1, kind:'suit', wear:'#1e2130', wear2:'#141622', trouser:'#141119',
+    tie:'#3f5a4a', hair:'#2a1c12', hairDark:'#1a1008', skin:'#f6d0ab',
+    hairStyle:0, arms:'clasp',
+  });
+
+  wShadow(g, b.x, b.y, w * 0.9, 0.5);
+  wEllipse(g, b.x, b.y, w * 0.52, w * 0.18, '#6d5a33');
+  const cg = g.createLinearGradient(b.x - w * 0.14, 0, b.x + w * 0.14, 0);
+  cg.addColorStop(0, '#6d5a33'); cg.addColorStop(0.4, '#d8bb7c'); cg.addColorStop(1, '#5d4c2c');
+  g.fillStyle = cg; g.fillRect(b.x - w * 0.12, b.y - H * 0.92, w * 0.24, H * 0.92);
+  // slim sloped desk
+  g.beginPath();
+  g.moveTo(b.x - w * 0.6, b.y - H * 0.90);
+  g.lineTo(b.x + w * 0.6, b.y - H * 0.96);
+  g.lineTo(b.x + w * 0.6, b.y - H * 0.88);
+  g.lineTo(b.x - w * 0.6, b.y - H * 0.82);
+  g.closePath(); g.fillStyle = '#e0c07a'; g.fill();
+  g.fillStyle = '#fdf3d8';
+  g.fillRect(b.x - w * 0.46, b.y - H * 0.93, w * 0.92, S * 1.2);
+  // gooseneck mic
+  g.strokeStyle = '#241f2c'; g.lineWidth = Math.max(1, S);
+  g.beginPath();
+  g.moveTo(b.x + w * 0.22, b.y - H * 0.92);
+  g.quadraticCurveTo(b.x + w * 0.5, b.y - H * 1.18, b.x + w * 0.1, b.y - H * 1.24);
+  g.stroke();
+  pxDisc(g, b.x + w * 0.1, b.y - H * 1.245, S * 1.7, '#1a1622');
+  wArrangement(g, b.x, b.y, TW * 1.1, TW * 0.55, 5531, true);
+}
+
 /* the entrance: a gold frame carrying an arch of flowers over the aisle */
 function wDrawGate(g, S) {
   const TW = WT * S;
@@ -4407,6 +4491,7 @@ function wRender() {
 
   push(3.6, () => wDrawStageFlowers(g, S));
   push(6.0, () => wDrawPodium(g, S));
+  push(6.05, () => wDrawMcStand(g, S));
   push(45.4, () => wDrawGate(g, S));
   for (const lt of W_LONG_TABLES)
     if (inView(lt.col, W.y / WT, 40)) push(lt.row0 + 0.5, () => wDrawLongTable(g, lt, S));
