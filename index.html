@@ -3245,8 +3245,240 @@ function wArrangement(g, cx, baseY, w, h, seed, dense) {
    Everything is proportioned off H, the standing height, at roughly
    3.7 heads tall — stylised, but with a real skeleton underneath.
 ══════════════════════════════════════════════════════════════ */
+/* A genuine profile, drawn as its own silhouette rather than a front figure
+   with hair pasted over half the head. Everything below is drawn facing
+   right around the feet at (0,0); facing left just mirrors the canvas. */
+function wFigureSide(g, bx, by, H, o, side) {
+  const seated = !!o.seated;
+  const skirted = o.kind === 'gown' || o.kind === 'dress' || o.kind === 'hanbok';
+  const skin = o.skin, skinSh = o.skinShade || '#d99e77';
+  const hair = o.hair, hairSh = o.hairDark || '#241609';
+  const wear = o.wear, wear2 = o.wear2;
+  const r = H * 0.135;                     // head radius
+
+  wShadow(g, bx, by, H * 0.26, 0.5);
+
+  g.save();
+  g.translate(bx, by);
+  if (side < 0) g.scale(-1, 1);
+
+  const hipY   = seated ? -H * 0.355 : -H * 0.44;
+  const hipX   = seated ? -H * 0.10  : 0;
+  const shY    = hipY - H * (seated ? 0.30 : 0.235);
+  const neckY  = shY - H * 0.05;
+  const headCY = shY - H * 0.185;
+  const bodyD  = H * 0.225;                // front-to-back depth of the torso
+
+  const limb = (x0, y0, x1, y1, w, col) => {
+    g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+  };
+  const dim = c => { g.globalAlpha = 0.55; g.fillStyle = c; };
+
+  // ── far arm and far leg, behind the body ──
+  const shX = -H * 0.01;
+  const armW = H * 0.055;
+  const clapT = o.arms === 'clap'
+    ? (0.5 + 0.5 * Math.sin(W.t / 88 + (o.phase || 0))) : 0;
+  const handP = o.arms === 'clap'
+    ? { x: H * (0.13 + clapT * 0.045), y: shY + H * 0.145 }
+    : o.arms === 'clasp'
+      ? { x: H * 0.125, y: shY + H * 0.175 }
+      : { x: H * 0.035, y: shY + H * 0.235 };
+
+  g.globalAlpha = 0.62;
+  limb(shX - H * 0.02, shY + H * 0.015, handP.x - H * 0.03, handP.y, armW, wear2);
+  g.globalAlpha = 1;
+
+  if (!skirted) {
+    const kneeX = seated ? H * 0.155 : 0;
+    const kneeY = seated ? -H * 0.315 : -H * 0.2;
+    g.globalAlpha = 0.6;
+    if (seated) {
+      limb(hipX - H * 0.02, hipY, kneeX - H * 0.03, kneeY, H * 0.10, o.trouser || wear2);
+      limb(kneeX - H * 0.03, kneeY, kneeX - H * 0.02, -H * 0.015, H * 0.075, o.trouser || wear2);
+    } else {
+      limb(-H * 0.055, hipY, -H * 0.075, -H * 0.015, H * 0.082, o.trouser || wear2);
+      g.beginPath();
+      g.ellipse(-H * 0.05, -H * 0.012, H * 0.05, H * 0.022, 0, 0, TAU);
+      g.fillStyle = '#0d0b12'; g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+
+  // ── near leg / skirt ──
+  if (seated) {
+    const legCol = o.trouser || wear2;
+    const kneeX = H * 0.165, kneeY = -H * 0.315;
+    limb(hipX, hipY, kneeX, kneeY, H * 0.112, legCol);
+    limb(kneeX, kneeY + H * 0.008, kneeX + H * 0.012, -H * 0.018, H * 0.08, legCol);
+    g.beginPath();
+    g.ellipse(kneeX + H * 0.035, -H * 0.014, H * 0.056, H * 0.025, 0, 0, TAU);
+    g.fillStyle = '#0d0b12'; g.fill();
+    if (skirted) {                       // skirt draping over the thighs
+      g.beginPath();
+      g.moveTo(hipX - bodyD * 0.55, hipY - H * 0.03);
+      g.quadraticCurveTo(H * 0.04, hipY + H * 0.03, kneeX + H * 0.05, kneeY + H * 0.035);
+      g.lineTo(kneeX + H * 0.05, kneeY - H * 0.075);
+      g.quadraticCurveTo(H * 0.02, hipY - H * 0.13, hipX - bodyD * 0.55, hipY - H * 0.14);
+      g.closePath(); g.fillStyle = wear; g.fill();
+    }
+  } else if (skirted) {
+    const sw = o.kind === 'gown' ? H * 0.42 : H * 0.30;
+    g.beginPath();
+    g.moveTo(-bodyD * 0.5, hipY);
+    g.bezierCurveTo(-sw * 0.75, -H * 0.16, -sw * 0.72, -H * 0.03, -sw * 0.66, 0);
+    g.lineTo(sw * 0.66, 0);
+    g.bezierCurveTo(sw * 0.72, -H * 0.03, sw * 0.7, -H * 0.16, bodyD * 0.5, hipY);
+    g.closePath();
+    const sg = g.createLinearGradient(-sw * 0.66, 0, sw * 0.66, 0);
+    sg.addColorStop(0, wear2); sg.addColorStop(0.45, wear); sg.addColorStop(1, wear2);
+    g.fillStyle = sg; g.fill();
+    wEllipse(g, 0, 0, sw * 0.66, sw * 0.11, wear2);
+  } else {
+    limb(H * 0.035, hipY, H * 0.05, -H * 0.015, H * 0.088, o.trouser || wear2);
+    g.beginPath();
+    g.ellipse(H * 0.055, -H * 0.012, H * 0.055, H * 0.024, 0, 0, TAU);
+    g.fillStyle = '#0d0b12'; g.fill();
+  }
+
+  // ── torso: chest forward, back curved ──
+  g.beginPath();
+  g.moveTo(hipX - bodyD * 0.5, hipY);
+  g.quadraticCurveTo(-bodyD * 0.62, (hipY + shY) / 2, -bodyD * 0.44, shY + H * 0.02);
+  g.quadraticCurveTo(-bodyD * 0.4, shY - H * 0.02, -bodyD * 0.12, shY - H * 0.026);
+  g.quadraticCurveTo(bodyD * 0.34, shY - H * 0.022, bodyD * 0.46, shY + H * 0.03);
+  g.quadraticCurveTo(bodyD * 0.62, (hipY + shY) / 2, hipX + bodyD * 0.5, hipY);
+  g.closePath();
+  const tg = g.createLinearGradient(-bodyD * 0.6, 0, bodyD * 0.6, 0);
+  tg.addColorStop(0, wear2); tg.addColorStop(0.55, wear); tg.addColorStop(1, wear2);
+  g.fillStyle = tg; g.fill();
+
+  // ── what shows of their clothes from the side ──
+  if (o.kind === 'suit' || o.kind === 'tux') {
+    // a narrow strip of shirt showing at the jacket opening, tapering away
+    g.beginPath();
+    g.moveTo(bodyD * 0.24, shY + H * 0.004);
+    g.quadraticCurveTo(bodyD * 0.46, shY + H * 0.03, bodyD * 0.38, shY + H * 0.115);
+    g.quadraticCurveTo(bodyD * 0.30, shY + H * 0.135, bodyD * 0.14, shY + H * 0.10);
+    g.closePath(); g.fillStyle = '#f7f3ec'; g.fill();
+    limb(bodyD * 0.30, shY + H * 0.032, bodyD * 0.27, shY + H * 0.10, H * 0.020, o.tie || '#7a2f3a');
+    g.beginPath();                                    // lapel over it
+    g.moveTo(bodyD * 0.46, shY - H * 0.006);
+    g.lineTo(bodyD * 0.06, shY + H * 0.016);
+    g.lineTo(bodyD * 0.22, shY + H * 0.125);
+    g.closePath(); g.fillStyle = 'rgba(255,255,255,0.10)'; g.fill();
+  } else if (o.kind === 'hanbok') {
+    g.beginPath();
+    g.moveTo(-bodyD * 0.5, shY - H * 0.02);
+    g.lineTo(bodyD * 0.48, shY - H * 0.02);
+    g.quadraticCurveTo(bodyD * 0.52, shY + H * 0.16, 0, shY + H * 0.175);
+    g.quadraticCurveTo(-bodyD * 0.5, shY + H * 0.16, -bodyD * 0.5, shY - H * 0.02);
+    g.closePath(); g.fillStyle = o.jeogori || '#f6efe4'; g.fill();
+    limb(bodyD * 0.26, shY + H * 0.04, bodyD * 0.24, shY + H * 0.2, H * 0.028, o.goreum || '#9c3f52');
+  } else if (skirted) {
+    wEllipse(g, bodyD * 0.06, shY + H * 0.012, bodyD * 0.3, H * 0.022, skin);
+    if (o.sash) { g.fillStyle = o.sash; g.fillRect(-bodyD * 0.5, hipY - H * 0.05, bodyD, H * 0.032); }
+  }
+
+  // ── neck ──
+  limb(H * 0.012, neckY + H * 0.035, H * 0.022, neckY - H * 0.03, H * 0.058, skinSh);
+
+  // ── head, as a real profile silhouette ──
+  const hy = headCY;
+  g.beginPath();
+  g.moveTo(-r * 0.88, hy + r * 0.42);                       // nape
+  g.bezierCurveTo(-r * 1.10, hy + r * 0.05, -r * 1.02, hy - r * 0.72, -r * 0.42, hy - r * 0.98);
+  g.bezierCurveTo(r * 0.14, hy - r * 1.18, r * 0.76, hy - r * 0.80, r * 0.84, hy - r * 0.30);
+  g.bezierCurveTo(r * 0.90, hy - r * 0.16, r * 0.87, hy - r * 0.05, r * 0.91, hy + r * 0.01);
+  g.quadraticCurveTo(r * 1.03, hy + r * 0.07, r * 1.00, hy + r * 0.16);   // nose
+  g.quadraticCurveTo(r * 0.97, hy + r * 0.22, r * 0.86, hy + r * 0.24);
+  g.quadraticCurveTo(r * 0.94, hy + r * 0.33, r * 0.86, hy + r * 0.40);   // lips
+  g.quadraticCurveTo(r * 0.92, hy + r * 0.52, r * 0.72, hy + r * 0.68);   // chin
+  g.quadraticCurveTo(r * 0.30, hy + r * 1.00, -r * 0.30, hy + r * 0.84);  // jaw
+  g.closePath();
+  const fg2 = g.createLinearGradient(-r, hy - r, r, hy + r);
+  fg2.addColorStop(0, skinSh); fg2.addColorStop(0.45, skin); fg2.addColorStop(1, '#fff1e0');
+  g.fillStyle = fg2; g.fill();
+
+  // ear
+  g.strokeStyle = skinSh; g.lineWidth = Math.max(0.7, r * 0.09);
+  g.beginPath(); g.arc(-r * 0.18, hy + r * 0.14, r * 0.19, -1.1, 1.5); g.stroke();
+
+  // hair: skull cap sweeping into a fringe over the brow
+  g.beginPath();
+  g.moveTo(-r * 0.95, hy + r * 0.52);
+  g.bezierCurveTo(-r * 1.18, hy + r * 0.05, -r * 1.08, hy - r * 0.80, -r * 0.42, hy - r * 1.06);
+  g.bezierCurveTo(r * 0.20, hy - r * 1.28, r * 0.86, hy - r * 0.86, r * 0.90, hy - r * 0.28);
+  g.quadraticCurveTo(r * 0.62, hy - r * 0.52, r * 0.20, hy - r * 0.44);
+  g.quadraticCurveTo(-r * 0.30, hy - r * 0.36, -r * 0.55, hy + r * 0.10);
+  g.quadraticCurveTo(-r * 0.72, hy + r * 0.38, -r * 0.95, hy + r * 0.52);
+  g.closePath();
+  g.fillStyle = hair; g.fill();
+  g.beginPath();
+  g.ellipse(-r * 0.30, hy - r * 0.62, r * 0.42, r * 0.24, -0.4, 0, TAU);
+  g.fillStyle = 'rgba(255,255,255,0.12)'; g.fill();
+
+  if (o.hairStyle === 1) {                              // bob
+    g.beginPath();
+    g.moveTo(-r * 1.0, hy - r * 0.2);
+    g.quadraticCurveTo(-r * 1.32, hy + r * 0.6, -r * 0.86, hy + r * 1.15);
+    g.quadraticCurveTo(-r * 0.3, hy + r * 1.05, -r * 0.28, hy + r * 0.5);
+    g.closePath(); g.fillStyle = hair; g.fill();
+  } else if (o.hairStyle === 2) {                       // long
+    g.beginPath();
+    g.moveTo(-r * 1.02, hy - r * 0.25);
+    g.quadraticCurveTo(-r * 1.45, hy + r * 1.2, -r * 1.05, hy + r * 2.6);
+    g.quadraticCurveTo(-r * 0.5, hy + r * 2.5, -r * 0.34, hy + r * 0.6);
+    g.closePath(); g.fillStyle = hair; g.fill();
+    g.beginPath();
+    g.moveTo(-r * 1.02, hy - r * 0.1);
+    g.quadraticCurveTo(-r * 1.3, hy + r * 1.1, -r * 1.0, hy + r * 2.3);
+    g.quadraticCurveTo(-r * 0.86, hy + r * 1.0, -r * 0.8, hy + r * 0.2);
+    g.closePath(); g.fillStyle = 'rgba(255,255,255,0.07)'; g.fill();
+  } else if (o.hairStyle === 3) {                       // updo
+    pxDisc(g, -r * 0.92, hy - r * 0.52, r * 0.46, hairSh);
+    pxDisc(g, -r * 0.98, hy - r * 0.58, r * 0.34, hair);
+  } else if (o.hairStyle === 4) {                       // ponytail
+    g.beginPath();
+    g.moveTo(-r * 0.95, hy - r * 0.15);
+    g.quadraticCurveTo(-r * 1.6, hy + r * 0.5, -r * 1.3, hy + r * 1.9);
+    g.quadraticCurveTo(-r * 1.0, hy + r * 0.9, -r * 0.7, hy + r * 0.25);
+    g.closePath(); g.fillStyle = hair; g.fill();
+  }
+
+  // features
+  const eyX = r * 0.56, eyY = hy + r * 0.05;
+  g.fillStyle = 'rgba(45,30,22,0.94)';
+  g.beginPath(); g.ellipse(eyX, eyY, r * 0.095, r * 0.14, 0, 0, TAU); g.fill();
+  g.fillStyle = 'rgba(255,255,255,0.75)';
+  g.beginPath(); g.arc(eyX + r * 0.035, eyY - r * 0.05, r * 0.037, 0, TAU); g.fill();
+  g.strokeStyle = 'rgba(55,36,26,0.72)'; g.lineWidth = Math.max(0.7, r * 0.075);
+  g.beginPath();
+  g.moveTo(eyX - r * 0.15, eyY - r * 0.28);
+  g.quadraticCurveTo(eyX + r * 0.06, eyY - r * 0.36, eyX + r * 0.22, eyY - r * 0.26);
+  g.stroke();
+  g.strokeStyle = 'rgba(150,80,70,0.8)'; g.lineWidth = Math.max(0.7, r * 0.08);
+  g.beginPath();
+  g.moveTo(r * 0.72, hy + r * 0.36);
+  g.quadraticCurveTo(r * 0.86, hy + r * 0.40, r * 0.80, hy + r * 0.46);
+  g.stroke();
+  if (o.blush) {
+    g.fillStyle = 'rgba(238,146,156,0.36)';
+    g.beginPath(); g.ellipse(r * 0.52, eyY + r * 0.30, r * 0.20, r * 0.11, 0, 0, TAU); g.fill();
+  }
+
+  // ── near arm, over everything ──
+  limb(shX + H * 0.02, shY + H * 0.015, handP.x, handP.y, armW,
+       skirted && o.kind !== 'hanbok' ? skin : wear);
+  if (o.arms !== 'down') pxDisc(g, handP.x, handP.y, armW * 0.46, skin);
+
+  g.restore();
+}
+
 function wFigure(g, bx, by, H, o) {
   const side   = typeof o.view === 'number' ? o.view : 0;
+  if (side) return wFigureSide(g, bx, by, H, o, side);
   const back   = o.view === 'back';
   const seated = !!o.seated;
   const skirted = o.kind === 'gown' || o.kind === 'dress' || o.kind === 'hanbok';
