@@ -3188,9 +3188,11 @@ const C = {
   gold  :'#c3a473', goldL:'#ecd8a8',  goldD:'#7d6440',
   ivory :'#efe4d4', ivoryL:'#fbf5ea', ivoryS:'#ddcfbc', ivoryD:'#bfae98',
   marble:'#6c6a68', marbleL:'#84817e', marbleD:'#4a4846',
-  // blooms: blush, peach, cream — the pk* names carry the aisle palette
-  pk1:'#fbe0da', pk2:'#f3c8b6', pk3:'#e8a87c', pk4:'#c9855b',
-  wh1:'#fffdf9', wh2:'#f0e5d6', cr1:'#f6e6cb', gyp:'#f0dcc0',
+  // The aisle and the entrance are pink shot through with soft lilac;
+  // only the ceremony installation is the pale cream-and-peach mix.
+  pk1:'#f9c2d4', pk2:'#eb96b4', pk3:'#d4718f', pk4:'#ad5473',
+  lv1:'#d4bfe4', lv2:'#b294cd', lv3:'#8d6ea8',
+  pch:'#f2c0a2', wh1:'#fffdf9', wh2:'#f2e3dd', cr1:'#f6e6cb', gyp:'#f0dcc0',
   gr1:'#8b9c73', gr2:'#6b7d58', gr3:'#4e5d41', gr4:'#33402e',
   blk:'#1b1b20', blkL:'#2a2a31', blkD:'#0e0e12',
   cloth:'#141418', clothL:'#212128', clothD:'#08080a',
@@ -3366,13 +3368,14 @@ function bakeBackdrop() {
       for (let k = 0; k < 18; k++)
         D(p, px2((g() * AW) | 0), y + ((g() * AH) | 0), g() > 0.5 ? C.gr3 : C.gr2);
       for (let k = 0; k < 8; k++)
-        D(p, px2((g() * AW) | 0), y + ((g() * AH) | 0), g() > 0.5 ? C.gyp : C.cr1);
+        D(p, px2((g() * AW) | 0), y + ((g() * AH) | 0), g() > 0.55 ? C.gyp : C.pk1);
       for (let k = 0; k < 7; k++) {
         const bx = px2(1 + ((g() * (AW - 2)) | 0)), by2 = y + 1 + ((g() * (AH - 2)) | 0);
         const u = g();
-        const col2 = u > 0.62 ? C.wh1 : u > 0.42 ? C.pk1 : u > 0.24 ? C.pk2 : u > 0.1 ? C.pk3 : C.cr1;
+        const col2 = u > 0.86 ? C.wh1 : u > 0.62 ? C.pk1 : u > 0.4 ? C.pk2
+                   : u > 0.2 ? C.pk3 : u > 0.08 ? C.lv1 : C.lv2;
         BLOB(p, bx, by2, 1.4, 1.2, col2);
-        D(p, bx, by2 - 1, col2 === C.wh1 ? C.ivoryL : C.wh2);
+        D(p, bx, by2 - 1, col2 === C.wh1 ? C.ivoryL : C.pk1);
       }
     }
   }
@@ -3988,7 +3991,9 @@ function pxFlowers(p, cx, by, rw, rh, seed, airy) {
   for (let k = 0; k < rw * rh * 0.3; k++) {
     const a = g() * TAU, rr = Math.sqrt(g());
     const x = cx + Math.cos(a) * rw * rr * 1.06, y = cy + Math.sin(a) * rh * rr * 1.06;
-    D(p, Math.round(x), Math.round(y), g() > 0.45 ? C.gyp : C.cr1);
+    const h2 = g();
+    D(p, Math.round(x), Math.round(y), airy ? (h2 > 0.45 ? C.gyp : C.cr1)
+      : (h2 > 0.6 ? C.gyp : h2 > 0.3 ? C.pk1 : C.lv1));
   }
   // and the blooms themselves
   for (let k = 0; k < rw * rh * 0.3; k++) {
@@ -3996,11 +4001,12 @@ function pxFlowers(p, cx, by, rw, rh, seed, airy) {
     const x = Math.round(cx + Math.cos(a) * rw * rr), y = Math.round(cy + Math.sin(a) * rh * rr);
     const u = g();
     const col = airy
-      ? (u > 0.62 ? C.wh1 : u > 0.36 ? C.wh2 : u > 0.16 ? C.cr1 : C.pk2)
-      : (u > 0.66 ? C.wh1 : u > 0.46 ? C.pk1 : u > 0.28 ? C.pk2 : u > 0.12 ? C.pk3 : C.cr1);
+      ? (u > 0.6 ? C.wh1 : u > 0.36 ? C.wh2 : u > 0.18 ? C.cr1 : C.pch)
+      : (u > 0.84 ? C.wh1 : u > 0.62 ? C.pk1 : u > 0.40 ? C.pk2
+         : u > 0.21 ? C.pk3 : u > 0.09 ? C.lv1 : C.lv2);
     BLOB(p, x, y, 1.6, 1.4, col);
-    D(p, x, y - 1, col === C.wh1 ? C.ivoryL : C.wh2);
-    D(p, x + 1, y + 1, col === C.pk3 ? C.pk4 : C.ivoryS);
+    D(p, x, y - 1, col === C.wh1 ? C.ivoryL : col === C.lv1 || col === C.lv2 ? C.lv1 : C.pk1);
+    D(p, x + 1, y + 1, col === C.pk3 ? C.pk4 : col === C.lv2 ? C.lv3 : C.wh2);
   }
   // stems of gypsophila and greenery breaking the outline
   for (let k = 0; k < rw * 0.8; k++) {
@@ -4139,9 +4145,9 @@ function texCandelabra(f, tall, flower) {
 
 /* the pillar arrangements massed at the mouth of the aisle */
 function texEntryFlowers(big) {
-  const w = big ? 54 : 40, h = big ? 82 : 62;
+  const w = big ? 44 : 34, h = big ? 100 : 74;
   return TEX('ef' + big, w, h, p => {
-    const cx = w >> 1, b = h - 2, ph = big ? 32 : 24;
+    const cx = w >> 1, b = h - 2, ph = big ? 46 : 32;
     ELL(p, cx, b, big ? 13 : 10, 3.5, '#00000045');
     R(p, cx - 7, b - 4, 15, 4, C.marbleD);              // plinth
     R(p, cx - 7, b - 4, 15, 1, C.marbleL);
@@ -4153,11 +4159,11 @@ function texEntryFlowers(big) {
     R(p, cx - 7, b - ph - 7, 15, 1, C.ivoryS);
     R(p, cx - 7, b - ph - 8, 15, 1, C.gold);
     // a full arrangement spilling over the rim
-    const rw = big ? 24 : 17, rh = big ? 20 : 14;
-    pxFlowers(p, cx, b - ph - 8, rw, rh, 7717 + big, true);
+    const rw = big ? 17 : 13, rh = big ? 24 : 17;
+    pxFlowers(p, cx, b - ph - 8, rw, rh, 7717 + big, false);
     pxFlowers(p, cx, b - ph - 8 - rh, rw * 0.62, rh * 0.7, 2233 + big, false);
-    pxFlowers(p, cx - rw * 0.6, b - ph - 6, rw * 0.5, rh * 0.5, 3311 + big, true);
-    pxFlowers(p, cx + rw * 0.6, b - ph - 6, rw * 0.5, rh * 0.5, 3312 + big, true);
+    pxFlowers(p, cx - rw * 0.6, b - ph - 6, rw * 0.5, rh * 0.5, 3311 + big, false);
+    pxFlowers(p, cx + rw * 0.6, b - ph - 6, rw * 0.5, rh * 0.5, 3312 + big, false);
     // greenery trailing down the column
     const g = mulberry(9090 + big);
     for (let k = 0; k < (big ? 9 : 6); k++) {
@@ -4272,8 +4278,8 @@ function texMcStand() {
    and peach, thinning out toward the crown just as it does in the
    photograph, with the great mounds of flowers pooled at its feet */
 function texGate() {
-  return TEX('gt', 210, 116, p => {
-    const cx = 105, b = 114, arw = 56, arh = 100;
+  return TEX('gt', 210, 136, p => {
+    const cx = 105, b = 134, arw = 54, arh = 122;
     const spr = arh - arw * 0.95;
     const half = y => y <= spr ? arw
       : arw * Math.sqrt(Math.max(0, 1 - Math.pow((y - spr) / (arw * 0.95), 2)));
@@ -4285,20 +4291,27 @@ function texGate() {
       R(p, l, b - y, 2, 1, C.gold); D(p, l, b - y, C.goldL);
       R(p, r - 1, b - y, 2, 1, C.goldD); D(p, r, b - y, C.gold);
     }
-    // flowers up both legs and over the crown, thinning as they climb
-    for (let y = 0; y < arh; y += 3) {
+    // The two columns are dressed from the floor up and stop well short
+    // of the crown — the arch is left bare over the middle, which is how
+    // the venue had it (the blog even remarks on it).
+    for (let y = 0; y < arh * 0.66; y += 2) {
       const hw = half(y);
       if (hw < 1) continue;
-      const t = y / arh;
-      const rw = 14 - t * 9, rh = 13 - t * 8.5;
-      if (rw < 2.5) continue;
+      const t = y / (arh * 0.66);
+      const rw = 11 - t * 6, rh = 13 - t * 7;
+      if (rw < 3) continue;
       pxFlowers(p, cx - hw, b - y, rw, rh, 700 + y, false);
       pxFlowers(p, cx + hw, b - y, rw, rh, 700 + y, false);
     }
+    // a last few blooms tailing off where each column ends
+    for (const s2 of [-1, 1]) {
+      const y = arh * 0.66;
+      pxFlowers(p, cx + s2 * half(y), b - y - 3, 5, 5, 760 + s2, false);
+    }
     // the mounds pooled on the floor either side, and glass among them
     for (const s2 of [-1, 1]) {
-      pxFlowers(p, cx + s2 * (arw + 6), b - 2, 18, 14, 900 + s2, false);
-      pxFlowers(p, cx + s2 * (arw - 9), b - 1, 13, 10, 902 + s2, false);
+      pxFlowers(p, cx + s2 * (arw + 5), b - 2, 13, 11, 900 + s2, false);
+      pxFlowers(p, cx + s2 * (arw - 7), b - 1, 10, 8, 902 + s2, false);
       for (const dx of [-9, 7, 18]) {
         const x = cx + s2 * (arw + dx);
         R(p, x, b - 13, 4, 11, '#e6f0f5aa');
@@ -4647,7 +4660,7 @@ function wBuildScene() {
     const [x, y] = T(fl.col, fl.row);
     add(props, texEntryFlowers(fl.big), x, y + 4, y + 4);
   }
-  add(props, texGate(), (AISLE_MID + 0.5) * AW, 44.4 * AH, 44.4 * AH);
+  add(props, texGate(), (AISLE_MID + 0.5) * AW, 44.6 * AH, 44.6 * AH);
 
   /* ── memory stands and the groom ── */
   PX.stands = [];
