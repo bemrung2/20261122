@@ -3531,8 +3531,19 @@ function pxHead(p, cx, ty, sk, hr, o) {
     D(p, cx + 3, ty + 4, s3);
     R(p, cx - 4, ty + 3, 1, 4, s2);
     // eyes
-    D(p, cx - 2, ty + 5, h2); D(p, cx + 1, ty + 5, h2);
-    D(p, cx - 2, ty + 4, '#ffffff40'); D(p, cx + 1, ty + 4, '#ffffff40');
+    if (o.pretty) {
+      // lashed, with a catchlight — she is the one you look at
+      D(p, cx - 3, ty + 3, h3); D(p, cx - 2, ty + 3, h3);
+      D(p, cx + 1, ty + 3, h3); D(p, cx + 2, ty + 3, h3);
+      R(p, cx - 3, ty + 4, 2, 1, h2); R(p, cx + 1, ty + 4, 2, 1, h2);
+      D(p, cx - 4, ty + 4, h1);       D(p, cx + 3, ty + 4, h1);
+      R(p, cx - 3, ty + 5, 2, 1, '#31243a'); R(p, cx + 1, ty + 5, 2, 1, '#31243a');
+      D(p, cx - 3, ty + 5, '#fffdf8'); D(p, cx + 2, ty + 5, '#fffdf8');
+      D(p, cx - 2, ty + 6, s2); D(p, cx + 1, ty + 6, s2);
+    } else {
+      D(p, cx - 2, ty + 5, h2); D(p, cx + 1, ty + 5, h2);
+      D(p, cx - 2, ty + 4, '#ffffff40'); D(p, cx + 1, ty + 4, '#ffffff40');
+    }
     if (o.blush) { D(p, cx - 3, ty + 7, '#e8927f60'); D(p, cx + 2, ty + 7, '#e8927f60'); }
     D(p, cx, ty + 7, s3);                            // nose
     D(p, cx, ty + 8, '#b06a62');                     // mouth, barely there
@@ -3574,10 +3585,19 @@ function pxHeadSide(p, cx, ty, sk, hr, o) {
   D(p, cx + 3, ty + 7, s2);
   D(p, cx + 2, ty + 8, s3);                          // lips
   D(p, cx + 1, ty + 9, s2);                          // under the chin
-  D(p, cx, ty + 5, h2);                              // eye, seen edge-on
-  D(p, cx + 1, ty + 5, h1);
-  D(p, cx - 1, ty + 3, h2);                          // brow
-  D(p, cx, ty + 3, h2);
+  if (o.pretty) {
+    R(p, cx - 1, ty + 4, 3, 1, h2);                  // lash line
+    D(p, cx + 2, ty + 4, h1);                        // the flick at the corner
+    R(p, cx, ty + 5, 2, 1, '#31243a');               // the eye
+    D(p, cx, ty + 5, '#fffdf8');                     // catchlight
+    D(p, cx + 1, ty + 6, s2);
+    R(p, cx - 1, ty + 3, 3, 1, h3);                  // brow
+  } else {
+    D(p, cx, ty + 5, h2);                            // eye, seen edge-on
+    D(p, cx + 1, ty + 5, h1);
+    D(p, cx - 1, ty + 3, h2);                        // brow
+    D(p, cx, ty + 3, h2);
+  }
   if (o.blush) D(p, cx + 1, ty + 7, '#e8927f55');
   D(p, cx - 3, ty + 6, s2);                          // ear
   D(p, cx - 3, ty + 7, s3);
@@ -3948,11 +3968,47 @@ function pxBride(p, cx, b, dir, step) {
   // than being cut in half by it
   ELL(p, cx, b - 1, 13, 2.8, '#00000026');
   ELL(p, cx, b - 1, 8, 2, '#00000030');
+
+  /* ── the veil ────────────────────────────────────────────
+     It hangs from the crown and lies behind her whichever way she
+     is facing: straight down her back when she walks away, spilling
+     out either side of her when she comes toward us, and swept back
+     over one shoulder in profile. Drawn here, before the dress, so
+     it stays behind her instead of washing over it. */
+  let VEIL = null;
+  {
+    const ty0 = b - 35;
+    const vL = back ? 25 : 23;
+    const veilAt = t => back      ? { hw: 5.5 + t * 7.4, off: 0 }
+                      : side      ? { hw: 3.6 + t * 5.2, off: -1.5 - t * 6.5 }
+                      :             { hw: 4.6 + t * 7.6, off: 0 };
+    p.g.globalAlpha = back ? 0.62 : 0.5;
+    for (let j = 0; j < vL; j++) {
+      const { hw, off } = veilAt(j / vL);
+      const w = Math.round(hw), o2 = Math.round(off);
+      R(p, cx - w + o2, ty0 + 5 + j, w * 2, 1, '#ffffff');
+    }
+    // the weave, and the scalloped hem — enough to read as tulle
+    p.g.globalAlpha = 0.72;
+    const vg = mulberry(back ? 91 : side ? 92 : 93);
+    for (let j = 1; j < vL; j++) {
+      const { hw, off } = veilAt(j / vL);
+      const w = Math.round(hw), o2 = Math.round(off);
+      if (j % 3 === 0) { D(p, cx - w + o2, ty0 + 5 + j, G.v); D(p, cx + w - 1 + o2, ty0 + 5 + j, G.v); }
+      if (vg() > 0.72) D(p, cx - w + o2 + 1 + ((vg() * (w * 2 - 2)) | 0), ty0 + 5 + j, '#ffffff');
+    }
+    { const { hw, off } = veilAt(1);
+      const w = Math.round(hw), o2 = Math.round(off);
+      for (let x = -w + 1; x < w; x += 3) D(p, cx + x + o2, ty0 + 4 + vL, G.v); }
+    p.g.globalAlpha = 1;
+    VEIL = { at: veilAt, n: vL, top: ty0 + 5 };
+  }
+
   const L = back ? 24 : 8;
   const trainAt = j => {
     const t = j / L;
     return back
-      ? { hw: 4 + 7.5 * Math.sin(t * Math.PI * 0.72), y: b - 5 + j }
+      ? { hw: 4 + 8 * Math.sin(t * Math.PI * 0.94), y: b - 5 + j }
       : { hw: 14.5 - t * 5,                            y: b - 2 - j * 0.9 };
   };
   for (let j = L; j >= 0; j--) {
@@ -4038,20 +4094,22 @@ function pxBride(p, cx, b, dir, step) {
     BLOB(p, cx - 5, b - 17, 1.6, 1.5, sk[0]); BLOB(p, cx + 5, b - 17, 1.6, 1.5, sk[0]);
   }
 
-  /* ── the veil, hung behind her so it never covers her face ── */
-  p.g.globalAlpha = back ? 0.62 : 0.34;
-  const vL = back ? 24 : 13;
-  for (let j = 0; j < vL; j++) {
-    const t = j / vL, hw = (back ? 5.5 : 4.6) + t * (back ? 7.5 : 2.2);
-    const w = Math.round(hw);
-    R(p, cx - w, ty + 4 + j, w * 2, 1, j > vL - 5 ? G.v : '#ffffff');
+  /* a whisper of the same veil laid back over the dress, so the gown
+     shows through it and it reads as tulle rather than a cape */
+  if (VEIL) {
+    p.g.globalAlpha = 0.17;
+    for (let j = 0; j < VEIL.n; j++) {
+      const { hw, off } = VEIL.at(j / VEIL.n);
+      const w = Math.round(hw), o2 = Math.round(off);
+      R(p, cx - w + o2, VEIL.top + j, w * 2, 1, '#ffffff');
+    }
+    p.g.globalAlpha = 1;
   }
-  p.g.globalAlpha = 1;
 
   /* ── neck, head, tiara ── */
   R(p, cx - 1, b - 28, 3, 2, sk[1]);
-  if (side) pxHeadSide(p, cx, ty, sk, hr, { hairStyle: 3, blush: 1 });
-  else      pxHead(p, cx, ty, sk, hr, { view: back ? 'back' : 'front', hairStyle: 3, blush: 1 });
+  if (side) pxHeadSide(p, cx, ty, sk, hr, { hairStyle: 3, blush: 1, pretty: 1 });
+  else      pxHead(p, cx, ty, sk, hr, { view: back ? 'back' : 'front', hairStyle: 3, blush: 1, pretty: 1 });
   p.g.globalAlpha = 0.3;
   if (side) R(p, cx - 6, ty + 3, 2, 8, '#ffffff');
   else { R(p, cx - 6, ty + 4, 1, 7, '#ffffff'); R(p, cx + 5, ty + 4, 1, 7, '#ffffff'); }
@@ -4703,15 +4761,16 @@ function wBuildScene() {
 
   /* ── the congregation ── */
   PX.guests = [];
-  const seatGuest = (ax, ay, faceRight, kind, seed) => {
+  const seatGuest = (ax, ay, faceRight, kind, seed, standing) => {
     const g = mulberry(seed);
     const beh = g();
     const gu = {
-      kind, view: 'side', flip: !faceRight,
+      kind, seated: standing ? 0 : 1,
       beh: beh > 0.6 ? 'clap' : beh > 0.28 ? 'clasp' : 'rest',
       phase: (g() * 6000) | 0, period: 4200 + ((g() * 3600) | 0), frame: -1,
     };
-    const sp = add(props, texGuest(kind, 'side', 1, 0), Math.round(ax), Math.round(ay), ay + 0.4);
+    const sp = add(props, texGuest(kind, 'side', gu.seated, 0),
+                   Math.round(ax), Math.round(ay), ay + 0.4);
     sp.scale.x = faceRight ? 1 : -1;
     gu.sp = sp;
     PX.guests.push(gu);
@@ -4719,15 +4778,40 @@ function wBuildScene() {
   };
 
   let gseed = 7;
-  // the long tables: everyone sits on the aisle side, turned to the runner,
-  // with a second rank standing behind them so the hall reads full
   for (const lt of W_LONG_TABLES) {
     const inner = lt.col < AISLE_MID ? 1 : -1;
     const cx0 = (lt.col + 0.5) * AW;
-    for (let r = lt.row0 + 0.4; r <= lt.row1; r += 1.25)
-      seatGuest(cx0 + inner * 22, (r + 0.5) * AH, inner > 0, (gseed * 7) % GUEST_KINDS, gseed++);
-    for (let r = lt.row0 + 1.1; r <= lt.row1; r += 2.5)
-      seatGuest(cx0 - inner * 20, (r + 0.5) * AH, inner > 0, (gseed * 11) % GUEST_KINDS, gseed++);
+
+    // The front row along the tables. Roughly one seat in seven is empty
+    // and nobody sits quite square to the next, so the row reads as people
+    // rather than as a fence. Both sides draw from the same seeds, so the
+    // gaps fall in the same places either side of the runner.
+    let i = 0;
+    for (let r = lt.row0 + 0.4; r <= lt.row1; r += 1.25, i++) {
+      const g = mulberry(i * 7919 + 13);
+      if (g() > 0.85) continue;
+      const dx = 21 + (g() - 0.5) * 3.4;
+      const dy = (g() - 0.5) * 5;
+      seatGuest(cx0 + inner * dx, (r + 0.5) * AH + dy, inner > 0,
+                (gseed * 7) % GUEST_KINDS, gseed++);
+    }
+
+    // Behind them, people on their feet watching — in ones and twos, spread
+    // back toward the round tables, some turned to each other rather than
+    // to the aisle. Not a line.
+    let c = 0;
+    for (let r = lt.row0 + 1.4; r <= lt.row1 - 1; r += 4.4, c++) {
+      const g = mulberry(c * 104729 + 31);
+      if (g() > 0.78) continue;                    // whole stretches stand empty
+      const n = 1 + ((g() * 2.4) | 0);
+      for (let k = 0; k < n; k++) {
+        const dx = 15 + g() * 17;
+        const dy = (g() - 0.5) * 30;
+        const faces = g() > 0.26 ? inner > 0 : inner < 0;
+        seatGuest(cx0 - inner * dx, (r + 0.5) * AH + dy, faces,
+                  (gseed * 11 + 5) % GUEST_KINDS, gseed++, true);
+      }
+    }
   }
   // and the round tables out by the walls, filled all the way round
   for (const tb of W_TABLES) {
@@ -4931,7 +5015,7 @@ function wRender() {
     }
     if (arms !== gu.frame) {
       gu.frame = arms;
-      gu.sp.texture = texGuest(gu.kind, 'side', 1, arms);
+      gu.sp.texture = texGuest(gu.kind, 'side', gu.seated, arms);
     }
   }
   for (const pa of PX.parents) {
