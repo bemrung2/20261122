@@ -3073,23 +3073,15 @@ const W_PLACES = [
   { ep:4, col:AISLE_MID, row:4,  side: 0, doorCol:AISLE_MID, doorRow:8,  name:'앞으로의 우리', groom:true },
 ];
 
-/* Round guest tables, two ranks either side and staggered between the
-   ranks so no two line up down the hall */
+/* The long banquet tables that run the length of the aisle — the hall's
+   main seating, floor-length black cloth with the guests along the aisle
+   side of them, as the venue lays it out */
+const W_LONG_TABLES = PAIR(AISLE_L - 4, c => ({ col: c, row0: 12, row1: 41 }));
+
+/* Round guest tables out towards the walls */
 const W_TABLES = (() => {
   const out = [];
-  for (const r of [14, 20, 26, 32, 38]) out.push(...PAIR(9, c => ({ col: c, row: r })));
-  for (const r of [17, 23, 29, 35, 41]) out.push(...PAIR(4, c => ({ col: c, row: r })));
-  return out;
-})();
-
-/* A row of chairs just outside the flowers, turned to face the runner */
-const W_AISLE_SEATS = (() => {
-  const out = [];
-  for (let r = 12.6; r <= 41; r += 1.9) {
-    // leave a gap wherever a memory stand is planted in the flowers
-    if (W_PLACES.some(pl => !pl.groom && Math.abs(pl.row + 0.5 - r) < 1.6)) continue;
-    out.push(...PAIR(AISLE_L - 2.1, c => ({ col: c, row: r })));
-  }
+  for (const r of [14, 21, 28, 35, 42]) out.push(...PAIR(4.6, c => ({ col: c, row: r })));
   return out;
 })();
 
@@ -3102,15 +3094,16 @@ const W_PARENTS = [
 /* Tall candelabra standing along the flower line, as in the photos */
 const W_CANDELABRA = (() => {
   const out = [];
-  for (let r = 11; r <= 41; r += 4.5) out.push(...PAIR(AISLE_L - 1.15, c => ({ col: c, row: r })));
+  let k = 0;
+  for (let r = 10.5; r <= 42; r += 3.4, k++)
+    out.push(...PAIR(AISLE_L - 1.15, c => ({ col: c, row: r, tall: k % 3 === 1, flower: k % 3 === 2 })));
   return out;
 })();
 
 /* Big pillar arrangements massed at the mouth of the aisle */
 const W_ENTRY_FLOWERS = [
-  ...PAIR(AISLE_L - 2.2, c => ({ col: c, row: 42.8, big: 1 })),
-  ...PAIR(AISLE_L - 4.0, c => ({ col: c, row: 43.8, big: 0 })),
-  ...PAIR(AISLE_L - 1.0, c => ({ col: c, row: 40.6, big: 0 })),
+  ...PAIR(AISLE_L - 4.2, c => ({ col: c, row: 43.2, big: 1 })),
+  ...PAIR(AISLE_L - 6.2, c => ({ col: c, row: 42.2, big: 0 })),
 ];
 
 /* Chandeliers hung down the aisle and in banks either side — spaced
@@ -3120,11 +3113,22 @@ const W_CHANDELIERS = (() => {
   const out = [];
   for (let r = 13; r <= 41; r += 7) {
     out.push({ col: AISLE_MID, row: r, big: 1 });
-    out.push({ col: AISLE_L - 6, row: r + 3.5, big: 0 });
-    out.push({ col: AISLE_R + 6, row: r + 3.5, big: 0 });
+    out.push(...PAIR(AISLE_L - 6, c => ({ col: c, row: r + 3.5, big: 0 })));
   }
   return out;
 })();
+
+/* The ceiling the hall is known for: deep brass-and-crystal coffers.
+   Looking down the room at this angle the ceiling is only ever in shot
+   above the far end, so they are hung there and nowhere else. Heights
+   are given straight in art pixels, above the floor plane. */
+const W_COFFERS = [
+  { col: AISLE_MID, ay: -50, big: 1 },
+  { col: AISLE_MID, ay: -26, big: 1 },
+  ...PAIR(AISLE_L - 7.5, c => ({ col: c, ay: -44, big: 0 })),
+  ...PAIR(AISLE_L - 7.5, c => ({ col: c, ay: -18, big: 0 })),
+  ...PAIR(AISLE_L - 13,  c => ({ col: c, ay: -34, big: 0 })),
+];
 
 function wTileAt(c, r) {
   if (c < 0 || r < 0 || c >= W_COLS || r >= W_ROWS) return 'T';
@@ -3170,21 +3174,28 @@ const MAPW = W_COLS * AW, MAPH = W_ROWS * AH;
 const w2ax = x => x * AW / WT;    // world px → art px
 const w2ay = y => y * AH / WT;
 
-/* ── palette ──────────────────────────────────────────────── */
+/* ── palette ──────────────────────────────────────────────────
+   Taken from the venue's own photographs: the hall is black, the
+   carpet a mottled blue-grey, the runner charcoal, and every flower
+   is white, cream, blush or peach — never a hot pink. */
 const C = {
-  carpet:'#2e2029', carpetL:'#3a2831', carpetD:'#241a21', damask:'#402c38',
-  stage :'#5a4750', stageL:'#6d5763', stageD:'#3c2f37',
-  dais  :'#7d5c49', daisL:'#956f58',  daisD:'#54382c',
-  wall  :'#1d1725', wallL:'#2a2133',  wallH:'#372b42', wallD:'#141019',
-  gold  :'#d4ab5a', goldL:'#f2dc9c',  goldD:'#8a6a34',
-  ivory :'#efe4d4', ivoryL:'#f9f1e4', ivoryS:'#ddcfbc', ivoryD:'#bfae98',
-  marble:'#6c5e6b', marbleL:'#82737f', marbleD:'#4e4351',
-  pk1:'#ffc0d8', pk2:'#f791b8', pk3:'#d76a94', pk4:'#a94b70',
-  wh1:'#fff9f4', wh2:'#eddfd6', cr1:'#f7d9a8',
-  gr1:'#57935f', gr2:'#3d7049', gr3:'#295336', gr4:'#1c3c27',
-  blk:'#23212c', blkL:'#332f3f', blkD:'#15131b',
-  glass:'#cfe4ee', flame:'#ffd98a', flameL:'#fff6d8',
-  wood:'#6b4c39', woodL:'#84604a', woodD:'#48332680',
+  carpet:'#333a46', carpetL:'#3f4854', carpetD:'#282e38', carpetB:'#4a5568',
+  runner:'#2c2d33', runnerL:'#3a3c44', runnerD:'#212227',
+  stage :'#4c483f', stageL:'#5d584d', stageD:'#33302a',
+  dais  :'#4c483f', daisL:'#5d584d',  daisD:'#33302a',
+  wall  :'#0f0f13', wallL:'#17171c',  wallH:'#212127', wallD:'#08080b',
+  drape :'#131317', drapeL:'#1e1e24', drapeD:'#0a0a0d',
+  gold  :'#c3a473', goldL:'#ecd8a8',  goldD:'#7d6440',
+  ivory :'#efe4d4', ivoryL:'#fbf5ea', ivoryS:'#ddcfbc', ivoryD:'#bfae98',
+  marble:'#6c6a68', marbleL:'#84817e', marbleD:'#4a4846',
+  // blooms: blush, peach, cream — the pk* names carry the aisle palette
+  pk1:'#fbe0da', pk2:'#f3c8b6', pk3:'#e8a87c', pk4:'#c9855b',
+  wh1:'#fffdf9', wh2:'#f0e5d6', cr1:'#f6e6cb', gyp:'#f0dcc0',
+  gr1:'#8b9c73', gr2:'#6b7d58', gr3:'#4e5d41', gr4:'#33402e',
+  blk:'#1b1b20', blkL:'#2a2a31', blkD:'#0e0e12',
+  cloth:'#141418', clothL:'#212128', clothD:'#08080a',
+  glass:'#dfeaf0', flame:'#ffe4a8', flameL:'#fff8e4',
+  wood:'#6b4c39', woodL:'#84604a', woodD:'#483326',
 };
 const SKIN = [
   ['#f8d8ba','#e6bd99','#c69269'],
@@ -3199,15 +3210,15 @@ const HAIR = [
   ['#5a4030','#3a2a1e','#7a5b44'],
   ['#6b5344','#48372c','#8c7160'],
 ];
-const DRESSY = [   // guest dresses / hanbok
-  ['#8e4f74','#6d3a58','#b06f94'],
-  ['#3f5f8a','#2c4566','#5f81ad'],
-  ['#4c7a5f','#365a45','#6d9c80'],
-  ['#a55b52','#7f423c','#c47c72'],
-  ['#5b4c86','#413566','#7d6ba8'],
-  ['#a8874a','#806634','#c8a868'],
-  ['#7b5a86','#5b4064','#9d79a8'],
-  ['#3f6f78','#2c5158','#5f9199'],
+const DRESSY = [   // guest dresses, kept muted against the black hall
+  ['#7a4a63','#5c364a','#96637e'],
+  ['#3c5474','#293a53','#587092'],
+  ['#4a6b58','#354e40','#688a76'],
+  ['#8d5a52','#6b413b','#a97a70'],
+  ['#544a72','#3b3454','#736a92'],
+  ['#8f7c4c','#6b5c36','#ad9a68'],
+  ['#6b5a74','#4e4155','#8a7994'],
+  ['#3f6068','#2c464c','#5d8188'],
 ];
 const SUITS = [
   ['#23212c','#15131b','#3a3646'],
@@ -3293,58 +3304,52 @@ function TEXS(key, w, h, paint) {
 function bakeBackdrop() {
   const p = pxc(MAPW, WALLA + MAPH);
   const oy = WALLA;
-  const rn = mulberry(20261122);
 
   /* ---- floor tiles ---- */
   for (let r = 0; r < W_ROWS; r++) for (let c = 0; c < W_COLS; c++) {
     const t = WORLD_MAP[r][c], x = c * AW, y = oy + r * AH;
-    const n = wHash(c, r);
     if (t === '#') {
       R(p, x, y, AW, AH, C.wall);
       SPEC(p, x, y, AW, AH, C.wallD, 0.24, c * 41 + r * 13);
     } else if (t === 's' || t === 'd') {
-      const base = t === 'd' ? C.dais : C.stage;
-      R(p, x, y, AW, AH, base);
-      SPEC(p, x, y, AW, AH, t === 'd' ? C.daisD : C.stageD, 0.14, c * 311 + r * 7);
+      R(p, x, y, AW, AH, C.stage);
+      SPEC(p, x, y, AW, AH, C.stageD, 0.16, c * 311 + r * 7);
+      SPEC(p, x, y, AW, AH, C.stageL, 0.1, c * 131 + r * 17);
     } else if (t === 'r') {
-      R(p, x, y, AW, AH, C.ivory);
+      R(p, x, y, AW, AH, C.runner);
     } else if (t === 'F') {
       R(p, x, y, AW, AH, C.gr4);
-    } else if (t === 'P') {
+    } else if (t === 'P' || t === 'G') {
       R(p, x, y, AW, AH, C.marble);
       SPEC(p, x, y, AW, AH, C.marbleL, 0.2, c * 97 + r * 3);
-    } else if (t === 'G') {
-      R(p, x, y, AW, AH, C.marbleL);
-      SPEC(p, x, y, AW, AH, C.marble, 0.26, c * 53 + r * 5);
     } else {
+      // the hall's carpet: a mottled blue-grey marble, no repeat you can spot
       R(p, x, y, AW, AH, C.carpet);
-      SPEC(p, x, y, AW, AH, n > 0.5 ? C.carpetL : C.carpetD, 0.22, c * 733 + r * 17);
-      // a damask motif every few tiles keeps the carpet from reading flat
-      if (c % 3 === 0 && r % 3 === 0) {
-        const mx = x + 8, my = y + 5;
-        for (const [dx, dy] of [[0,-2],[0,2],[-3,0],[3,0]]) D(p, mx + dx, my + dy, C.damask);
+      const g = mulberry(c * 733 + r * 17);
+      for (let k = 0; k < 8; k++) {
+        // veining, not noise: mixed lengths and the odd vertical fleck
+        const bx = x + ((g() * AW) | 0), by2 = y + ((g() * AH) | 0);
+        const u = g();
+        if (u > 0.82) R(p, bx, by2, 1, 2, C.carpetD);
+        else R(p, bx, by2, 2 + ((g() * 6) | 0), 1, u > 0.55 ? C.carpetL : C.carpetD);
       }
+      if (g() > 0.84) R(p, x + ((g() * AW) | 0), y + ((g() * AH) | 0), 2, 1, C.carpetB);
     }
   }
 
   /* ---- the runner, drawn as one continuous band ---- */
   const rx0 = AISLE_L * AW, rx1 = (AISLE_R + 1) * AW;
   const ry0 = oy + 8 * AH, ry1 = oy + 43 * AH;
-  R(p, rx0, ry0, rx1 - rx0, ry1 - ry0, C.ivory);
-  SPEC(p, rx0, ry0, rx1 - rx0, ry1 - ry0, C.ivoryL, 0.1, 4242);
-  R(p, rx0, ry0, 2, ry1 - ry0, C.ivoryS);          // soft fall at the edges
-  R(p, rx1 - 2, ry0, 2, ry1 - ry0, C.ivoryS);
-  R(p, rx0 + 2, ry0, 1, ry1 - ry0, C.gold);        // gold braid down both sides
-  R(p, rx1 - 3, ry0, 1, ry1 - ry0, C.gold);
-  R(p, rx0 + 3, ry0, 1, ry1 - ry0, C.goldD);
-  R(p, rx1 - 4, ry0, 1, ry1 - ry0, C.goldD);
-  // a faint woven diamond down the middle
-  for (let y = ry0 + 8; y < ry1 - 4; y += 20) {
+  R(p, rx0, ry0, rx1 - rx0, ry1 - ry0, C.runner);
+  SPEC(p, rx0, ry0, rx1 - rx0, ry1 - ry0, C.runnerL, 0.06, 4242);
+  R(p, rx0, ry0, 2, ry1 - ry0, C.runnerD);          // it lies a touch proud
+  R(p, rx1 - 2, ry0, 2, ry1 - ry0, C.runnerD);
+  R(p, rx0 + 2, ry0, 1, ry1 - ry0, C.runnerL);
+  R(p, rx1 - 3, ry0, 1, ry1 - ry0, C.runnerL);
+  // a long soft sheen down the middle, from the chandeliers overhead
+  for (let y = ry0; y < ry1; y++) {
     const mx = (AISLE_MID + 0.5) * AW;
-    for (let k = 1; k < 5; k++) {
-      D(p, mx - k, y + k, C.ivoryS); D(p, mx + k, y + k, C.ivoryS);
-      D(p, mx - k, y - k, C.ivoryS); D(p, mx + k, y - k, C.ivoryS);
-    }
+    SPEC(p, mx - 7, y, 14, 1, C.runnerL, 0.14, y * 3 + 1);
   }
 
   /* ---- flower beds either side of the runner ---- */
@@ -3356,118 +3361,65 @@ function bakeBackdrop() {
     const px2 = dx => x + (flip ? AW - 1 - dx : dx);
     for (let r = 8; r <= 42; r++) {
       const y = oy + r * AH;
-      R(p, x, y, AW, AH, C.gr4);
+      R(p, x, y, AW, AH, C.carpet);
       const g = mulberry(seedCol * 977 + r * 31);
-      for (let k = 0; k < 22; k++) {
-        const bx = px2(Math.floor(g() * AW)), by = y + Math.floor(g() * AH);
-        D(p, bx, by, g() > 0.5 ? C.gr2 : C.gr1);
-      }
-      for (let k = 0; k < 13; k++) {
-        const bx = px2(1 + Math.floor(g() * (AW - 2))), by = y + 1 + Math.floor(g() * (AH - 2));
+      for (let k = 0; k < 18; k++)
+        D(p, px2((g() * AW) | 0), y + ((g() * AH) | 0), g() > 0.5 ? C.gr3 : C.gr2);
+      for (let k = 0; k < 8; k++)
+        D(p, px2((g() * AW) | 0), y + ((g() * AH) | 0), g() > 0.5 ? C.gyp : C.cr1);
+      for (let k = 0; k < 7; k++) {
+        const bx = px2(1 + ((g() * (AW - 2)) | 0)), by2 = y + 1 + ((g() * (AH - 2)) | 0);
         const u = g();
-        const col2 = u > 0.76 ? C.wh1 : u > 0.5 ? C.pk1 : u > 0.24 ? C.pk2 : C.pk3;
-        BLOB(p, bx, by, 1.4, 1.2, col2);
-        D(p, bx, by - 1, u > 0.76 ? C.wh2 : C.pk1);
+        const col2 = u > 0.62 ? C.wh1 : u > 0.42 ? C.pk1 : u > 0.24 ? C.pk2 : u > 0.1 ? C.pk3 : C.cr1;
+        BLOB(p, bx, by2, 1.4, 1.2, col2);
+        D(p, bx, by2 - 1, col2 === C.wh1 ? C.ivoryL : C.wh2);
       }
     }
   }
 
-  /* ---- the platform: the stage floor stands above the hall and the
-         dais a step higher again, reached by a flight in the aisle ---- */
+  /* ---- the platform: the ceremony stage stands above the hall floor,
+         with the dais a shallow step higher again ---- */
   const sy = oy + 8 * AH;
   const dx0 = 10 * AW, dx1 = 19 * AW;
-  // planking, run continuously so the boards read as boards
-  for (let y = oy + 2 * AH; y < sy; y += 8) {
-    R(p, 2 * AW, y, (W_COLS - 4) * AW, 1, '#4e4149');
-    R(p, 2 * AW, y + 1, (W_COLS - 4) * AW, 1, '#63505b');
-  }
-  for (let y = oy + 2 * AH; y < sy; y += 8) {
-    R(p, dx0, y, dx1 - dx0, 1, '#6d5040');
-    R(p, dx0, y + 1, dx1 - dx0, 1, '#8a6752');
-  }
-  SPEC(p, dx0, oy + 2 * AH, dx1 - dx0, 6 * AH, C.daisL, 0.1, 616);
-  // the dais sits proud of the stage on three sides
-  R(p, dx0 - 2, oy + 2 * AH - 2, dx1 - dx0 + 4, 2, C.daisD);
-  R(p, dx0 - 2, oy + 2 * AH - 2, dx1 - dx0 + 4, 1, C.gold);
-  // stage riser, facing the hall
-  R(p, 2 * AW, sy, (W_COLS - 4) * AW, 6, C.stageD);
-  SPEC(p, 2 * AW, sy, (W_COLS - 4) * AW, 6, C.stage, 0.2, 617);
-  R(p, 2 * AW, sy - 1, (W_COLS - 4) * AW, 1, C.gold);
-  R(p, 2 * AW, sy + 6, (W_COLS - 4) * AW, 1, C.goldD);
-  // dais riser, a second step
-  R(p, dx0, sy - 7, dx1 - dx0, 7, C.daisD);
-  SPEC(p, dx0, sy - 7, dx1 - dx0, 7, C.dais, 0.2, 618);
-  R(p, dx0, sy - 8, dx1 - dx0, 1, C.gold);
-  // the flight of steps down into the aisle
+  SPEC(p, 2 * AW, oy + 2 * AH, (W_COLS - 4) * AW, 6 * AH, C.stageL, 0.07, 615);
+  SPEC(p, dx0, oy + 2 * AH, dx1 - dx0, 6 * AH, C.stageL, 0.09, 616);
+  R(p, dx0 - 2, oy + 2 * AH - 2, dx1 - dx0 + 4, 2, C.stageD);
+  // stage riser, skirted in black to the floor as it is in the photographs
+  R(p, 2 * AW, sy, (W_COLS - 4) * AW, 7, C.clothD);
+  SPEC(p, 2 * AW, sy, (W_COLS - 4) * AW, 7, C.cloth, 0.22, 617);
+  R(p, 2 * AW, sy - 1, (W_COLS - 4) * AW, 1, C.stageL);
+  R(p, 2 * AW, sy + 7, (W_COLS - 4) * AW, 1, '#050506');
+  // dais riser
+  R(p, dx0, sy - 6, dx1 - dx0, 6, C.clothD);
+  R(p, dx0, sy - 7, dx1 - dx0, 1, C.stageL);
+  // the flight of steps down into the runner
   const stw = (AISLE_R - AISLE_L + 1) * AW + 16;
   for (let k = 0; k < 3; k++) {
     const w2 = stw + k * 14, x2 = (AISLE_MID + 0.5) * AW - w2 / 2;
-    const yy = sy - 9 + k * 6;
-    R(p, x2, yy, w2, 6, C.daisD);
-    R(p, x2, yy + 1, w2, 3, C.dais);
-    R(p, x2, yy, w2, 1, C.goldL);
-    R(p, x2, yy + 4, w2, 1, '#3a271f');
+    const yy = sy - 8 + k * 6;
+    R(p, x2, yy, w2, 6, C.runnerD);
+    R(p, x2, yy + 1, w2, 3, C.runner);
+    R(p, x2, yy, w2, 1, C.stageL);
   }
 
-  /* ---- back wall ---- */
+  /* ---- back wall: black, hung floor to ceiling with pleated drapery ---- */
   R(p, 0, 0, MAPW, WALLA + 2 * AH, C.wall);
-  SPEC(p, 0, 0, MAPW, WALLA, C.wallD, 0.3, 619);
-  // panelling
-  for (let x = 0; x < MAPW; x += 24) {
-    R(p, x + 2, 8, 20, WALLA - 14, C.wallL);
-    R(p, x + 3, 9, 18, WALLA - 16, C.wall);
-    R(p, x + 3, 9, 18, 1, C.wallH);
+  for (let x = 0; x < MAPW; x += 5) {
+    R(p, x, 4, 3, WALLA - 2, C.drape);
+    R(p, x, 4, 1, WALLA - 2, C.drapeL);
+    R(p, x + 3, 4, 2, WALLA - 2, C.drapeD);
   }
-  R(p, 0, 0, MAPW, 5, C.wallL);
-  R(p, 0, 5, MAPW, 1, C.goldD);
-  R(p, 0, WALLA - 6, MAPW, 2, C.wallH);
-  R(p, 0, WALLA - 4, MAPW, 1, C.goldD);
-
-  /* the lit arch behind the dais: straight jambs carrying a round head */
-  const ax = (AISLE_MID + 0.5) * AW, arw = 58, arh = WALLA - 10;
-  const springs = arh - arw * 0.72;              // where the curve springs from
-  const archHalf = y => y <= springs ? arw
-    : arw * Math.sqrt(Math.max(0, 1 - Math.pow((y - springs) / (arw * 0.72), 2)));
-  for (let y = 0; y < arh; y++) {
-    const half = archHalf(y), yy = WALLA - 5 - y;
-    if (half < 1) continue;
-    R(p, ax - half, yy, half * 2, 1, '#3a2c46');
-  }
-  // curtain folds hanging inside it
-  for (let x = -arw + 3; x <= arw - 3; x += 6) {
-    let h2 = 0;
-    while (h2 < arh && archHalf(h2) - 3 > Math.abs(x)) h2++;
-    if (h2 > 8) {
-      R(p, ax + x, WALLA - 5 - h2, 3, h2, '#4a3a60');
-      R(p, ax + x + 3, WALLA - 5 - h2, 2, h2, '#332843');
-      R(p, ax + x, WALLA - 5 - h2, 3, 2, '#5d4a76');
-    }
-  }
-  // gold moulding around the opening
-  for (let y = 0; y < arh; y++) {
-    const half = archHalf(y), yy = WALLA - 5 - y;
-    if (half < 1) continue;
-    D(p, Math.round(ax - half), yy, C.gold);
-    D(p, Math.round(ax + half - 1), yy, C.gold);
-    D(p, Math.round(ax - half - 1), yy, C.goldD);
-    D(p, Math.round(ax + half), yy, C.goldD);
-  }
-  // fairy lights strung across the head of the arch
-  for (let y = 4; y < arh - 2; y += 3) {
-    const half = archHalf(y) - 4;
-    if (half < 1) continue;
-    const yy = WALLA - 5 - y + (rn() * 2 | 0);
-    D(p, Math.round(ax - half), yy, C.goldL);
-    D(p, Math.round(ax + half), yy, C.goldL);
-  }
-  // a spray of blooms at the foot of each jamb
-  pxFlowers(p, ax - arw + 4, WALLA - 5, 9, 8, 5511, true);
-  pxFlowers(p, ax + arw - 4, WALLA - 5, 9, 8, 5512, true);
+  SPEC(p, 0, 4, MAPW, WALLA - 2, C.wallD, 0.14, 619);
+  // the pelmet the drapes hang from
+  R(p, 0, 0, MAPW, 4, C.wallD);
+  R(p, 0, 3, MAPW, 1, C.blkD);
+  // light grazing the top of the folds
+  SPEC(p, 0, 4, MAPW, 10, C.drapeL, 0.16, 620);
 
   /* ---- entrance wall at the very bottom of the map ---- */
   const by = oy + 45 * AH;
   R(p, 0, by, MAPW, AH, C.wall);
-  R(p, 0, by, MAPW, 1, C.goldD);
+  R(p, 0, by, MAPW, 1, C.blkD);
 
   return p.c;
 }
@@ -3666,19 +3618,22 @@ function pxPersonSide(p, cx, b, o) {
 
 /* a chiavari chair, seen from the side — gold frame, ivory cushion */
 function pxChairSide(p, cx, seat, o) {
-  const g1 = o.chair ? o.chair[0] : C.gold, g2 = o.chair ? o.chair[1] : C.goldL,
-        g3 = o.chair ? o.chair[2] : C.goldD;
-  R(p, cx - 5, seat - 14, 1, 14, g1);                  // back posts
-  R(p, cx - 3, seat - 13, 1, 13, g3);
-  R(p, cx - 5, seat - 14, 3, 1, g2);                   // rails
-  R(p, cx - 5, seat - 10, 3, 1, g1);
-  R(p, cx - 5, seat - 6, 3, 1, g1);
-  R(p, cx - 5, seat - 1, 9, 2, o.chairPad || C.ivory); // cushion
-  R(p, cx - 5, seat - 1, 9, 1, C.ivoryL);
-  R(p, cx - 5, seat + 1, 9, 1, g3);
-  R(p, cx - 4, seat + 2, 1, 7, g1);                    // legs
-  R(p, cx + 3, seat + 2, 1, 7, g1);
-  R(p, cx - 4, seat + 6, 8, 1, g3);                    // stretcher
+  // a banquet chair under a fitted black cover, which is how every seat
+  // in this hall is dressed
+  const g1 = o.chair ? o.chair[0] : C.cloth, g2 = o.chair ? o.chair[1] : C.clothL,
+        g3 = o.chair ? o.chair[2] : C.clothD;
+  R(p, cx - 5, seat - 15, 3, 16, g1);                  // the covered back
+  R(p, cx - 6, seat - 15, 1, 16, '#3e414c');           // a rim of light down it
+  R(p, cx - 5, seat - 15, 1, 16, g2);
+  R(p, cx - 5, seat - 15, 3, 1, '#4a4d58');
+  R(p, cx - 3, seat - 14, 1, 14, g3);
+  R(p, cx - 5, seat - 1, 9, 3, g1);                    // the seat
+  R(p, cx - 5, seat - 1, 9, 1, g2);
+  R(p, cx - 5, seat + 2, 9, 1, g3);
+  R(p, cx - 4, seat + 3, 3, 6, g1);                    // the skirt to the floor
+  R(p, cx + 1, seat + 3, 3, 6, g1);
+  R(p, cx - 4, seat + 3, 1, 6, g3);
+  R(p, cx + 1, seat + 3, 1, 6, g3);
 }
 
 /* seated in profile, facing right — thighs forward, shins down */
@@ -3777,16 +3732,16 @@ function pxSeatedQ(p, cx, b, o) {
   const sk = o.skin, [w1, w2, w3] = o.wear;
   const seat = b - 9;
   ELL(p, cx, b - 1, 7, 2.2, '#00000038');
-  const g1 = o.chair ? o.chair[0] : C.gold, g2 = o.chair ? o.chair[1] : C.goldL,
-        g3 = o.chair ? o.chair[2] : C.goldD;
-  // chair seen at an angle: the back panel behind, one side turned to us
-  R(p, cx - 5, seat - 14, 1, 14, g1); R(p, cx + 4, seat - 14, 1, 14, g3);
-  R(p, cx - 5, seat - 14, 10, 1, g2);
-  R(p, cx - 5, seat - 10, 10, 1, g1); R(p, cx - 5, seat - 6, 10, 1, g1);
-  R(p, cx - 5, seat - 1, 11, 2, o.chairPad || C.ivory);
-  R(p, cx - 5, seat - 1, 11, 1, C.ivoryL);
-  R(p, cx - 5, seat + 1, 11, 1, g3);
-  R(p, cx - 4, seat + 2, 1, 7, g1); R(p, cx + 5, seat + 2, 1, 7, g1);
+  const g1 = o.chair ? o.chair[0] : C.cloth, g2 = o.chair ? o.chair[1] : C.clothL,
+        g3 = o.chair ? o.chair[2] : C.clothD;
+  // a covered chair at an angle: the back panel behind, one side turned to us
+  R(p, cx - 5, seat - 15, 11, 15, g1);
+  R(p, cx - 5, seat - 15, 11, 1, g2);
+  R(p, cx - 5, seat - 15, 1, 15, g2); R(p, cx + 5, seat - 15, 1, 15, g3);
+  R(p, cx - 5, seat - 1, 12, 3, g1);
+  R(p, cx - 5, seat - 1, 12, 1, g2);
+  R(p, cx - 5, seat + 2, 12, 1, g3);
+  R(p, cx - 4, seat + 3, 3, 6, g1); R(p, cx + 3, seat + 3, 3, 6, g1);
   // lap and knees, swung toward the turn
   const lap = o.lap || w1;
   if (o.skirt) {
@@ -4016,92 +3971,169 @@ function pxGroom(p, cx, b, t) {
    PROPS
 ══════════════════════════════════════════════════════════ */
 
-/* a cluster of blooms, used for every arrangement in the hall */
-function pxFlowers(p, cx, by, rw, rh, seed, pink) {
+/* A cluster of blooms. The hall's flowers are hydrangea, roses and
+   carnations in white, cream, blush and peach, packed through with
+   dyed gypsophila — so every arrangement is built from that one range
+   rather than a single flat colour. `airy` is the paler stage mix. */
+function pxFlowers(p, cx, by, rw, rh, seed, airy) {
   const g = mulberry(seed);
-  for (let k = 0; k < rw * rh * 0.5; k++) {
+  const cy = by - rh * 0.5;
+  // foliage first, so the blooms sit into it
+  for (let k = 0; k < rw * rh * 0.42; k++) {
     const a = g() * TAU, rr = Math.sqrt(g());
-    const x = cx + Math.cos(a) * rw * rr, y = by - rh * 0.5 + Math.sin(a) * rh * rr;
-    D(p, Math.round(x), Math.round(y), g() > 0.5 ? C.gr2 : C.gr3);
+    const x = cx + Math.cos(a) * rw * rr, y = cy + Math.sin(a) * rh * rr;
+    D(p, Math.round(x), Math.round(y), g() > 0.55 ? C.gr2 : C.gr3);
   }
-  for (let k = 0; k < rw * rh * 0.32; k++) {
-    const a = g() * TAU, rr = Math.sqrt(g()) * 0.94;
-    const x = cx + Math.cos(a) * rw * rr, y = by - rh * 0.5 + Math.sin(a) * rh * rr;
+  // a haze of gypsophila through the whole cluster
+  for (let k = 0; k < rw * rh * 0.3; k++) {
+    const a = g() * TAU, rr = Math.sqrt(g());
+    const x = cx + Math.cos(a) * rw * rr * 1.06, y = cy + Math.sin(a) * rh * rr * 1.06;
+    D(p, Math.round(x), Math.round(y), g() > 0.45 ? C.gyp : C.cr1);
+  }
+  // and the blooms themselves
+  for (let k = 0; k < rw * rh * 0.3; k++) {
+    const a = g() * TAU, rr = Math.sqrt(g()) * 0.92;
+    const x = Math.round(cx + Math.cos(a) * rw * rr), y = Math.round(cy + Math.sin(a) * rh * rr);
     const u = g();
-    const col = pink
-      ? (u > 0.74 ? C.wh1 : u > 0.48 ? C.pk1 : u > 0.22 ? C.pk2 : C.pk3)
-      : (u > 0.6 ? C.wh1 : u > 0.3 ? C.wh2 : C.cr1);
-    BLOB(p, Math.round(x), Math.round(y), 1.5, 1.4, col);
-    D(p, Math.round(x), Math.round(y) - 1, u > 0.74 ? C.wh1 : C.pk1);
+    const col = airy
+      ? (u > 0.62 ? C.wh1 : u > 0.36 ? C.wh2 : u > 0.16 ? C.cr1 : C.pk2)
+      : (u > 0.66 ? C.wh1 : u > 0.46 ? C.pk1 : u > 0.28 ? C.pk2 : u > 0.12 ? C.pk3 : C.cr1);
+    BLOB(p, x, y, 1.6, 1.4, col);
+    D(p, x, y - 1, col === C.wh1 ? C.ivoryL : C.wh2);
+    D(p, x + 1, y + 1, col === C.pk3 ? C.pk4 : C.ivoryS);
   }
-  // trailing greenery
-  for (let k = 0; k < rw * 0.6; k++) {
+  // stems of gypsophila and greenery breaking the outline
+  for (let k = 0; k < rw * 0.8; k++) {
     const x = cx - rw + g() * rw * 2;
-    const len = 2 + g() * rh * 0.7;
-    for (let j = 0; j < len; j++) D(p, Math.round(x + Math.sin(j * 0.7) * 1.5), Math.round(by + j - 1), C.gr3);
+    const len = 2 + g() * rh * 0.8;
+    const up = g() > 0.55;
+    for (let j = 0; j < len; j++) {
+      const yy = up ? cy - rh * 0.6 - j : by + j - 1;
+      D(p, Math.round(x + Math.sin(j * 0.6) * 1.6), Math.round(yy), up ? C.gr1 : C.gr3);
+    }
+    if (up) D(p, Math.round(x), Math.round(cy - rh * 0.6 - len), C.gyp);
   }
 }
 
-/* round tables out towards the walls */
-function texRoundTable() {
-  return TEX('rt', 60, 48, p => {
+/* Round guest tables, skirted to the floor in black with black chair
+   covers — the hall's own scheme */
+function texRoundTable(pale) {
+  return TEX('rt' + (pale ? 1 : 0), 60, 48, p => {
     const cx = 30, cy = 26, rx = 23, ry = 11;
-    ELL(p, cx, cy + 9, 24, 6, '#00000040');
-    // the cloth falls to the floor: a short skirt with soft folds
-    for (let j2 = 8; j2 >= 1; j2--)
-      ELL(p, cx, cy + j2, rx - j2 * 0.35, ry - j2 * 0.28, j2 > 5 ? C.ivoryD : C.ivoryS);
-    for (let a2 = -1; a2 <= 1; a2 += 0.16) {           // folds down the near face
+    const t1 = pale ? '#8d8377' : C.cloth, t2 = pale ? '#736a60' : C.clothD,
+          t3 = pale ? '#a1978a' : C.clothL;
+    ELL(p, cx, cy + 10, 25, 7, '#00000048');
+    for (let j2 = 9; j2 >= 1; j2--)
+      ELL(p, cx, cy + j2, rx - j2 * 0.32, ry - j2 * 0.26, j2 > 5 ? t2 : t1);
+    for (let a2 = -1; a2 <= 1; a2 += 0.15) {           // folds down the near face
       const x2 = cx + a2 * rx * 0.94;
       const y2 = cy + Math.sqrt(Math.max(0, 1 - a2 * a2)) * ry * 0.9;
-      R(p, Math.round(x2), Math.round(y2), 1, 5, C.ivoryD);
+      R(p, Math.round(x2), Math.round(y2), 1, 6, t2);
     }
-    ELL(p, cx, cy, rx, ry, C.ivory);                   // the top
-    ELL(p, cx, cy - 1, rx - 1, ry - 1.5, C.ivoryL);
-    // place settings round the rim
+    ELL(p, cx, cy, rx, ry, t1);
+    ELL(p, cx, cy - 1, rx - 1, ry - 1.5, t3);
+    // covered chairs round the table
+    for (let k = 0; k < 8; k++) {
+      const a = k / 8 * TAU + 0.39;
+      const x = Math.round(cx + Math.cos(a) * (rx + 6)), y = Math.round(cy + Math.sin(a) * (ry + 6));
+      const behind = Math.sin(a) < 0;
+      if (!behind) continue;                            // the near ones go on top
+      R(p, x - 4, y - 9, 8, 11, t2); R(p, x - 3, y - 8, 6, 9, t1);
+    }
+    // place settings
     for (let k = 0; k < 8; k++) {
       const a = k / 8 * TAU + 0.4;
       const x = cx + Math.cos(a) * (rx - 5), y = cy + Math.sin(a) * (ry - 3);
-      ELL(p, x, y, 2.8, 1.8, C.gold); ELL(p, x, y, 2, 1.2, C.wh1);
+      ELL(p, x, y, 2.8, 1.8, C.ivoryS); ELL(p, x, y, 2, 1.2, C.ivoryL);
       D(p, x + 4, y - 1, C.glass); D(p, x + 4, y - 2, C.ivoryL);
       D(p, x - 4, y, C.goldL);
     }
-    // centrepiece, lifted on a glass stand
-    R(p, cx - 1, cy - 10, 3, 8, C.glass);
-    R(p, cx - 3, cy - 3, 7, 2, C.glass);
-    pxFlowers(p, cx, cy - 10, 10, 8, 9911, true);
-    for (const [dx, dy] of [[-14, 0], [14, 0]]) {
-      R(p, cx + dx, cy + dy - 7, 1, 7, C.goldL);
-      D(p, cx + dx, cy + dy - 8, C.flame);
-      R(p, cx + dx - 1, cy + dy, 3, 1, C.gold);
+    // a cluster of glass hurricanes and low blooms at the centre
+    for (const [dx, hgt] of [[-4, 11], [0, 15], [4, 12], [-7, 8], [7, 9]]) {
+      R(p, cx + dx, cy - 4 - hgt, 3, hgt, '#e6f0f5aa');
+      R(p, cx + dx, cy - 4 - hgt, 1, hgt, C.glass);
+      R(p, cx + dx, cy - 3 - hgt, 3, 2, C.flame);
+      D(p, cx + dx + 1, cy - 5 - hgt, C.flameL);
+      R(p, cx + dx, cy - 4, 3, 1, C.goldD);
+    }
+    pxFlowers(p, cx, cy - 2, 9, 6, 9911, false);
+    for (let k = 0; k < 8; k++) {
+      const a = k / 8 * TAU + 0.39;
+      const x = Math.round(cx + Math.cos(a) * (rx + 6)), y = Math.round(cy + Math.sin(a) * (ry + 6));
+      if (Math.sin(a) < 0) continue;
+      R(p, x - 4, y - 9, 8, 11, t2); R(p, x - 3, y - 8, 6, 9, t1);
+      R(p, x - 3, y - 8, 6, 1, t3);
     }
   });
 }
 
-/* candelabra standing along the flower line */
-function texCandelabra(f) {
-  return TEX('cd' + f, 22, 52, p => {
-    const cx = 11, b = 50;
-    ELL(p, cx, b, 6, 2.4, '#00000040');
-    R(p, cx - 5, b - 3, 11, 3, C.goldD);                // base
-    R(p, cx - 5, b - 3, 11, 1, C.gold);
-    R(p, cx - 3, b - 5, 7, 2, C.gold);
-    R(p, cx - 1, b - 30, 2, 26, C.gold);                // stem
-    R(p, cx - 1, b - 30, 1, 26, C.goldL);
-    R(p, cx - 3, b - 22, 7, 2, C.goldD);                // knop
-    // arms
-    for (const s of [-1, 1]) {
-      for (let j = 0; j < 7; j++) D(p, cx + s * (1 + j), b - 30 - Math.round(Math.sin(j / 6 * 1.6) * 5), C.gold);
-      R(p, cx + s * 7 - 1, b - 36, 3, 1, C.goldD);
-      R(p, cx + s * 7, b - 42, 1, 6, C.ivoryL);         // candle
-      D(p, cx + s * 7, b - 43, f ? C.flameL : C.flame);
-      D(p, cx + s * 7, b - 44, f ? C.flame : C.flameL);
+/* The long banquet tables that run the length of the aisle, floor-length
+   black cloth with the flower run and candle glass along the top */
+function texLongTable(rows) {
+  const w = 30, h = rows * AH + 14;
+  return TEX('lt' + rows, w, h, p => {
+    const cx = 15, top = 7, bot = h - 5;
+    ELL(p, cx, bot + 2, 12, 4, '#00000048');
+    R(p, cx - 10, top, 20, bot - top, C.cloth);
+    SPEC(p, cx - 10, top, 20, bot - top, C.clothD, 0.26, rows * 3 + 1);
+    R(p, cx - 10, top, 20, 2, C.clothL);               // the lit far edge
+    R(p, cx + 7, top, 3, bot - top, '#050507');        // the near edge falls away
+    for (let y = top + 4; y < bot; y += 7) R(p, cx + 6, y, 1, 4, C.clothD);
+    const g = mulberry(rows * 71 + 5);
+    let k = 0;
+    for (let y = top + 6; y < bot - 6; y += 9, k++) {
+      // a place setting laid toward the aisle
+      ELL(p, cx + 2, y + 2, 3, 2, C.ivoryS);
+      ELL(p, cx + 2, y + 2, 2.2, 1.3, C.ivoryL);
+      D(p, cx - 1, y + 2, C.goldL); D(p, cx + 5, y + 2, C.goldL);
+      R(p, cx - 1, y - 2, 1, 3, C.glass); D(p, cx - 1, y - 3, C.ivoryL);
+      // the run of flowers and candle glass down the middle of the table
+      if (k % 2 === 0) {
+        const hgt = 8 + ((g() * 5) | 0);
+        R(p, cx - 5, y - 2 - hgt, 3, hgt, '#e6f0f5aa');
+        R(p, cx - 5, y - 2 - hgt, 1, hgt, C.glass);
+        R(p, cx - 5, y - 1 - hgt, 3, 2, C.flame);
+        D(p, cx - 4, y - 3 - hgt, C.flameL);
+      } else {
+        pxFlowers(p, cx - 4, y + 1, 6, 5, y * 13 + rows, false);
+      }
     }
-    R(p, cx - 1, b - 36, 3, 1, C.goldD);
-    R(p, cx, b - 44, 1, 8, C.ivoryL);
-    D(p, cx, b - 45, f ? C.flame : C.flameL);
-    D(p, cx, b - 46, f ? C.flameL : C.flame);
-    // a spray of blooms cradled at the top
-    pxFlowers(p, cx, b - 32, 7, 5, 3131, true);
+  });
+}
+
+/* The tall slim brass stands that line the aisle, each carrying a glass
+   hurricane with a pillar candle in it — alternating with a raised bowl
+   of flowers, exactly as they are set out in the photographs */
+function texCandelabra(f, tall, flower) {
+  const h = tall ? 60 : 48, w = flower ? 22 : 16;
+  return TEX('cd' + f + (tall ? 1 : 0) + (flower ? 1 : 0), w, h, p => {
+    const cx = w >> 1, b = h - 2;
+    ELL(p, cx, b, 5, 2, '#00000048');
+    R(p, cx - 4, b - 2, 9, 2, C.goldD);                 // foot
+    R(p, cx - 4, b - 2, 9, 1, C.gold);
+    R(p, cx - 3, b - 4, 7, 2, C.gold);
+    const stem = tall ? 40 : 30;
+    R(p, cx - 1, b - 4 - stem, 2, stem, C.gold);        // stem
+    R(p, cx - 1, b - 4 - stem, 1, stem, C.goldL);
+    R(p, cx - 2, b - 4 - stem * 0.55, 5, 2, C.goldD);   // knop
+    const ty = b - 6 - stem;
+    if (flower) {
+      R(p, cx - 4, ty, 9, 3, C.gold);
+      pxFlowers(p, cx, ty + 1, 9, 7, 3131 + (tall ? 7 : 0), false);
+    } else {
+      // the glass hurricane
+      const gh = tall ? 15 : 12;
+      R(p, cx - 3, ty - gh, 7, gh, '#e6f0f5aa');
+      R(p, cx - 3, ty - gh, 1, gh, C.glass);
+      R(p, cx + 3, ty - gh, 1, gh, '#a8bcc8');
+      R(p, cx - 3, ty - gh, 7, 1, C.glass);
+      R(p, cx - 2, ty - 6, 5, 5, C.ivoryL);             // the pillar candle
+      R(p, cx - 2, ty - 6, 1, 5, C.wh1);
+      R(p, cx - 2, ty - 7, 5, 1, C.ivoryS);
+      BLOB(p, cx, ty - 8, 1.4, 2, f ? C.flameL : C.flame);
+      D(p, cx, ty - 10, f ? C.flame : C.flameL);
+      R(p, cx - 3, ty, 7, 2, C.goldD);
+    }
   });
 }
 
@@ -4138,172 +4170,142 @@ function texEntryFlowers(big) {
   });
 }
 
-/* the flower bank across the front of the dais — symmetric by construction */
+/* The ceremony flowers: a long, airy installation of white hydrangea,
+   cream roses and peach garden roses carried on slim brass frames.
+   Drawn as one half and mirrored, so the two sides match exactly. */
 function texStageFlowers() {
-  return TEX('sf', 260, 46, p => {
-    const cx = 130, b = 44;
-    // draw the left half, then mirror it so the two sides match exactly
-    const half = pxc(130, 46);
-    ELL(half, 96, b, 40, 5, '#00000038');
-    for (let x = 0; x < 130; x += 9) {
-      const t = x / 130;
-      const hh = 12 + t * 16;
-      pxFlowers(half, x + 4, b - 1, 7, hh * 0.55, 400 + x, true);
+  return TEX('sf', 300, 62, p => {
+    const b = 60;
+    const half = pxc(150, 62);
+    // the brass frames it is built on
+    for (const [x, hgt] of [[24, 34], [70, 44], [116, 52]]) {
+      R(half, x, b - hgt, 1, hgt, C.gold);
+      R(half, x + 22, b - hgt + 6, 1, hgt - 6, C.goldD);
+      R(half, x, b - hgt, 23, 1, C.gold);
     }
-    pxFlowers(half, 108, b - 12, 14, 12, 991, false);
-    pxFlowers(half, 76, b - 6, 12, 9, 992, true);
-    pxFlowers(half, 40, b - 3, 11, 7, 993, true);
+    ELL(half, 110, b, 46, 5, '#00000038');
+    // a low run of blooms along the whole length
+    for (let x = 4; x < 150; x += 9) {
+      const t = x / 150;
+      pxFlowers(half, x, b - 1, 8, 9 + t * 12, 400 + x, true);
+    }
+    // and the tall clouds that give it its shape
+    pxFlowers(half, 128, b - 16, 20, 17, 991, true);
+    pxFlowers(half, 96, b - 24, 15, 13, 992, true);
+    pxFlowers(half, 62, b - 10, 16, 13, 993, true);
+    pxFlowers(half, 28, b - 4, 13, 10, 994, true);
+    // pillar candles standing in front of it
+    for (const x of [40, 84, 122]) {
+      R(half, x, b - 13, 5, 11, C.ivoryL);
+      R(half, x, b - 13, 1, 11, C.wh1);
+      BLOB(half, x + 2, b - 15, 1.4, 2, C.flame);
+    }
     p.g.drawImage(half.c, 0, 0);
-    p.g.save();
-    p.g.translate(260, 0); p.g.scale(-1, 1);
-    p.g.drawImage(half.c, 0, 0);
-    p.g.restore();
-    // the centre, over the aisle mouth
-    pxFlowers(p, cx, b - 2, 13, 11, 994, true);
-    pxFlowers(p, cx, b - 14, 8, 7, 995, false);
+    p.g.save(); p.g.translate(300, 0); p.g.scale(-1, 1);
+    p.g.drawImage(half.c, 0, 0); p.g.restore();
+    // the centre, over the mouth of the aisle
+    pxFlowers(p, 150, b - 2, 16, 14, 995, true);
+    pxFlowers(p, 150, b - 18, 11, 10, 996, true);
   });
 }
 
-/* the ceremonial backdrop standing behind the dais: a pleated drapery
-   wall under a gold cornice, with a lit arch at its centre */
+/* The backdrop behind the ceremony: floor-to-ceiling black pleated
+   curtain. No arch, no colour — the flowers are the only thing lit. */
 function texBackdrop() {
-  return TEX('bd', 330, 82, p => {
-    const w = 330, h = 82, cx = 165, b = h - 1;
-    // drapery, pleat by pleat
-    for (let x = 0; x < w; x += 7) {
-      R(p, x, 6, 5, h - 6, '#3c2c4c');
-      R(p, x, 6, 2, h - 6, '#4d3a60');
-      R(p, x + 5, 6, 2, h - 6, '#2a1e38');
-      if ((x / 7) % 3 === 0) R(p, x + 1, 6, 1, h - 6, '#5c4674');
+  return TEX('bd', 340, 86, p => {
+    const w = 340, h = 86;
+    R(p, 0, 0, w, h, C.drape);
+    for (let x = 0; x < w; x += 5) {
+      R(p, x, 4, 3, h - 4, C.drape);
+      R(p, x, 4, 1, h - 4, C.drapeL);
+      R(p, x + 3, 4, 2, h - 4, C.drapeD);
     }
-    // gold cornice
-    R(p, 0, 0, w, 5, C.wall);
-    R(p, 0, 2, w, 2, C.gold);
-    R(p, 0, 4, w, 1, C.goldD);
-    R(p, 0, 5, w, 1, C.goldL);
-    // swagged pelmet
-    for (let x = 0; x <= w; x += 30) {
-      for (let k = 0; k <= 30; k++) {
-        const yy = 6 + Math.round(Math.sin(k / 30 * Math.PI) * 7);
-        R(p, x + k, 6, 1, yy - 5, '#5c4674');
-        D(p, x + k, yy, C.gold);
-      }
-      D(p, x, 7, C.goldL); D(p, x, 8, C.goldL);
-    }
-    // the lit arch at the centre
-    const arw = 46, arh = h - 18, spr = arh - arw * 0.8;
-    const half = y => y <= spr ? arw : arw * Math.sqrt(Math.max(0, 1 - Math.pow((y - spr) / (arw * 0.8), 2)));
+    // the pelmet
+    R(p, 0, 0, w, 4, C.wallD);
+    R(p, 0, 3, w, 1, '#050507');
+    // light grazing the folds near the floor, where the flowers are lit
+    for (let x = 0; x < w; x += 5) SPEC(p, x, h - 26, 3, 26, '#2c2c34', 0.4, x);
+    SPEC(p, 0, h - 12, w, 12, '#3a3a44', 0.2, 77);
+  });
+}
+
+/* 주례단상 — a slim brass-framed lectern, as the venue sets it */
+function texPodium() {
+  return TEX('pd', 26, 46, p => {
+    const cx = 13, b = 44;
+    ELL(p, cx, b, 8, 2.6, '#00000048');
+    R(p, cx - 6, b - 30, 13, 30, C.blkD);               // the dark body
+    R(p, cx - 6, b - 30, 2, 30, C.gold);                // brass edges
+    R(p, cx + 5, b - 30, 2, 30, C.goldD);
+    R(p, cx - 6, b - 30, 13, 2, C.gold);
+    R(p, cx - 6, b - 2, 13, 2, C.goldD);
+    SPEC(p, cx - 4, b - 28, 9, 26, C.blkL, 0.14, 1717);
+    R(p, cx - 7, b - 33, 15, 3, C.blkD);                // the top
+    R(p, cx - 7, b - 33, 15, 1, C.goldL);
+    R(p, cx - 5, b - 35, 11, 2, C.ivoryL);              // an open book on it
+    R(p, cx, b - 35, 1, 2, C.ivoryD);
+    // the pillar candle that stands beside it
+    R(p, cx + 8, b - 16, 4, 14, C.ivoryL);
+    R(p, cx + 8, b - 16, 1, 14, C.wh1);
+    BLOB(p, cx + 10, b - 18, 1.3, 1.8, C.flame);
+  });
+}
+
+/* 사회자 단상 — the same lectern, a size smaller */
+function texMcStand() {
+  return TEX('mc', 22, 38, p => {
+    const cx = 11, b = 36;
+    ELL(p, cx, b, 6, 2.2, '#00000048');
+    R(p, cx - 5, b - 24, 11, 24, C.blkD);
+    R(p, cx - 5, b - 24, 2, 24, C.gold);
+    R(p, cx + 4, b - 24, 2, 24, C.goldD);
+    R(p, cx - 5, b - 24, 11, 2, C.gold);
+    R(p, cx - 6, b - 27, 13, 3, C.blkD);
+    R(p, cx - 6, b - 27, 13, 1, C.goldL);
+    R(p, cx - 1, b - 34, 1, 7, '#3a3a44');              // microphone
+    BLOB(p, cx - 1, b - 35, 1.5, 1.5, '#55555f');
+    pxFlowers(p, cx, b - 26, 5, 4, 818, false);
+  });
+}
+
+/* The entrance: a slim brass arch smothered from the floor up in blush
+   and peach, thinning out toward the crown just as it does in the
+   photograph, with the great mounds of flowers pooled at its feet */
+function texGate() {
+  return TEX('gt', 210, 116, p => {
+    const cx = 105, b = 114, arw = 56, arh = 100;
+    const spr = arh - arw * 0.95;
+    const half = y => y <= spr ? arw
+      : arw * Math.sqrt(Math.max(0, 1 - Math.pow((y - spr) / (arw * 0.95), 2)));
+    // the frame, thick enough to read at this scale
     for (let y = 0; y < arh; y++) {
+      const hw = half(y);
+      if (hw < 1) continue;
+      const l = Math.round(cx - hw), r = Math.round(cx + hw);
+      R(p, l, b - y, 2, 1, C.gold); D(p, l, b - y, C.goldL);
+      R(p, r - 1, b - y, 2, 1, C.goldD); D(p, r, b - y, C.gold);
+    }
+    // flowers up both legs and over the crown, thinning as they climb
+    for (let y = 0; y < arh; y += 3) {
       const hw = half(y);
       if (hw < 1) continue;
       const t = y / arh;
-      R(p, cx - hw, b - y, hw * 2, 1, t > 0.6 ? '#6b5a86' : t > 0.28 ? '#5a4b73' : '#4a3d61');
+      const rw = 14 - t * 9, rh = 13 - t * 8.5;
+      if (rw < 2.5) continue;
+      pxFlowers(p, cx - hw, b - y, rw, rh, 700 + y, false);
+      pxFlowers(p, cx + hw, b - y, rw, rh, 700 + y, false);
     }
-    for (let y = 0; y < arh; y++) {
-      const hw = half(y);
-      if (hw < 1) continue;
-      D(p, Math.round(cx - hw), b - y, C.gold); D(p, Math.round(cx + hw - 1), b - y, C.gold);
-      D(p, Math.round(cx - hw - 1), b - y, C.goldD); D(p, Math.round(cx + hw), b - y, C.goldD);
-    }
-    // a warm glow spilling out of the opening
-    for (let y = 2; y < arh - 4; y += 1) {
-      const hw = half(y) - 4;
-      if (hw < 2) continue;
-      const a = 1 - y / arh;
-      if (a > 0.45) R(p, cx - hw, b - y, hw * 2, 1, '#7b6a96');
-    }
-    // fairy lights and blooms round the opening
-    for (let y = 3; y < arh - 2; y += 4) {
-      const hw = half(y) - 3;
-      if (hw < 1) continue;
-      D(p, Math.round(cx - hw), b - y, C.goldL); D(p, Math.round(cx + hw), b - y, C.goldL);
-    }
-    for (const s of [-1, 1]) {
-      pxFlowers(p, cx + s * (arw + 4), b - 2, 11, 9, 4400 + s, true);
-      pxFlowers(p, cx + s * (arw - 2), b - arh + 8, 8, 7, 4500 + s, false);
-      pxFlowers(p, cx + s * 118, b - 2, 13, 11, 4600 + s, true);
-    }
-    // uplights washing the drapery — brightest at the floor, fading up
-    for (const x of [40, 100, 230, 290]) {
-      for (let y = 0; y < 30; y++) {
-        const hw = Math.round(3 + y * 0.32), t = y / 30;
-        const col = t < 0.3 ? '#61507e' : t < 0.6 ? '#54456c' : '#48395e';
-        if (t < 0.72) R(p, x - hw, b - 4 - y, hw * 2, 1, col);
-        else SPEC(p, x - hw, b - 4 - y, hw * 2, 1, col, 1 - (t - 0.72) * 3.4, x * 7 + y);
+    // the mounds pooled on the floor either side, and glass among them
+    for (const s2 of [-1, 1]) {
+      pxFlowers(p, cx + s2 * (arw + 6), b - 2, 18, 14, 900 + s2, false);
+      pxFlowers(p, cx + s2 * (arw - 9), b - 1, 13, 10, 902 + s2, false);
+      for (const dx of [-9, 7, 18]) {
+        const x = cx + s2 * (arw + dx);
+        R(p, x, b - 13, 4, 11, '#e6f0f5aa');
+        R(p, x, b - 13, 1, 11, C.glass);
+        R(p, x, b - 8, 4, 5, C.ivoryL);
+        BLOB(p, x + 2, b - 10, 1.2, 1.6, C.flame);
       }
-      R(p, x - 2, b - 4, 5, 4, '#241c2e');       // the lamp itself
-      R(p, x - 2, b - 4, 5, 1, C.goldD);
-      D(p, x, b - 5, C.goldL);
-    }
-  });
-}
-
-/* 주례단상 — the officiant's podium on the dais */
-function texPodium() {
-  return TEX('pd', 30, 44, p => {
-    const cx = 15, b = 42;
-    ELL(p, cx, b, 9, 3, '#00000040');
-    R(p, cx - 8, b - 5, 17, 5, C.woodD ? '#3a2a20' : C.wood);
-    R(p, cx - 6, b - 24, 13, 20, C.wood);
-    R(p, cx - 6, b - 24, 3, 20, C.woodL);
-    R(p, cx + 4, b - 24, 3, 20, '#4c3527');
-    R(p, cx - 5, b - 20, 11, 12, '#5b402f');
-    R(p, cx - 4, b - 19, 9, 10, C.woodL);
-    R(p, cx - 8, b - 27, 17, 3, C.wood);                // slanted top
-    R(p, cx - 8, b - 27, 17, 1, C.woodL);
-    R(p, cx - 8, b - 28, 17, 1, C.goldD);
-    R(p, cx - 5, b - 30, 11, 2, C.ivoryL);              // an open book
-    R(p, cx, b - 30, 1, 2, C.ivoryD);
-    pxFlowers(p, cx + 7, b - 26, 5, 4, 1717, true);
-    D(p, cx - 7, b - 29, C.gold);
-  });
-}
-
-/* 사회자 단상 — the MC's lectern, off to the side */
-function texMcStand() {
-  return TEX('mc', 24, 38, p => {
-    const cx = 12, b = 36;
-    ELL(p, cx, b, 7, 2.4, '#00000040');
-    R(p, cx - 5, b - 3, 11, 3, '#2b2130');
-    R(p, cx - 4, b - 20, 9, 17, C.marble);
-    R(p, cx - 4, b - 20, 2, 17, C.marbleL);
-    R(p, cx + 3, b - 20, 2, 17, C.marbleD);
-    R(p, cx - 5, b - 23, 11, 3, C.marbleL);
-    R(p, cx - 5, b - 24, 11, 1, C.gold);
-    R(p, cx - 1, b - 30, 1, 7, '#3a3a44');              // microphone
-    BLOB(p, cx - 1, b - 31, 1.6, 1.6, '#55555f');
-    pxFlowers(p, cx, b - 22, 5, 4, 818, true);
-  });
-}
-
-/* the entrance arch at the foot of the aisle */
-function texGate() {
-  return TEX('gt', 180, 70, p => {
-    const cx = 90, b = 68;
-    const arw = 52, arh = 54;
-    for (const s of [-1, 1]) {
-      R(p, cx + s * 46 - 4, b - 40, 9, 40, C.marble);
-      R(p, cx + s * 46 - 4, b - 40, 3, 40, C.marbleL);
-      R(p, cx + s * 46 + 2, b - 40, 3, 40, C.marbleD);
-      R(p, cx + s * 46 - 6, b - 3, 13, 3, C.marbleD);
-      R(p, cx + s * 46 - 6, b - 43, 13, 3, C.marbleL);
-    }
-    // the arch
-    for (let a = 0; a <= 180; a += 1) {
-      const rad = a * Math.PI / 180;
-      const x = cx - Math.cos(rad) * arw, y = b - 40 - Math.sin(rad) * 22;
-      R(p, x - 1, y - 3, 3, 4, C.marble);
-      D(p, x, y - 3, C.marbleL);
-    }
-    // greenery and blooms wound over it
-    for (let a = 0; a <= 180; a += 5) {
-      const rad = a * Math.PI / 180;
-      const x = cx - Math.cos(rad) * arw, y = b - 41 - Math.sin(rad) * 22;
-      pxFlowers(p, x, y + 2, 4, 4, a * 37 + 3, a % 15 === 0);
-    }
-    for (const s of [-1, 1]) {
-      pxFlowers(p, cx + s * 46, b - 42, 8, 7, s * 51 + 900, true);
-      pxFlowers(p, cx + s * 46, b - 6, 7, 6, s * 61 + 901, true);
     }
   });
 }
@@ -4312,67 +4314,103 @@ function texGate() {
 function texStand(ep, lit) {
   return TEX('st' + ep + lit, 32, 56, p => {
     const cx = 16, b = 54;
-    ELL(p, cx, b, 8, 2.6, '#00000042');
-    // easel legs
-    R(p, cx - 7, b - 24, 2, 24, C.goldD);
-    R(p, cx + 5, b - 24, 2, 24, C.goldD);
+    ELL(p, cx, b, 8, 2.6, '#00000048');
+    // a slim brass easel, matching the hall's ironwork
     R(p, cx - 7, b - 24, 1, 24, C.gold);
+    R(p, cx + 6, b - 24, 1, 24, C.goldD);
     R(p, cx - 6, b - 12, 12, 1, C.gold);
-    // frame
+    // the frame
     R(p, cx - 11, b - 46, 23, 24, C.goldD);
     R(p, cx - 10, b - 45, 21, 22, C.gold);
+    R(p, cx - 9, b - 44, 19, 20, lit ? '#2a2c34' : '#191a1f');
     // a photograph of the two of them, dimmed until it is her turn to see it
-    const bgc = lit ? '#5b4f78' : '#3b3350', flr = lit ? '#6d5f8c' : '#463c5e';
-    R(p, cx - 9, b - 44, 19, 20, bgc);
+    const flr = lit ? '#3a3d47' : '#232429';
     R(p, cx - 9, b - 30, 19, 6, flr);
-    for (let k = 0; k < 14; k++) D(p, cx - 9 + (k * 7 % 19), b - 43 + (k * 5 % 13), lit ? '#7f70a2' : '#544a6e');
-    const sk1 = lit ? '#f6d3b2' : '#b9a292', sk2 = lit ? '#e0b28c' : '#a89283';
+    for (let k = 0; k < 14; k++) D(p, cx - 9 + (k * 7 % 19), b - 43 + (k * 5 % 13), lit ? '#4d515e' : '#2b2d34');
+    const sk1 = lit ? '#f6d3b2' : '#8e8378', sk2 = lit ? '#e0b28c' : '#7d7369';
     BLOB(p, cx - 3, b - 35, 2.4, 2.6, sk1); BLOB(p, cx + 3, b - 35, 2.4, 2.6, sk2);
-    R(p, cx - 4, b - 34, 1, 3, lit ? '#2a1c18' : '#3a3040');
-    R(p, cx + 2, b - 34, 3, 2, lit ? '#2a1c18' : '#3a3040');
-    R(p, cx - 5, b - 31, 5, 8, lit ? '#d76a94' : '#7a6280');
-    R(p, cx + 1, b - 31, 5, 8, lit ? '#3f5f8a' : '#4d566e');
+    R(p, cx - 4, b - 34, 1, 3, lit ? '#2a1c18' : '#26272c');
+    R(p, cx + 2, b - 34, 3, 2, lit ? '#2a1c18' : '#26272c');
+    R(p, cx - 5, b - 31, 5, 8, lit ? '#e8d8c4' : '#4a4b52');
+    R(p, cx + 1, b - 31, 5, 8, lit ? '#1e1e26' : '#37383e');
     R(p, cx - 10, b - 45, 21, 1, C.goldL);
-    // number plaque
+    // a small brass plate with the episode number
     R(p, cx - 4, b - 22, 9, 4, C.goldD);
     R(p, cx - 4, b - 22, 9, 1, C.goldL);
-    R(p, cx - 2, b - 21, 1, 2, lit ? C.wh1 : C.ivoryD);
-    for (let k = 0; k < ep; k++) D(p, cx - 2 + k * 2 + 2, b - 20, lit ? C.wh1 : C.ivoryD);
-    pxFlowers(p, cx, b - 2, 9, 7, ep * 313 + 5, true);
+    for (let k = 0; k < ep; k++) D(p, cx - 2 + k * 2, b - 20, lit ? C.wh1 : C.ivoryD);
+    pxFlowers(p, cx, b - 2, 9, 7, ep * 313 + 5, false);
   });
 }
 
-/* chandeliers hung the length of the hall */
+/* Crystal chandeliers, hung the length of the hall: warm-white strands
+   of glass on a slim brass frame, not the gold candelabra of a church */
 function texChandelier(big) {
-  const w = big ? 28 : 20, h = big ? 30 : 22;
+  const w = big ? 30 : 22, h = big ? 34 : 26;
   return TEX('ch' + big, w, h, p => {
-    const cx = w >> 1, ty = 0;
-    const R0 = big ? 11 : 8;
-    R(p, cx, 0, 1, big ? 8 : 6, C.goldD);               // chain
-    const top = big ? 8 : 6;
-    R(p, cx - 3, top, 7, 2, C.gold);
-    // tiers of arms
-    const tiers = big ? [[R0, 6], [R0 * 0.55, 4]] : [[R0, 5]];
-    let yy = top + 3;
-    for (const [rad, n] of tiers) {
+    const cx = w >> 1;
+    const chain = big ? 7 : 5;
+    R(p, cx, 0, 1, chain, C.goldD);
+    R(p, cx - 1, chain, 3, 2, C.gold);
+    const tiers = big ? [[12, 4], [9, 8], [5, 12]] : [[8, 3], [6, 6], [3, 9]];
+    for (const [rad, ty] of tiers) {
+      const yy = chain + ty;
+      // the brass ring
       for (let x = -rad; x <= rad; x++) {
-        const y = yy + Math.round(Math.sqrt(Math.max(0, 1 - (x / rad) * (x / rad))) * 2);
-        D(p, cx + x, y, C.gold);
-        D(p, cx + x, y + 1, C.goldD);
+        const dy = Math.round(Math.sqrt(Math.max(0, 1 - (x / rad) * (x / rad))) * 1.6);
+        D(p, cx + x, yy + dy, C.gold);
       }
-      for (let k = 0; k < n; k++) {
-        const x = cx - rad + Math.round(k / (n - 1) * rad * 2);
-        R(p, x, yy - 4, 1, 4, C.ivoryL);                // candle
-        D(p, x, yy - 5, C.flame);
-        R(p, x, yy + 3, 1, 2, C.goldL);                 // crystal drop
-        D(p, x, yy + 5, C.glass);
+      // strands of crystal falling from it
+      for (let x = -rad; x <= rad; x += 2) {
+        const dy = Math.round(Math.sqrt(Math.max(0, 1 - (x / rad) * (x / rad))) * 1.6);
+        const len = 2 + ((Math.abs(x) * 7) % 3);
+        for (let k = 1; k <= len; k++)
+          D(p, cx + x, yy + dy + k, k === len ? C.glass : C.flameL);
       }
-      yy += big ? 8 : 7;
+      // candle lamps standing on the ring
+      for (let x = -rad; x <= rad; x += Math.max(3, rad >> 1)) {
+        const dy = Math.round(Math.sqrt(Math.max(0, 1 - (x / rad) * (x / rad))) * 1.6);
+        R(p, cx + x, yy + dy - 3, 1, 3, C.ivoryL);
+        D(p, cx + x, yy + dy - 4, C.flame);
+      }
     }
-    R(p, cx - 1, top + 2, 3, big ? 14 : 9, C.gold);     // central body
-    R(p, cx - 1, top + 2, 1, big ? 14 : 9, C.goldL);
-    BLOB(p, cx, yy - 1, 3, 3, C.goldL);
-    D(p, cx, yy + 2, C.glass);
+    R(p, cx, chain + 2, 1, big ? 16 : 11, C.goldL);   // the central stem
+    BLOB(p, cx, chain + (big ? 19 : 13), 2, 2, C.flameL);
+    D(p, cx, chain + (big ? 22 : 16), C.glass);
+  });
+}
+
+/* The ceiling this hall is known for: deep rectangular coffers ringed
+   with brass and packed with crystal, glowing warm above the room. */
+function texCoffer(big) {
+  const w = big ? 66 : 46, h = big ? 42 : 30;
+  return TEX('cf' + big, w, h, p => {
+    R(p, 0, 0, w, h, '#0b0b0f');
+    const rings = big ? 3 : 2;
+    for (let i = 0; i < rings; i++) {
+      const inset = i * (big ? 7 : 6);
+      const x0 = inset, y0 = inset, ww = w - inset * 2, hh = h - inset * 2;
+      if (ww < 6 || hh < 6) break;
+      // the brass lip of the coffer
+      R(p, x0, y0, ww, 1, C.goldD); R(p, x0, y0 + hh - 1, ww, 1, C.gold);
+      R(p, x0, y0, 1, hh, C.goldD); R(p, x0 + ww - 1, y0, 1, hh, C.gold);
+      // packed with crystal, brightest where it catches the light
+      const bw = big ? 5 : 4;
+      const g = mulberry(i * 97 + big * 13 + 5);
+      for (let k = 1; k < bw; k++) {
+        for (let x = x0 + 1; x < x0 + ww - 1; x++) {
+          const u = g();
+          if (u > 0.45) D(p, x, y0 + k, u > 0.82 ? C.flameL : u > 0.62 ? C.flame : C.gold);
+          const v = g();
+          if (v > 0.45) D(p, x, y0 + hh - 1 - k, v > 0.82 ? C.flameL : v > 0.62 ? C.flame : C.goldD);
+        }
+        for (let y = y0 + 1; y < y0 + hh - 1; y++) {
+          const u = g();
+          if (u > 0.45) D(p, x0 + k, y, u > 0.82 ? C.flameL : u > 0.62 ? C.flame : C.gold);
+          const v = g();
+          if (v > 0.45) D(p, x0 + ww - 1 - k, y, v > 0.82 ? C.flameL : v > 0.62 ? C.flame : C.goldD);
+        }
+      }
+    }
   });
 }
 
@@ -4439,7 +4477,7 @@ function texGuest(kind, view, seated, arms) {
 function texParent(who, arms, v) {
   return TEX(`pa${who}${arms}${v}`, 22, 34, p => {
     const father = who === 'father';
-    const chair = ['#c9a24a', '#e8cd85', '#8a6a34'], chairPad = '#7d3f60';
+    const chair = ['#1b1b20', '#2b2b33', '#0b0b0e'], chairPad = '#1b1b20';
     // 한복: a short 저고리 over a full 치마, the skirt filling the lap
     const hb = v ? ['#e9f2ec', '#cddcd4', '#ffffff', '#6d2f5e', '#4e1f44', '#8f4a7e']
                  : ['#f4ece0', '#dcd0bd', '#fffaf2', '#8a2f46', '#651f32', '#b04d63'];
@@ -4503,11 +4541,11 @@ function wBuildScene() {
        aisle is the brightest thing in the hall ── */
   const spot = new PIXI.Sprite(texGlow());
   spot.anchor.set(0.5); spot.x = (AISLE_MID + 0.5) * AW; spot.y = 5 * AH;
-  spot.width = 320; spot.height = 150; spot.alpha = 0.5; spot.tint = 0xffe6bc;
+  spot.width = 340; spot.height = 150; spot.alpha = 0.42; spot.tint = 0xffeacc;
   PX.glowL.addChild(spot);
   const spot2 = new PIXI.Sprite(texGlow());
   spot2.anchor.set(0.5); spot2.x = spot.x; spot2.y = 4.5 * AH;
-  spot2.width = 150; spot2.height = 96; spot2.alpha = 0.42; spot2.tint = 0xfff0d4;
+  spot2.width = 160; spot2.height = 96; spot2.alpha = 0.38; spot2.tint = 0xfff4e0;
   PX.glowL.addChild(spot2);
 
   const daisY = 8 * AH - 8;
@@ -4538,7 +4576,12 @@ function wBuildScene() {
   /* ── round guest tables ── */
   for (const tb of W_TABLES) {
     const [x, y] = T(tb.col, tb.row);
-    add(props, texRoundTable(), x, y + 18, y + 11);
+    add(props, texRoundTable(0), x, y + 18, y + 11);
+  }
+  /* ── the long banquet tables flanking the aisle ── */
+  for (const lt of W_LONG_TABLES) {
+    const rows = lt.row1 - lt.row0 + 1;
+    add(props, texLongTable(rows), (lt.col + 0.5) * AW, (lt.row1 + 1) * AH + 5, -30);
   }
 
   /* ── the congregation ── */
@@ -4559,12 +4602,17 @@ function wBuildScene() {
   };
 
   let gseed = 7;
-  // the front row: chairs turned to face the runner, either side of the flowers
-  for (const st of W_AISLE_SEATS) {
-    const [x, y] = T(st.col, st.row);
-    seatGuest(x, y, st.col < AISLE_MID, (gseed * 7) % GUEST_KINDS, gseed++);
+  // the long tables: everyone sits on the aisle side, turned to the runner
+  for (const lt of W_LONG_TABLES) {
+    const inner = lt.col < AISLE_MID ? 1 : -1;
+    const ax = (lt.col + 0.5) * AW + inner * 22;
+    for (let r = lt.row0 + 0.6; r <= lt.row1; r += 1.9) {
+      // leave a gap wherever a memory stand is planted in the flowers
+      if (W_PLACES.some(pl => !pl.groom && Math.abs(pl.row + 0.5 - r) < 1.4)) continue;
+      seatGuest(ax, (r + 0.5) * AH, inner > 0, (gseed * 7) % GUEST_KINDS, gseed++);
+    }
   }
-  // and the tables behind them
+  // and the round tables out by the walls
   for (const tb of W_TABLES) {
     const [cx, cy] = T(tb.col, tb.row);
     const toAisle = tb.col < AISLE_MID;
@@ -4590,7 +4638,8 @@ function wBuildScene() {
   PX.candles = [];
   for (const cd of W_CANDELABRA) {
     const [x, y] = T(cd.col, cd.row);
-    PX.candles.push(add(props, texCandelabra(0), x, y + 4, y + 4));
+    const sp = add(props, texCandelabra(0, cd.tall, cd.flower), x, y + 3, y + 3);
+    if (!cd.flower) PX.candles.push({ sp, tall: cd.tall });
   }
 
   /* ── the entrance ── */
@@ -4598,7 +4647,7 @@ function wBuildScene() {
     const [x, y] = T(fl.col, fl.row);
     add(props, texEntryFlowers(fl.big), x, y + 4, y + 4);
   }
-  add(props, texGate(), (AISLE_MID + 0.5) * AW, 45 * AH + 4, 45 * AH + 4);
+  add(props, texGate(), (AISLE_MID + 0.5) * AW, 44.4 * AH, 44.4 * AH);
 
   /* ── memory stands and the groom ── */
   PX.stands = [];
@@ -4617,6 +4666,22 @@ function wBuildScene() {
     gl.tint = 0xffd8a0;
     PX.glowL.addChild(gl);
     PX.stands.push({ pl, sp, gl });
+  }
+
+  /* ── the coffered ceiling ── */
+  PX.coffers = [];
+  for (const cf of W_COFFERS) {
+    const sp = new PIXI.Sprite(texCoffer(cf.big ? 1 : 0));
+    sp.anchor.set(0.5);
+    sp.x = Math.round((cf.col + 0.5) * AW); sp.y = cf.ay;
+    sp.alpha = 0.85;
+    PX.ceil.addChild(sp);
+    const halo = new PIXI.Sprite(texGlow());
+    halo.anchor.set(0.5); halo.x = sp.x; halo.y = sp.y;
+    halo.width = cf.big ? 96 : 70; halo.height = cf.big ? 62 : 44;
+    halo.blendMode = PIXI.BLEND_MODES.ADD; halo.alpha = 0.14; halo.tint = 0xffe0b4;
+    PX.ceil.addChild(halo);
+    PX.coffers.push({ sp, halo, big: cf.big, phase: sp.x * 2 + cf.ay });
   }
 
   /* ── chandeliers ── */
@@ -4648,9 +4713,9 @@ function wBuildScene() {
   /* ── grade and vignette, over everything ── */
   const grade = PX.grade = new PIXI.Sprite(TEXS('grade', 4, 64, p => {
     const gr = p.g.createLinearGradient(0, 0, 0, 64);
-    gr.addColorStop(0, 'rgba(255,204,138,0.15)');
-    gr.addColorStop(0.42, 'rgba(255,222,178,0.06)');
-    gr.addColorStop(1, 'rgba(56,34,58,0.18)');
+    gr.addColorStop(0, 'rgba(255,214,158,0.16)');
+    gr.addColorStop(0.4, 'rgba(255,230,192,0.06)');
+    gr.addColorStop(1, 'rgba(18,22,32,0.24)');
     p.g.fillStyle = gr; p.g.fillRect(0, 0, 4, 64);
   }));
   app.stage.addChild(grade);
@@ -4743,14 +4808,15 @@ function wRender() {
   const flick = ((t / 105) | 0) & 1;
   if (flick !== PX.flick) {
     PX.flick = flick;
-    const tx = texCandelabra(flick);
-    for (const s of PX.candles) s.texture = tx;
+    for (const c of PX.candles) c.sp.texture = texCandelabra(flick, c.tall, 0);
   }
 
   /* Chandeliers breathe — and step out of the way. They hang between us
      and the aisle, so any fixture the bride is walking under fades back
      until she is never hidden behind one. */
   const bax = w2ax(W.x), bay = w2ay(W.y);
+  for (const cf of PX.coffers)
+    cf.halo.alpha = 0.15 * (0.86 + 0.14 * Math.sin(t / 900 + cf.phase));
   for (const ch2 of PX.chandeliers) {
     const tw = 0.86 + 0.14 * Math.sin(t / 620 + ch2.phase);
     const near = Math.abs(ch2.sp.x - bax) < 34 &&
