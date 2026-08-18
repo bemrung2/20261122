@@ -1830,7 +1830,9 @@ function initLock() {
     $('mode-label').textContent = isManualMode ? '수동 모드' : '자동 모드';
   });
 
-  // Second switch: fall back to the old card carousel instead of the world
+  // Second switch: fall back to the old card carousel instead of the world.
+  // Everything outside this flag is the world version; the card version is
+  // deliberately left as it was.
   $('classic-switch').addEventListener('click', () => {
     classicMode = !classicMode;
     $('classic-switch').classList.toggle('on', classicMode);
@@ -1888,13 +1890,21 @@ async function checkPin() {
     lockEl.style.transform  = 'scale(1.4)';
     lockEl.style.opacity    = '0';
     await sleep(800);
-    // Open on a letter, in the same style the reel closes with
-    await fadeTo('pg-letter2', () => {
+    const resetLock = () => {
       lockEl.style.transition = '';
       lockEl.style.transform  = '';
       lockEl.style.opacity    = '';
-    });
-    startCosmicLetter(LETTER_INTRO, startJourney);
+    };
+    if (classicMode) {
+      // The card version still opens on a letter, in the same style the
+      // reel closes with.
+      await fadeTo('pg-letter2', resetLock);
+      startCosmicLetter(LETTER_INTRO, startJourney);
+    } else {
+      // The world opens straight out of the keypad: the lock pulls away
+      // and she is already standing at the foot of the aisle.
+      openWorld(true, resetLock);
+    }
   } else {
     syncDots(true);
     $('lock-err').classList.add('show');
@@ -5168,8 +5178,8 @@ function wInitControls() {
   $('pg-world').addEventListener('touchend', tap, { passive: false });
 }
 
-async function openWorld(firstTime) {
-  await fadeTo('pg-world');
+async function openWorld(firstTime, onSwap) {
+  await fadeTo('pg-world', onSwap);
   W.on = true; W.locked = false; W.last = 0;
   if (!W.raf) W.raf = requestAnimationFrame(wLoop);
   CHAPTERS.forEach((_, i) => preloadChapterMedia(i));
