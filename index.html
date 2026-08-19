@@ -1098,7 +1098,7 @@ html, body {
    nested clipped panels give the ink outline and the cream face; every
    measurement is a multiple of one border unit, so it scales as a whole. */
 #think {
-  --tb: clamp(3px, 0.58vh, 7px);          /* one "pixel" of the bubble */
+  --tb: clamp(4px, 0.72vh, 9px);          /* one "pixel" of the bubble */
   position: absolute; z-index: 6;
   left: 0; top: 0;
   transform: translate(-50%, -100%);
@@ -1124,12 +1124,12 @@ html, body {
 }
 #think-inner {
   position: relative;
-  min-width: clamp(150px, 26vh, 300px);
-  max-width: min(76vw, 460px);
-  padding: calc(var(--tb) * 2.6) calc(var(--tb) * 3.6) calc(var(--tb) * 3.4);
+  min-width: clamp(190px, 34vh, 400px);
+  max-width: min(82vw, 560px);
+  padding: calc(var(--tb) * 2.8) calc(var(--tb) * 3.8) calc(var(--tb) * 3.6);
   background: #f7f3ea;
   color: #241f2b;
-  font-size: clamp(13px, 2.15vh, 23px);
+  font-size: clamp(16px, 2.7vh, 30px);
   line-height: 1.7; letter-spacing: -0.2px; font-weight: 500;
   text-align: center; white-space: pre-wrap; word-break: keep-all;
   clip-path: polygon(
@@ -3982,14 +3982,14 @@ function pxBride(p, cx, b, dir, step) {
     const veilAt = t => back      ? { hw: 5.5 + t * 7.4, off: 0 }
                       : side      ? { hw: 3.6 + t * 5.2, off: -1.5 - t * 6.5 }
                       :             { hw: 4.6 + t * 7.6, off: 0 };
-    p.g.globalAlpha = back ? 0.62 : 0.5;
+    p.g.globalAlpha = back ? 0.4 : 0.32;
     for (let j = 0; j < vL; j++) {
       const { hw, off } = veilAt(j / vL);
       const w = Math.round(hw), o2 = Math.round(off);
       R(p, cx - w + o2, ty0 + 5 + j, w * 2, 1, '#ffffff');
     }
     // the weave, and the scalloped hem — enough to read as tulle
-    p.g.globalAlpha = 0.72;
+    p.g.globalAlpha = 0.5;
     const vg = mulberry(back ? 91 : side ? 92 : 93);
     for (let j = 1; j < vL; j++) {
       const { hw, off } = veilAt(j / vL);
@@ -4097,7 +4097,7 @@ function pxBride(p, cx, b, dir, step) {
   /* a whisper of the same veil laid back over the dress, so the gown
      shows through it and it reads as tulle rather than a cape */
   if (VEIL) {
-    p.g.globalAlpha = 0.17;
+    p.g.globalAlpha = 0.11;
     for (let j = 0; j < VEIL.n; j++) {
       const { hw, off } = VEIL.at(j / VEIL.n);
       const w = Math.round(hw), o2 = Math.round(off);
@@ -5087,11 +5087,12 @@ function wCanMove(nx, ny) {
    Typed out a character at a time, like a game's textbox, and
    pinned over her head in world space so it moves with her.
 ══════════════════════════════════════════════════════════ */
-const TH = { text: '', at: 0, timer: 0, last: false };
+const TH = { text: '', at: 0, timer: 0, last: false, shownAt: 0 };
 
 function thinkShow(text, isLast) {
   const el = $('think');
   TH.text = text || ''; TH.at = 0; TH.last = !!isLast;
+  TH.shownAt = performance.now();
   $('think-text').textContent = '';
   $('think-more').classList.remove('on');
   el.classList.toggle('go', TH.last);
@@ -5256,10 +5257,16 @@ function wInitControls() {
   });
   window.addEventListener('keyup', e => { keys[e.key] = false; apply(); });
 
-  // a tap anywhere in the world moves her thought along
-  const tap = e => { if (W.on && W.stop) { e.preventDefault(); wAdvanceThought(); } };
-  $('pg-world').addEventListener('click', tap);
-  $('pg-world').addEventListener('touchend', tap, { passive: false });
+  /* A tap anywhere on the screen moves her thought along. One listener,
+     on pointerup: a touch fires touchend AND a synthesised click, so two
+     listeners would eat two lines per tap and look like it was advancing
+     on its own. */
+  window.addEventListener('pointerup', e => {
+    if (!W.on || !W.stop) return;
+    if (performance.now() - (TH.shownAt || 0) < 260) return;   // ignore the tap that opened it
+    e.preventDefault();
+    wAdvanceThought();
+  }, { passive: false });
 }
 
 async function openWorld(firstTime, onSwap) {
