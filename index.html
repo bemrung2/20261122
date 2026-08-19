@@ -3314,7 +3314,7 @@ const W_PLACES = [
   { ep: 1, row: 33, name: '연인' },
   { ep: 2, row: 22, name: '일상' },
   { ep: 3, row: 12, name: '여행' },
-  { ep: 4, row: 6,  name: '앞으로의 우리', groom: true },
+  { ep: 4, row: 9,  name: '앞으로의 우리', groom: true },   // she stops at the foot of the steps
 ];
 
 /* What she is thinking as she reaches each one */
@@ -3367,7 +3367,8 @@ const W_ENTRY_FLOWERS = [
 const W_CHANDELIERS = (() => {
   const out = [];
   for (let r = 13; r <= 53; r += 7) {
-    out.push({ col: AISLE_MID, row: r, big: 1 });
+    // the first one down the aisle would hang square in front of the groom
+    if (r > 13) out.push({ col: AISLE_MID, row: r, big: 1 });
     out.push(...PAIR(AISLE_L - 6, c => ({ col: c, row: r + 3.5, big: 0 })));
   }
   return out;
@@ -3378,11 +3379,14 @@ const W_CHANDELIERS = (() => {
    above the far end, so they are hung there and nowhere else. Heights
    are given straight in art pixels, above the floor plane. */
 const W_COFFERS = [
-  { col: AISLE_MID, ay: -50, big: 1 },
-  { col: AISLE_MID, ay: -26, big: 1 },
-  ...PAIR(AISLE_L - 7.5, c => ({ col: c, ay: -44, big: 0 })),
-  ...PAIR(AISLE_L - 7.5, c => ({ col: c, ay: -18, big: 0 })),
-  ...PAIR(AISLE_L - 13,  c => ({ col: c, ay: -34, big: 0 })),
+  { col: AISLE_MID, ay: -104, big: 1 },
+  { col: AISLE_MID, ay: -74,  big: 1 },
+  { col: AISLE_MID, ay: -44,  big: 1 },
+  ...PAIR(AISLE_L - 7.5, c => ({ col: c, ay: -92, big: 0 })),
+  ...PAIR(AISLE_L - 7.5, c => ({ col: c, ay: -60, big: 0 })),
+  ...PAIR(AISLE_L - 7.5, c => ({ col: c, ay: -30, big: 0 })),
+  ...PAIR(AISLE_L - 13,  c => ({ col: c, ay: -78, big: 0 })),
+  ...PAIR(AISLE_L - 13,  c => ({ col: c, ay: -46, big: 0 })),
 ];
 
 function wTileAt(c, r) {
@@ -3418,7 +3422,7 @@ function wHash(c, r) {
 const TAU = Math.PI * 2;
 const PY  = 0.62;                 // floor squash: we look at the hall from an angle
 const AW  = 16, AH = 10;          // art pixels per tile — 16 across, 10 deep
-const WALLA = 60;                 // how tall the back wall stands, in art pixels
+const WALLA = 124;                // how tall the back wall stands, in art pixels
 const MAPW = W_COLS * AW, MAPH = W_ROWS * AH;
 const w2ax = x => x * AW / WT;    // world px → art px
 const w2ay = y => y * AH / WT;
@@ -3589,9 +3593,10 @@ function bakeBackdrop() {
   }
 
   /* ---- the runner: one continuous band that opens out at the mouth ---- */
+  const RUN_OVER = 6;          // how far the runner spills past its tiles
   for (let r = 8; r <= 54; r++) {
     const h = wAisleHalf(r);
-    const x0 = (AISLE_MID - h) * AW, x1 = (AISLE_MID + h + 1) * AW;
+    const x0 = (AISLE_MID - h) * AW - RUN_OVER, x1 = (AISLE_MID + h + 1) * AW + RUN_OVER;
     const y = oy + r * AH;
     R(p, x0, y, x1 - x0, AH, C.runner);
     SPEC(p, x0, y, x1 - x0, AH, C.runnerL, 0.06, r * 37 + 1);
@@ -3605,19 +3610,22 @@ function bakeBackdrop() {
   for (let r = 8; r <= 54; r++) {
     const h = wAisleHalf(r);
     for (const col of [AISLE_MID - h - 1, AISLE_MID + h + 1]) {
-      const x = col * AW, y = oy + r * AH;
+      const flip = col > AISLE_MID;
+      // the runner has eaten into the bed's inner edge, so the flowers
+      // start where it stops
+      const x = col * AW + (flip ? 6 : 0), bw = AW - 6;
+      const y = oy + r * AH;
       // both beds grow from the same seed, mirrored, so the two sides of
       // the runner match bloom for bloom
-      const flip = col > AISLE_MID;
-      const px2 = dx => x + (flip ? AW - 1 - dx : dx);
-      R(p, x, y, AW, AH, C.carpet);
+      const px2 = dx => x + (flip ? bw - 1 - dx : dx);
+      R(p, x, y, bw, AH, C.carpet);
       const g = mulberry(r * 977 + 31);
-      for (let k = 0; k < 26; k++)
-        D(p, px2((g() * AW) | 0), y + ((g() * AH) | 0), g() > 0.5 ? C.gr3 : C.gr2);
-      for (let k = 0; k < 14; k++)
-        D(p, px2((g() * AW) | 0), y + ((g() * AH) | 0), g() > 0.55 ? C.gyp : C.pk1);
-      for (let k = 0; k < 16; k++) {
-        const bx = px2(1 + ((g() * (AW - 2)) | 0)), by2 = y + 1 + ((g() * (AH - 2)) | 0);
+      for (let k = 0; k < 24; k++)
+        D(p, px2((g() * bw) | 0), y + ((g() * AH) | 0), g() > 0.5 ? C.gr3 : C.gr2);
+      for (let k = 0; k < 13; k++)
+        D(p, px2((g() * bw) | 0), y + ((g() * AH) | 0), g() > 0.55 ? C.gyp : C.pk1);
+      for (let k = 0; k < 15; k++) {
+        const bx = px2(1 + ((g() * (bw - 2)) | 0)), by2 = y + 1 + ((g() * (AH - 2)) | 0);
         const u = g();
         const col2 = u > 0.86 ? C.wh1 : u > 0.62 ? C.pk1 : u > 0.4 ? C.pk2
                    : u > 0.2 ? C.pk3 : u > 0.08 ? C.lv1 : C.lv2;
@@ -3879,7 +3887,23 @@ function pxPersonSide(p, cx, b, o) {
   const ar = o.arms || 0;
   const sl = o.sleeve === false;
   const armc = sl ? sk[0] : w1, armd = sl ? sk[1] : w2;
-  if (ar === 1) {
+  if (ar === 3) {
+    // a hand microphone held up to his mouth: the far arm rests at his
+    // side, the near one bends up in front of him
+    R(p, cx, b - 20, 2, 8, armc);                     // the far arm
+    R(p, cx, b - 20, 1, 8, armd);
+    BLOB(p, cx + 1, b - 12, 1.5, 1.4, sk[0]);
+    R(p, cx + 1, b - 20, 2, 6, armc);                 // upper arm to the elbow
+    R(p, cx + 1, b - 20, 1, 6, armd);
+    D(p, cx + 3, b - 15, armd);                       // forearm turning up
+    D(p, cx + 4, b - 16, armd);
+    BLOB(p, cx + 4, b - 15, 1.6, 1.4, sk[0]);         // the hand
+    D(p, cx + 4, b - 16, sk[1]);
+    R(p, cx + 4, b - 18, 1, 3, '#33333d');            // the barrel
+    D(p, cx + 5, b - 18, '#22222a');
+    BLOB(p, cx + 4, b - 19, 1.5, 1.4, '#5d5d68');     // the head of it
+    D(p, cx + 4, b - 20, '#8f8f9c');
+  } else if (ar === 1) {
     R(p, cx, b - 19, 2, 4, armc);
     R(p, cx + 2, b - 16, 3, 2, sk[0]); D(p, cx + 4, b - 16, sk[1]);
   } else if (ar === 2) {
@@ -4564,27 +4588,6 @@ function texBackdrop() {
   });
 }
 
-/* 주례단상 — a slim brass-framed lectern, as the venue sets it */
-function texPodium() {
-  return TEX('pd', 26, 46, p => {
-    const cx = 13, b = 44;
-    ELL(p, cx, b, 8, 2.6, '#00000048');
-    R(p, cx - 6, b - 30, 13, 30, C.blkD);               // the dark body
-    R(p, cx - 6, b - 30, 2, 30, C.gold);                // brass edges
-    R(p, cx + 5, b - 30, 2, 30, C.goldD);
-    R(p, cx - 6, b - 30, 13, 2, C.gold);
-    R(p, cx - 6, b - 2, 13, 2, C.goldD);
-    SPEC(p, cx - 4, b - 28, 9, 26, C.blkL, 0.14, 1717);
-    R(p, cx - 7, b - 33, 15, 3, C.blkD);                // the top
-    R(p, cx - 7, b - 33, 15, 1, C.goldL);
-    R(p, cx - 5, b - 35, 11, 2, C.ivoryL);              // an open book on it
-    R(p, cx, b - 35, 1, 2, C.ivoryD);
-    // the pillar candle that stands beside it
-    R(p, cx + 8, b - 16, 4, 14, C.ivoryL);
-    R(p, cx + 8, b - 16, 1, 14, C.wh1);
-    BLOB(p, cx + 10, b - 18, 1.3, 1.8, C.flame);
-  });
-}
 
 /* 사회자 단상 — the same lectern, a size smaller */
 function texMcStand() {
@@ -4864,20 +4867,12 @@ function wBuildScene() {
   add(props, texBackdrop(), (AISLE_MID + 0.5) * AW, 2 * AH + 3, -60);
   add(props, texStageFlowers(), (AISLE_MID + 0.5) * AW, daisY + 4, -40);
   // the officiant's podium balances the 사회자's lectern on the far side
-  const [pdx, pdy] = T(MIR(11.6), 6.2);
-  add(props, texPodium(), pdx, pdy, pdy);
-  // 사회자 stands at his own lectern, up on the stage at the left of it
-  const [mcx, mcy] = T(7.1, 7.3);
+  // 사회자 stands well upstage on the left, at his lectern with a mic
+  const [mcx, mcy] = T(6.2, 4.6);
   add(props, texMcStand(), mcx, mcy, mcy);
-  // tall urns dressing the outer stage, as in the venue's own photos
-  for (const c of [3.2, MIR(3.2), 6.4, MIR(6.4)]) {
-    const [ux, uy] = T(c, 4.4);
-    add(props, texEntryFlowers(c < 5 || c > MIR(5) ? 1 : 0), ux, uy, uy);
-  }
-
-  const mc = add(props, TEX('mc-person', 22, 34, p => {
-    pxPersonSide(p, 11, 32, {
-      skin: SKIN[1], hair: HAIR[0], hairStyle: 4, view: 'side', arms: 2,
+  const mc = add(props, TEX('mc-person', 24, 36, p => {
+    pxPersonSide(p, 12, 34, {
+      skin: SKIN[1], hair: HAIR[0], hairStyle: 4, view: 'side', arms: 3,
       wear: ['#2b2838', '#191722', '#3d3950'], trouser: ['#2b2838', '#191722'],
       jacket: 1, tie: '#8a2f46', pocket: 1,
     });
@@ -4997,7 +4992,7 @@ function wBuildScene() {
 
   /* ── the groom, waiting at the top of the aisle ── */
   {
-    const gy = (W_PLACES[4].row + 0.5) * AH;
+    const gy = 6.5 * AH;                 // up on the dais, waiting
     const sp = add(props, TEX('groom', 28, 40, p => pxGroom(p, 14, 38, 0)),
                    (AISLE_MID + 0.5) * AW, gy + 6, gy + 6);
     PX.groom = sp; PX.groomY = sp.y;
@@ -5267,8 +5262,12 @@ function thinkPlace() {
   const Z = PX.Z, view = PX.app.view;
   const sx = (PX.cam.x + PX.bride.x * Z) / (PX.bw / view.clientWidth);
   const sy = (PX.cam.y + (PX.bride.y - 44) * Z) / (PX.bh / view.clientHeight);
-  el.style.left = Math.round(sx) + 'px';
-  el.style.top = Math.round(sy) + 'px';
+  // never let it ride off the top: it is pinned over her head, but at the
+  // very end of the aisle there may not be a head's worth of room up there
+  const h = el.offsetHeight || 0;
+  const top = Math.max(h + 8, Math.round(sy));
+  el.style.left = Math.round(Math.min(Math.max(sx, 20), view.clientWidth - 20)) + 'px';
+  el.style.top = top + 'px';
 }
 
 /* ══════════════════════════════════════════════════════════
