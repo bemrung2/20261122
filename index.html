@@ -1129,7 +1129,7 @@ html, body {
   padding: calc(var(--tb) * 2.8) calc(var(--tb) * 3.8) calc(var(--tb) * 3.6);
   background: #f7f3ea;
   color: #241f2b;
-  font-size: clamp(16px, 2.7vh, 30px);
+  font-size: clamp(13px, 2.05vh, 22px);
   line-height: 1.7; letter-spacing: -0.2px; font-weight: 500;
   text-align: center; white-space: pre-wrap; word-break: keep-all;
   clip-path: polygon(
@@ -3167,15 +3167,17 @@ const W_THOUGHTS = [
   ['이제 몇 걸음 안 남았네.', '저기, 네가 서 있어.'],
 ];
 
-/* The long banquet tables that run the length of the aisle — the hall's
-   main seating, floor-length black cloth with the guests along the aisle
-   side of them, as the venue lays it out */
-const W_LONG_TABLES = PAIR(AISLE_L - 4, c => ({ col: c, row0: 11, row1: 52 }));
+/* The rows of guests either side of the runner: a seated front row facing
+   the aisle, and people standing behind it. There is no table between
+   them and the flowers — the aisle is left clear. */
+const W_ROWS_SEATED = PAIR(AISLE_L - 2.3, c => ({ col: c, row0: 11, row1: 52 }));
 
-/* Round guest tables out towards the walls */
+/* Round guest tables, pulled in toward the runner now the long tables are
+   gone. The pair nearest the entrance is left out, and that corner of the
+   hall is given over to guests standing to watch her come in. */
 const W_TABLES = (() => {
   const out = [];
-  for (const r of [13, 20, 27, 34, 41, 48]) out.push(...PAIR(4.6, c => ({ col: c, row: r })));
+  for (const r of [13, 20, 27, 34, 41]) out.push(...PAIR(6.4, c => ({ col: c, row: r })));
   return out;
 })();
 
@@ -3532,14 +3534,21 @@ function pxHead(p, cx, ty, sk, hr, o) {
     R(p, cx - 4, ty + 3, 1, 4, s2);
     // eyes
     if (o.pretty) {
-      // lashed, with a catchlight — she is the one you look at
+      /* Her eyes are the one place in the hall worth spending pixels on:
+         an arched brow, a lash line that flicks up at the outer corner,
+         a warm iris with a catchlight, and a soft lid beneath. */
+      D(p, cx - 4, ty + 2, h3); D(p, cx + 3, ty + 2, h3);           // the arch
       D(p, cx - 3, ty + 3, h3); D(p, cx - 2, ty + 3, h3);
       D(p, cx + 1, ty + 3, h3); D(p, cx + 2, ty + 3, h3);
-      R(p, cx - 3, ty + 4, 2, 1, h2); R(p, cx + 1, ty + 4, 2, 1, h2);
-      D(p, cx - 4, ty + 4, h1);       D(p, cx + 3, ty + 4, h1);
-      R(p, cx - 3, ty + 5, 2, 1, '#31243a'); R(p, cx + 1, ty + 5, 2, 1, '#31243a');
-      D(p, cx - 3, ty + 5, '#fffdf8'); D(p, cx + 2, ty + 5, '#fffdf8');
-      D(p, cx - 2, ty + 6, s2); D(p, cx + 1, ty + 6, s2);
+      R(p, cx - 3, ty + 4, 2, 1, h2); R(p, cx + 1, ty + 4, 2, 1, h2); // lashes
+      D(p, cx - 4, ty + 4, h2);       D(p, cx + 3, ty + 4, h2);      // the flick
+      D(p, cx - 4, ty + 3, h1);       D(p, cx + 3, ty + 3, h1);
+      R(p, cx - 3, ty + 5, 2, 1, '#4a3350');                          // the iris
+      R(p, cx + 1, ty + 5, 2, 1, '#4a3350');
+      D(p, cx - 2, ty + 5, '#2a1c30'); D(p, cx + 1, ty + 5, '#2a1c30');
+      D(p, cx - 3, ty + 5, '#fffdf8'); D(p, cx + 2, ty + 5, '#fffdf8'); // catchlight
+      D(p, cx - 3, ty + 6, s2); D(p, cx + 2, ty + 6, s2);              // lower lid
+      D(p, cx - 2, ty + 6, '#8a6472'); D(p, cx + 1, ty + 6, '#8a6472');
     } else {
       D(p, cx - 2, ty + 5, h2); D(p, cx + 1, ty + 5, h2);
       D(p, cx - 2, ty + 4, '#ffffff40'); D(p, cx + 1, ty + 4, '#ffffff40');
@@ -3586,12 +3595,13 @@ function pxHeadSide(p, cx, ty, sk, hr, o) {
   D(p, cx + 2, ty + 8, s3);                          // lips
   D(p, cx + 1, ty + 9, s2);                          // under the chin
   if (o.pretty) {
+    R(p, cx - 1, ty + 3, 3, 1, h3); D(p, cx + 2, ty + 2, h3);   // arched brow
     R(p, cx - 1, ty + 4, 3, 1, h2);                  // lash line
     D(p, cx + 2, ty + 4, h1);                        // the flick at the corner
-    R(p, cx, ty + 5, 2, 1, '#31243a');               // the eye
+    R(p, cx, ty + 5, 2, 1, '#4a3350');               // the eye
+    D(p, cx + 1, ty + 5, '#2a1c30');
     D(p, cx, ty + 5, '#fffdf8');                     // catchlight
-    D(p, cx + 1, ty + 6, s2);
-    R(p, cx - 1, ty + 3, 3, 1, h3);                  // brow
+    D(p, cx + 1, ty + 6, '#8a6472'); D(p, cx + 2, ty + 6, s2);  // lower lid
   } else {
     D(p, cx, ty + 5, h2);                            // eye, seen edge-on
     D(p, cx + 1, ty + 5, h1);
@@ -4267,39 +4277,6 @@ function texRoundTable(pale) {
   });
 }
 
-/* The long banquet tables that run the length of the aisle, floor-length
-   black cloth with the flower run and candle glass along the top */
-function texLongTable(rows) {
-  const w = 30, h = rows * AH + 14;
-  return TEX('lt' + rows, w, h, p => {
-    const cx = 15, top = 7, bot = h - 5;
-    ELL(p, cx, bot + 2, 12, 4, '#00000048');
-    R(p, cx - 10, top, 20, bot - top, C.cloth);
-    SPEC(p, cx - 10, top, 20, bot - top, C.clothD, 0.26, rows * 3 + 1);
-    R(p, cx - 10, top, 20, 2, C.clothL);               // the lit far edge
-    R(p, cx + 7, top, 3, bot - top, '#050507');        // the near edge falls away
-    for (let y = top + 4; y < bot; y += 7) R(p, cx + 6, y, 1, 4, C.clothD);
-    const g = mulberry(rows * 71 + 5);
-    let k = 0;
-    for (let y = top + 8; y < bot - 8; y += 14, k++) {
-      // a place setting laid toward the aisle
-      ELL(p, cx + 2, y + 2, 3, 2, C.ivoryS);
-      ELL(p, cx + 2, y + 2, 2.2, 1.3, C.ivoryL);
-      D(p, cx - 1, y + 2, C.goldL); D(p, cx + 5, y + 2, C.goldL);
-      R(p, cx - 1, y - 2, 1, 3, C.glass); D(p, cx - 1, y - 3, C.ivoryL);
-      // the run of flowers and candle glass down the middle of the table
-      // a hurricane glass between the settings — the only thing on the
-      // tables, since every flower by the aisle belongs to the runner
-      const hgt = (k % 2 ? 6 : 9) + ((g() * 3) | 0);
-      R(p, cx - 5, y - 2 - hgt, 3, hgt, '#c6d4dc55');
-      R(p, cx - 5, y - 2 - hgt, 1, hgt, '#9fb4c0');
-      R(p, cx - 5, y - 2 - hgt, 3, 1, C.glass);
-      R(p, cx - 5, y - 1 - hgt, 3, 2, C.flame);
-      D(p, cx - 4, y - 2 - hgt, C.flameL);
-      R(p, cx - 5, y - 2, 3, 1, C.goldD);
-    }
-  });
-}
 
 /* The tall slim brass stands that line the aisle, each carrying a glass
    hurricane with a pillar candle in it — alternating with a raised bowl
@@ -4753,12 +4730,6 @@ function wBuildScene() {
     const [x, y] = T(tb.col, tb.row);
     add(props, texRoundTable(0), x, y + 18, y + 11);
   }
-  /* ── the long banquet tables flanking the aisle ── */
-  for (const lt of W_LONG_TABLES) {
-    const rows = lt.row1 - lt.row0 + 1;
-    add(props, texLongTable(rows), (lt.col + 0.5) * AW, (lt.row1 + 1) * AH + 5, -30);
-  }
-
   /* ── the congregation ── */
   PX.guests = [];
   const seatGuest = (ax, ay, faceRight, kind, seed, standing) => {
@@ -4778,19 +4749,19 @@ function wBuildScene() {
   };
 
   let gseed = 7;
-  for (const lt of W_LONG_TABLES) {
+  for (const lt of W_ROWS_SEATED) {
     const inner = lt.col < AISLE_MID ? 1 : -1;
     const cx0 = (lt.col + 0.5) * AW;
 
-    // The front row along the tables. Roughly one seat in seven is empty
-    // and nobody sits quite square to the next, so the row reads as people
-    // rather than as a fence. Both sides draw from the same seeds, so the
-    // gaps fall in the same places either side of the runner.
+    // The front row facing the runner. About a third of the places are
+    // empty and nobody sits quite square to the next, so the row reads as
+    // people rather than as a fence. Both sides draw from the same seeds,
+    // so the gaps fall in the same places either side of the runner.
     let i = 0;
     for (let r = lt.row0 + 0.4; r <= lt.row1; r += 1.25, i++) {
       const g = mulberry(i * 7919 + 13);
-      if (g() > 0.85) continue;
-      const dx = 21 + (g() - 0.5) * 3.4;
+      if (g() > 0.68) continue;
+      const dx = (g() - 0.5) * 3.4;
       const dy = (g() - 0.5) * 5;
       seatGuest(cx0 + inner * dx, (r + 0.5) * AH + dy, inner > 0,
                 (gseed * 7) % GUEST_KINDS, gseed++);
@@ -4805,14 +4776,26 @@ function wBuildScene() {
       if (g() > 0.78) continue;                    // whole stretches stand empty
       const n = 1 + ((g() * 2.4) | 0);
       for (let k = 0; k < n; k++) {
-        const dx = 15 + g() * 17;
+        const dx = 16 + g() * 20;
         const dy = (g() - 0.5) * 30;
         const faces = g() > 0.26 ? inner > 0 : inner < 0;
         seatGuest(cx0 - inner * dx, (r + 0.5) * AH + dy, faces,
                   (gseed * 11 + 5) % GUEST_KINDS, gseed++, true);
       }
     }
+
+    // The corner by the entrance, where the last round table used to be:
+    // a knot of people on their feet, craning to see her come in.
+    for (let k = 0; k < 9; k++) {
+      const g = mulberry(k * 3571 + 97);
+      const dx = 18 + g() * 44;
+      const dy = (g() - 0.5) * 62;
+      const faces = g() > 0.3 ? inner > 0 : inner < 0;
+      seatGuest(cx0 - inner * dx, (47.5 + 0.5) * AH + dy, faces,
+                (gseed * 13 + 2) % GUEST_KINDS, gseed++, true);
+    }
   }
+
   // and the round tables out by the walls, filled all the way round
   for (const tb of W_TABLES) {
     const [cx, cy] = T(tb.col, tb.row);
