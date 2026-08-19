@@ -1161,20 +1161,168 @@ html, body {
 }
 #think-tail i {
   position: absolute; left: 50%; display: block;
-  background: #f7f3ea; box-shadow: 0 0 0 var(--tb) #241f2b;
+  background: #f7f3ea; box-shadow: 0 0 0 calc(var(--tb) * 0.7) #241f2b;
 }
 #think-tail i:nth-child(1) {
-  width: calc(var(--tb) * 3); height: calc(var(--tb) * 3);
-  margin-left: calc(var(--tb) * -1.5); top: 0;
+  width: calc(var(--tb) * 2); height: calc(var(--tb) * 2);
+  margin-left: calc(var(--tb) * -1); top: 0;
 }
 #think-tail i:nth-child(2) {
-  width: calc(var(--tb) * 2); height: calc(var(--tb) * 2);
-  margin-left: calc(var(--tb) * -1); top: calc(var(--tb) * 4.6);
+  width: calc(var(--tb) * 1.3); height: calc(var(--tb) * 1.3);
+  margin-left: calc(var(--tb) * -0.65); top: calc(var(--tb) * 4);
 }
 #think-tail i:nth-child(3) {
-  width: var(--tb); height: var(--tb);
-  margin-left: calc(var(--tb) * -0.5); top: calc(var(--tb) * 8.2);
+  width: calc(var(--tb) * 0.8); height: calc(var(--tb) * 0.8);
+  margin-left: calc(var(--tb) * -0.4); top: calc(var(--tb) * 7.2);
 }
+/* ══════════════════════════════════════════════════════════
+   RECALL — the memories, opened over the hall itself
+   She never leaves the aisle. The room dims behind a framed
+   photograph that surfaces the way a memory does, and the
+   caption arrives in the same textbox her thoughts use.
+══════════════════════════════════════════════════════════ */
+#recall {
+  --rb: clamp(4px, 0.72vh, 9px);
+  position: absolute; inset: 0; z-index: 8;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: calc(var(--rb) * 2);
+  padding: calc(var(--sat) + 12px) 4vw calc(var(--sab) + 12px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .5s ease;
+}
+#recall.show { opacity: 1; }
+#rc-dim {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 46%, rgba(10,9,14,0.28) 0%, rgba(8,7,11,0.68) 66%, rgba(5,4,8,0.86) 100%);
+  backdrop-filter: saturate(0.62) brightness(0.8) blur(1px);
+  -webkit-backdrop-filter: saturate(0.62) brightness(0.8) blur(1px);
+}
+#rc-stage {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  gap: calc(var(--rb) * 2);
+  max-width: 100%;
+  transform: translateY(calc(var(--rb) * 2.4)) scale(0.96);
+  opacity: 0;
+  transition: transform .7s cubic-bezier(0.16,1,0.3,1), opacity .55s ease;
+}
+#recall.show #rc-stage { transform: translateY(0) scale(1); opacity: 1; }
+
+/* the episode this memory belongs to */
+#rc-ep {
+  display: flex; align-items: center; gap: calc(var(--rb) * 1.6);
+  color: rgba(240,224,198,0.82);
+  font-size: clamp(9px, 1.35vh, 14px); letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+#rc-ep b { font-weight: 500; letter-spacing: 0.06em; font-size: clamp(12px, 1.9vh, 19px); color: #f6ecdc; }
+#rc-ep i { display: block; width: calc(var(--rb) * 0.8); height: calc(var(--rb) * 0.8); background: #c3a473; }
+
+/* the frame: brass and cream, corners notched like everything else here */
+#rc-frame {
+  position: relative;
+  background: #c3a473;
+  padding: calc(var(--rb) * 1.1);
+  clip-path: polygon(
+    calc(var(--rb) * 2) 0, calc(100% - var(--rb) * 2) 0,
+    100% calc(var(--rb) * 2), 100% calc(100% - var(--rb) * 2),
+    calc(100% - var(--rb) * 2) 100%, calc(var(--rb) * 2) 100%,
+    0 calc(100% - var(--rb) * 2), 0 calc(var(--rb) * 2));
+  filter: drop-shadow(0 calc(var(--rb) * 1.4) 0 rgba(0,0,0,0.5));
+}
+#rc-mat {
+  position: relative; overflow: hidden;
+  background: #14131a;
+  padding: calc(var(--rb) * 0.9);
+  clip-path: polygon(
+    var(--rb) 0, calc(100% - var(--rb)) 0,
+    100% var(--rb), 100% calc(100% - var(--rb)),
+    calc(100% - var(--rb)) 100%, var(--rb) 100%,
+    0 calc(100% - var(--rb)), 0 var(--rb));
+}
+#rc-media {
+  position: relative; overflow: hidden; background: #0b0a0f;
+  width: min(80vw, 440px); height: min(44vh, 330px);
+}
+#rc-side { display: flex; flex-direction: column; align-items: center; gap: calc(var(--rb) * 2); }
+#rc-media > * {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: contain;
+  opacity: 0; transition: opacity .62s ease;
+  transform-origin: 50% 50%;
+}
+#rc-media > .on { opacity: 1; animation: rcDrift 7.5s linear both; }
+@keyframes rcDrift { from { transform: scale(1.005); } to { transform: scale(1.075); } }
+/* a warm bloom over the photograph, so it sits in the room's light */
+#rc-mat::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(255,226,178,0.10) 0%, rgba(0,0,0,0) 62%),
+    linear-gradient(180deg, rgba(255,232,198,0.06) 0%, rgba(24,16,30,0.28) 100%);
+}
+
+/* how far through the memory she is */
+#rc-pips { display: flex; gap: calc(var(--rb) * 0.9); }
+#rc-pips i {
+  display: block;
+  width: calc(var(--rb) * 1.1); height: calc(var(--rb) * 1.1);
+  background: rgba(246,236,220,0.24);
+  transition: background .25s steps(2, end), transform .25s steps(2, end);
+}
+#rc-pips i.seen { background: rgba(246,236,220,0.5); }
+#rc-pips i.now  { background: #f6ecdc; transform: scale(1.4); }
+
+/* the caption, in the same box her thoughts arrive in */
+#rc-box {
+  background: #241f2b;
+  padding: calc(var(--rb) * 2);
+  clip-path: polygon(
+    calc(var(--rb) * 2) 0, calc(100% - var(--rb) * 2) 0,
+    100% calc(var(--rb) * 2), 100% calc(100% - var(--rb) * 2),
+    calc(100% - var(--rb) * 2) 100%, calc(var(--rb) * 2) 100%,
+    0 calc(100% - var(--rb) * 2), 0 calc(var(--rb) * 2));
+  filter: drop-shadow(0 calc(var(--rb) * 1.2) 0 rgba(0,0,0,0.45));
+}
+#rc-inner {
+  position: relative;
+  min-width: min(78vw, 420px); max-width: min(84vw, 560px);
+  padding: calc(var(--rb) * 2.4) calc(var(--rb) * 3.4) calc(var(--rb) * 3.2);
+  background: #f7f3ea; color: #241f2b;
+  font-size: clamp(12px, 1.95vh, 21px);
+  line-height: 1.72; letter-spacing: -0.2px; font-weight: 500;
+  text-align: center; white-space: pre-wrap; word-break: keep-all;
+  clip-path: polygon(
+    var(--rb) 0, calc(100% - var(--rb)) 0,
+    100% var(--rb), 100% calc(100% - var(--rb)),
+    calc(100% - var(--rb)) 100%, var(--rb) 100%,
+    0 calc(100% - var(--rb)), 0 var(--rb));
+  box-shadow:
+    inset var(--rb) var(--rb) 0 0 #fffdf6,
+    inset calc(var(--rb) * -1) calc(var(--rb) * -1) 0 0 #d5cbba;
+}
+#rc-more {
+  position: absolute; right: calc(var(--rb) * 1.8); bottom: calc(var(--rb) * 0.7);
+  width: 0; height: 0;
+  border-left: calc(var(--rb) * 1.5) solid transparent;
+  border-right: calc(var(--rb) * 1.5) solid transparent;
+  border-top: calc(var(--rb) * 1.7) solid #241f2b;
+  opacity: 0;
+}
+#rc-more.on { opacity: 1; animation: thinkBlink 820ms steps(2, end) infinite; }
+#recall.last #rc-more.on { animation: none; border-top-color: #b0446a; }
+
+@media (orientation: landscape) and (min-aspect-ratio: 12/10) {
+  #recall { --rb: clamp(5px, 1.05vh, 13px); flex-direction: row; }
+  #rc-stage { flex-direction: row; align-items: center; gap: calc(var(--rb) * 3); }
+  #rc-media { width: min(50vw, 640px); height: min(64vh, 470px); }
+  #rc-side { align-items: flex-start; gap: calc(var(--rb) * 1.8); }
+  #rc-inner { min-width: min(30vw, 390px); max-width: min(34vw, 450px); text-align: left; }
+  #rc-ep { align-self: flex-start; font-size: clamp(10px, 1.6vh, 16px); }
+  #rc-ep b { font-size: clamp(14px, 2.4vh, 24px); }
+}
+
 #world-stick {
   position: absolute; z-index: 5;
   left: calc(var(--sal) + 26px); bottom: calc(var(--sab) + 26px);
@@ -1421,6 +1569,17 @@ html, body {
   <div id="think">
     <div id="think-box"><div id="think-inner"><span id="think-text"></span><i id="think-more"></i></div></div>
     <div id="think-tail"><i></i><i></i><i></i></div>
+  </div>
+  <div id="recall">
+    <div id="rc-dim"></div>
+    <div id="rc-stage">
+      <div id="rc-frame"><div id="rc-mat"><div id="rc-media"></div></div></div>
+      <div id="rc-side">
+        <div id="rc-ep"><span id="rc-ep-num"></span><i></i><b id="rc-ep-name"></b></div>
+        <div id="rc-pips"></div>
+        <div id="rc-box"><div id="rc-inner"><span id="rc-text"></span><i id="rc-more"></i></div></div>
+      </div>
+    </div>
   </div>
   <div id="world-stick">
     <div id="world-stick-knob"></div>
@@ -5113,6 +5272,122 @@ function thinkPlace() {
 }
 
 /* ══════════════════════════════════════════════════════════
+   RECALL
+   The memories play over the hall rather than replacing it: she
+   stays on the aisle, the room dims, and a framed photograph
+   surfaces with its caption in the same box her thoughts use.
+   Advancing is the same gesture as advancing a thought.
+══════════════════════════════════════════════════════════ */
+const RC = { on: false, ep: 0, i: 0, layer: 0, els: [] };
+
+function openRecall(ep) {
+  const ch = CHAPTERS[ep];
+  RC.on = true; RC.ep = ep; RC.i = 0; RC.layer = 0;
+  preloadChapterMedia(ep);
+
+  $('rc-ep-num').textContent  = ch.num;
+  $('rc-ep-name').textContent = ch.name;
+
+  // two stacked layers, so one photograph dissolves into the next
+  const media = $('rc-media');
+  media.innerHTML = '';
+  RC.els = [];
+
+  const pips = $('rc-pips');
+  pips.innerHTML = '';
+  ch.photos.forEach(() => pips.appendChild(document.createElement('i')));
+
+  $('recall').classList.remove('last');
+  $('recall').classList.add('show');
+  rcShow(0);
+}
+
+/* put photo i on the idle layer and dissolve to it */
+function rcShow(i) {
+  const ch = CHAPTERS[RC.ep], ph = ch.photos[i];
+  if (!ph) return;
+  RC.i = i;
+
+  const isVid = /\.(mov|mp4|webm)$/i.test(ph.src);
+  let el;
+  if (isVid) {
+    el = document.createElement('video');
+    el.muted = true; el.playsInline = true; el.autoplay = true;
+    el.setAttribute('muted', ''); el.setAttribute('playsinline', '');
+    el.loop = true;
+  } else {
+    el = document.createElement('img');
+    el.decoding = 'async';
+  }
+  el.src = ph.src;
+  $('rc-media').appendChild(el);
+  // let the browser lay it out before the class that fades it in
+  requestAnimationFrame(() => {
+    el.classList.add('on');
+    if (isVid) el.play().catch(() => {});
+  });
+  // retire whatever was showing
+  for (const old of RC.els) {
+    old.classList.remove('on');
+    setTimeout(() => { if (old.parentNode) old.parentNode.removeChild(old); }, 700);
+  }
+  RC.els = [el];
+
+  [...$('rc-pips').children].forEach((p, k) => {
+    p.classList.toggle('seen', k < i);
+    p.classList.toggle('now', k === i);
+  });
+
+  const last = i === ch.photos.length - 1;
+  $('recall').classList.toggle('last', last);
+  rcType(ph.cap || '', last);
+}
+
+/* the caption types itself the way her thoughts do */
+const RCT = { text: '', at: 0, timer: 0, shownAt: 0 };
+function rcType(text) {
+  clearInterval(RCT.timer);
+  RCT.text = text; RCT.at = 0; RCT.shownAt = performance.now();
+  $('rc-text').textContent = '';
+  $('rc-more').classList.remove('on');
+  RCT.timer = setInterval(() => {
+    RCT.at++;
+    $('rc-text').textContent = RCT.text.slice(0, RCT.at);
+    if (RCT.at >= RCT.text.length) rcFinishLine();
+  }, 34);
+}
+function rcFinishLine() {
+  clearInterval(RCT.timer); RCT.timer = 0;
+  RCT.at = RCT.text.length;
+  $('rc-text').textContent = RCT.text;
+  $('rc-more').classList.add('on');
+}
+
+function rcAdvance() {
+  if (RCT.at < RCT.text.length) { rcFinishLine(); return; }
+  const ch = CHAPTERS[RC.ep];
+  if (RC.i < ch.photos.length - 1) { rcShow(RC.i + 1); return; }
+  closeRecall();
+}
+
+/* the memory sinks away and the hall comes back up */
+async function closeRecall() {
+  clearInterval(RCT.timer); RCT.timer = 0;
+  RC.on = false;
+  $('recall').classList.remove('show', 'last');
+  await sleep(520);
+  for (const el of RC.els) { if (el.tagName === 'VIDEO') el.pause(); if (el.parentNode) el.parentNode.removeChild(el); }
+  RC.els = [];
+  $('rc-media').innerHTML = '';
+
+  // set her down a step past the point she just remembered
+  const pl = W_PLACES[RC.ep];
+  if (pl) { W.x = AISLE_MID * WT + WT / 2; W.y = (pl.row - 0.7) * WT; W.dir = 'up'; }
+  W.locked = false; W.last = 0;
+  $('world-stick').classList.add('show');
+}
+
+/* ══════════════════════════════════════════════════════════
    THE WALK
    She is never asked to press anything. Walking the aisle takes
    her through four points, and at each one she stops, thinks,
@@ -5177,7 +5452,12 @@ function wAdvanceThought() {
   thinkHide();
   W.stop = null;
   W.visited.add(pl.ep);
-  enterChapter(pl.ep);
+  if (pl.groom) {                    // the last one is not a memory but a beginning
+    closeWorld();
+    openFuturePage();
+  } else {
+    openRecall(pl.ep);
+  }
 }
 
 function wLoop(ts) {
@@ -5235,20 +5515,33 @@ function wInitControls() {
   };
   window.addEventListener('keydown', e => {
     if (!W.on) return;
-    if (e.key === 'Enter' || e.key === ' ') { wAdvanceThought(); return; }
+    if (e.key === 'Enter' || e.key === ' ') { RC.on ? rcAdvance() : wAdvanceThought(); return; }
     keys[e.key] = true; apply();
   });
   window.addEventListener('keyup', e => { keys[e.key] = false; apply(); });
 
-  /* A tap anywhere on the screen moves her thought along. One listener,
-     on pointerup: a touch fires touchend AND a synthesised click, so two
-     listeners would eat two lines per tap and look like it was advancing
-     on its own. */
+  /* A tap anywhere on the screen moves the story along — a thought, or a
+     photograph. One listener, on pointerup: a touch fires touchend AND a
+     synthesised click, so two listeners would eat two steps per tap.
+
+     A tap only counts if the finger went down AFTER the thing on screen
+     appeared. Otherwise the finger already resting on the joystick when
+     she arrives at a stop would lift and skip the first line, which reads
+     as the bubble advancing on its own. */
+  const downs = new Map();
+  window.addEventListener('pointerdown', e => downs.set(e.pointerId, performance.now()), { passive: true });
+  window.addEventListener('pointercancel', e => downs.delete(e.pointerId), { passive: true });
   window.addEventListener('pointerup', e => {
-    if (!W.on || !W.stop) return;
-    if (performance.now() - (TH.shownAt || 0) < 260) return;   // ignore the tap that opened it
-    e.preventDefault();
-    wAdvanceThought();
+    const began = downs.get(e.pointerId);
+    downs.delete(e.pointerId);
+    if (!W.on || began === undefined) return;
+    if (RC.on) {
+      if (began < RCT.shownAt) return;
+      e.preventDefault(); rcAdvance();
+    } else if (W.stop) {
+      if (began < TH.shownAt) return;
+      e.preventDefault(); wAdvanceThought();
+    }
   }, { passive: false });
 }
 
