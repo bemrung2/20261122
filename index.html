@@ -5568,9 +5568,9 @@ function cutStep(dt) {
   CUT.t += dt;
   if (CUT.phase === 0) {
     // no stopping and no waving: they simply walk it, unhurried
-    W.y += 46 / 1000 * dt;
+    W.y += 58 / 1000 * dt;
     CUT.walkT += dt;
-    if (CUT.walkT > 300) { CUT.walkT = 0; CUT.step = CUT.step === 1 ? 2 : 1; }
+    if (CUT.walkT > 260) { CUT.walkT = 0; CUT.step = CUT.step === 1 ? 2 : 1; }
     if (W.y / WT >= 64.5) { W.y = 64.5 * WT; CUT.phase = 1; CUT.t = 0; CUT.step = 0; }
   } else if (CUT.phase === 1) {                 // turning to each other
     if (CUT.t > 1000) { CUT.phase = 2; CUT.t = 0; }
@@ -5585,20 +5585,25 @@ function cutPetals(dt) {
   if (!PX || CUT.phase < 1) return;
   const vw = PX.bw / PX.Z, vh = PX.bh / PX.Z;
   const camX = PX.camX, camY = PX.camY;
-  const want = CUT.phase >= 1 ? 90 : 0;
+  // Mostly pink, with cream and a little lilac through it — the same mix
+  // that lines the aisle, coming down over the whole hall.
+  const PETALS = [C.pk1, C.pk2, C.pk2, C.pk3, C.pk1, C.pk3, C.wh1, C.cr1, C.lv1];
+  const want = CUT.phase >= 1 ? 210 : 0;
   while (CUT.petals.length < want) {
-    const kind = (Math.random() * 4) | 0;
-    const sp = new PIXI.Sprite(TEX('petal' + kind, 3, 3, p => {
-      const col = [C.pk1, C.pk2, C.wh1, C.lv1][kind];
-      BLOB(p, 1, 1, 1.5, 1.3, col);
-      D(p, 1, 0, C.wh1);
+    const kind = (Math.random() * PETALS.length) | 0;
+    const big = Math.random() > 0.55;
+    const sp = new PIXI.Sprite(TEX('petal' + kind + (big ? 'b' : ''), big ? 4 : 3, big ? 4 : 3, p => {
+      const col = PETALS[kind];
+      if (big) { BLOB(p, 2, 2, 2, 1.7, col); D(p, 1, 0, C.wh1); D(p, 3, 3, C.pk3); }
+      else     { BLOB(p, 1, 1, 1.5, 1.3, col); D(p, 1, 0, C.wh1); }
     }));
     sp.anchor.set(0.5);
     sp.x = camX + Math.random() * vw;
-    sp.y = camY - 20 - Math.random() * vh * 1.2;
-    sp.vy = 26 + Math.random() * 30;
-    sp.vx = (Math.random() - 0.5) * 14;
+    sp.y = camY - 20 - Math.random() * vh * 1.3;
+    sp.vy = 22 + Math.random() * 34;
+    sp.vx = (Math.random() - 0.5) * 16;
     sp.ph = Math.random() * 6.28;
+    sp.alpha = 0.75 + Math.random() * 0.25;
     PX.ceil.addChild(sp);
     CUT.petals.push(sp);
   }
