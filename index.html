@@ -127,6 +127,16 @@ html, body {
 }
 
 /* Nebula orb */
+/* The lock screen opens on her, waiting at the head of the aisle with her
+   bouquet — the same sprite the hall uses, blown up and left to breathe. */
+#lock-bride {
+  display: block; margin: 0 auto;
+  width: min(210px, 56vw); height: auto; aspect-ratio: 80 / 66;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  /* the scrap of hall fades out at its edges instead of sitting in a box */
+  -webkit-mask-image: radial-gradient(ellipse 62% 60% at 50% 52%, #000 42%, transparent 100%);
+          mask-image: radial-gradient(ellipse 62% 60% at 50% 52%, #000 42%, transparent 100%);
+}
 .lock-mono {
   display: flex; align-items: center; justify-content: center;
   width: 64px; height: 64px; border-radius: 50%;
@@ -1371,6 +1381,7 @@ html, body {
 
   /* ── LOCK: identity on the left, keypad on the right ── */
   #pg-lock { padding: 10px calc(var(--sar) + 3vw) 10px calc(var(--sal) + 3vw); }
+  #lock-bride { width: min(168px, 19vw); }
   .lock-card {
     flex: none;
     flex-direction: row; align-items: center; justify-content: center;
@@ -1534,6 +1545,7 @@ html, body {
           <div class="mode-switch" id="classic-switch"></div>
         </div>
       </div>
+      <canvas id="lock-bride" width="80" height="66"></canvas>
       <div class="lock-mono" id="lock-mono">민소</div>
       <div class="lock-q">
         <span class="lq-hint">이 페이지는 한 사람만을 위한 공간이에요</span>
@@ -1999,6 +2011,83 @@ function initLock() {
   });
 }
 
+/* ══════════════════════════════════════════════════════════
+   LOCK SCREEN — she is already standing there
+   The same pixel bride the hall draws, on a scrap of runner,
+   breathing and shifting her weight while she waits.
+══════════════════════════════════════════════════════════ */
+let _lockRaf = 0, _lockP = null;
+
+function lockBrideFrame(t) {
+  // a nine-second loop: mostly standing and breathing, with a few small
+  // steps in the middle of it so she never looks frozen
+  const cyc = t % 9200;
+  const walking = cyc > 6200 && cyc < 8600;
+  const step = walking ? (Math.floor((cyc - 6200) / 280) % 2 ? 1 : 2) : 0;
+  const breath = Math.sin(t / 1500) > 0.25 ? 1 : 0;
+  const sway = walking ? 0 : Math.round(Math.sin(t / 2700));
+  return { step, breath, sway };
+}
+
+function drawLockBride(t) {
+  const cv = $('lock-bride');
+  if (!cv) return;
+  if (!_lockP) _lockP = pxc(80, 66);
+  const p = _lockP;
+  p.g.clearRect(0, 0, 80, 66);
+
+  // a scrap of the hall: runner down the middle, flowers either side
+  R(p, 0, 0, 80, 66, C.carpet);
+  SPEC(p, 0, 0, 80, 66, C.carpetD, 0.1, 5);
+  R(p, 23, 0, 34, 66, C.runner);
+  SPEC(p, 23, 0, 34, 66, C.runnerL, 0.07, 9);
+  R(p, 23, 0, 2, 66, C.runnerD); R(p, 55, 0, 2, 66, C.runnerD);
+  R(p, 25, 0, 1, 66, C.runnerL); R(p, 54, 0, 1, 66, C.runnerL);
+  for (const [x0, flip] of [[8, 0], [57, 1]]) {
+    const g = mulberry(x0 * 31 + 7);
+    R(p, x0, 0, 15, 66, C.gr4);
+    for (let k = 0; k < 300; k++) {
+      const dx = (g() * 15) | 0, y = (g() * 66) | 0;
+      D(p, x0 + (flip ? 14 - dx : dx), y, g() > 0.5 ? C.gr3 : C.gr2);
+    }
+    for (let k = 0; k < 90; k++) {
+      const dx = (g() * 15) | 0, y = (g() * 66) | 0;
+      D(p, x0 + (flip ? 14 - dx : dx), y, g() > 0.5 ? C.gyp : C.pk1);
+    }
+    for (let k = 0; k < 74; k++) {
+      const dx = 1 + ((g() * 13) | 0), y = 1 + ((g() * 64) | 0);
+      const u = g();
+      const col = u > 0.84 ? C.wh1 : u > 0.6 ? C.pk1 : u > 0.38 ? C.pk2
+                : u > 0.2 ? C.pk3 : u > 0.08 ? C.lv1 : C.lv2;
+      BLOB(p, x0 + (flip ? 14 - dx : dx), y, 1.5, 1.3, col);
+    }
+  }
+  // the light she is standing in
+  p.g.save();
+  const gr = p.g.createRadialGradient(40, 44, 2, 40, 44, 32);
+  gr.addColorStop(0, 'rgba(255,226,178,0.22)');
+  gr.addColorStop(1, 'rgba(255,226,178,0)');
+  p.g.fillStyle = gr; p.g.fillRect(6, 14, 68, 52);
+  p.g.restore();
+
+  const f = lockBrideFrame(t);
+  pxBride(p, 40 + f.sway, 60 - f.breath, 'down', f.step);
+
+  const g2 = cv.getContext('2d');
+  g2.imageSmoothingEnabled = false;
+  g2.clearRect(0, 0, 80, 66);
+  g2.drawImage(p.c, 0, 0);
+}
+
+function startLockBride() {
+  if (_lockRaf) return;
+  const loop = ts => { drawLockBride(ts); _lockRaf = requestAnimationFrame(loop); };
+  _lockRaf = requestAnimationFrame(loop);
+}
+function stopLockBride() {
+  if (_lockRaf) { cancelAnimationFrame(_lockRaf); _lockRaf = 0; }
+}
+
 function syncDots(err = false) {
   for (let i = 0; i < PIN_LEN; i++) {
     const d = $(`pd${i}`);
@@ -2049,6 +2138,7 @@ async function checkPin() {
     lockEl.style.transform  = 'scale(1.4)';
     lockEl.style.opacity    = '0';
     await sleep(800);
+    stopLockBride();
     const resetLock = () => {
       lockEl.style.transition = '';
       lockEl.style.transform  = '';
@@ -3267,13 +3357,13 @@ const WT = 28;   // tile size in world pixels — sized so the round
 /* The hall, laid out from the venue's own photos.
    # wall  . carpet  r runner  F floral border  s stage  d dais  L long table
    P podium at the doors  G gateway */
-const W_COLS = 29, W_ROWS = 58;
+const W_COLS = 29, W_ROWS = 67;
 const AISLE_L = 13, AISLE_R = 15;
 const AISLE_MID = 14;
 
 /* The runner opens out into a wide mouth at the entrance, so she starts
    the walk on something broad and narrows into the aisle proper. */
-const FLARE = [{ r0: 49, r1: 50, h: 2 }, { r0: 51, r1: 52, h: 3 }, { r0: 53, r1: 54, h: 4 }];
+const FLARE = [{ r0: 58, r1: 59, h: 2 }, { r0: 60, r1: 61, h: 3 }, { r0: 62, r1: 63, h: 4 }];
 function wAisleHalf(r) {
   for (const f of FLARE) if (r >= f.r0 && r <= f.r1) return f.h;
   return 1;
@@ -3290,14 +3380,14 @@ const WORLD_MAP = (() => {
 
   box(2, 7, 2, W_COLS - 3, 's');          // stage floor
   box(2, 7, 10, 18, 'd');                 // dais, deep enough to stand on
-  for (let r = 8; r <= 54; r++) {         // the runner, flaring at the mouth
+  for (let r = 8; r <= 63; r++) {         // the runner, flaring at the mouth
     const h = wAisleHalf(r);
     box(r, r, AISLE_MID - h, AISLE_MID + h, 'r');
     box(r, r, AISLE_MID - h - 1, AISLE_MID - h - 1, 'F');
     box(r, r, AISLE_MID + h + 1, AISLE_MID + h + 1, 'F');
   }
-  box(55, 55, AISLE_MID - 5, AISLE_MID + 5, 'P');
-  box(56, 56, AISLE_MID - 6, AISLE_MID + 6, 'G');
+  box(64, 64, AISLE_MID - 5, AISLE_MID + 5, 'P');
+  box(65, 65, AISLE_MID - 6, AISLE_MID + 6, 'G');
   return m.map(row => row.join(''));
 })();
 
@@ -3310,10 +3400,10 @@ const PAIR = (c, make) => [make(c), make(MIR(c))];
 /* Four points down the aisle where she stops and remembers. Reaching one
    plays that episode; the last few steps onto the dais bring the groom. */
 const W_PLACES = [
-  { ep: 0, row: 44, name: '회사 동기' },
-  { ep: 1, row: 33, name: '연인' },
-  { ep: 2, row: 22, name: '일상' },
-  { ep: 3, row: 12, name: '여행' },
+  { ep: 0, row: 53, name: '회사 동기' },
+  { ep: 1, row: 40, name: '연인' },
+  { ep: 2, row: 27, name: '일상' },
+  { ep: 3, row: 15, name: '여행' },
   { ep: 4, row: 9,  name: '앞으로의 우리', groom: true },   // she stops at the foot of the steps
 ];
 
@@ -3329,14 +3419,14 @@ const W_THOUGHTS = [
 /* The rows of guests either side of the runner: a seated front row facing
    the aisle, and people standing behind it. There is no table between
    them and the flowers — the aisle is left clear. */
-const W_ROWS_SEATED = PAIR(AISLE_L - 2.3, c => ({ col: c, row0: 11, row1: 52 }));
+const W_ROWS_SEATED = PAIR(AISLE_L - 2.3, c => ({ col: c, row0: 11, row1: 61 }));
 
 /* Round guest tables, pulled in toward the runner now the long tables are
    gone. The pair nearest the entrance is left out, and that corner of the
    hall is given over to guests standing to watch her come in. */
 const W_TABLES = (() => {
   const out = [];
-  for (const r of [13, 20, 27, 34, 41]) out.push(...PAIR(6.4, c => ({ col: c, row: r })));
+  for (const r of [13, 20, 27, 34, 41, 48, 55]) out.push(...PAIR(6.4, c => ({ col: c, row: r })));
   return out;
 })();
 
@@ -3350,7 +3440,7 @@ const W_PARENTS = [
 const W_CANDELABRA = (() => {
   const out = [];
   let k = 0;
-  for (let r = 10.5; r <= 53; r += 3.2, k++) {
+  for (let r = 10.5; r <= 62; r += 3.2, k++) {
     const h = wAisleHalf(Math.round(r)) + 0.15;
     out.push(...PAIR(AISLE_MID - h, c => ({ col: c, row: r, tall: k % 3 === 1, flower: k % 3 === 2 })));
   }
@@ -3359,18 +3449,26 @@ const W_CANDELABRA = (() => {
 
 /* Big pillar arrangements standing out from the mouth of the aisle */
 const W_ENTRY_FLOWERS = [
-  ...PAIR(AISLE_L - 6.2, c => ({ col: c, row: 54.2, big: 1 })),
-  ...PAIR(AISLE_L - 8.4, c => ({ col: c, row: 53.2, big: 0 })),
+  ...PAIR(AISLE_L - 6.2, c => ({ col: c, row: 63.2, big: 1 })),
+  ...PAIR(AISLE_L - 8.4, c => ({ col: c, row: 62.2, big: 0 })),
 ];
 
 /* Chandeliers hung down the aisle and in banks either side */
 const W_CHANDELIERS = (() => {
   const out = [];
-  for (let r = 13; r <= 53; r += 7) {
+  for (let r = 13; r <= 62; r += 7) {
     // the first one down the aisle would hang square in front of the groom
     if (r > 13) out.push({ col: AISLE_MID, row: r, big: 1 });
     out.push(...PAIR(AISLE_L - 6, c => ({ col: c, row: r + 3.5, big: 0 })));
   }
+  // Over the ceremony itself: three hung high in the ceiling above the
+  // dais, staggered so they read as a real bank of lights rather than a
+  // row, and clear of the groom's head. `ay` is their height in art
+  // pixels above the floor plane.
+  out.push({ col: AISLE_MID,     ay: -34, big: 1 });
+  out.push(...PAIR(AISLE_L - 4,  c => ({ col: c, ay: -18, big: 1 })));
+  out.push(...PAIR(AISLE_L - 8,  c => ({ col: c, ay: -46, big: 0 })));
+  out.push(...PAIR(AISLE_L - 12, c => ({ col: c, ay: -26, big: 0 })));
   return out;
 })();
 
@@ -3396,7 +3494,7 @@ function wTileAt(c, r) {
 
 const W = {
   on:false, raf:0, last:0,
-  x:AISLE_MID*WT+WT/2, y:53*WT+WT/2,   // in the mouth of the aisle, facing the dais
+  x:AISLE_MID*WT+WT/2, y:62*WT+WT/2,   // in the mouth of the aisle, facing the dais
   dir:'up', step:0, walkT:0, moving:false,
   vx:0, vy:0, scale:3,
   visited:new Set(), locked:false, t:0,
@@ -3594,7 +3692,7 @@ function bakeBackdrop() {
 
   /* ---- the runner: one continuous band that opens out at the mouth ---- */
   const RUN_OVER = 6;          // how far the runner spills past its tiles
-  for (let r = 8; r <= 54; r++) {
+  for (let r = 8; r <= 63; r++) {
     const h = wAisleHalf(r);
     const x0 = (AISLE_MID - h) * AW - RUN_OVER, x1 = (AISLE_MID + h + 1) * AW + RUN_OVER;
     const y = oy + r * AH;
@@ -3607,7 +3705,7 @@ function bakeBackdrop() {
   }
 
   /* ---- the flower beds either side, following the flare ---- */
-  for (let r = 8; r <= 54; r++) {
+  for (let r = 8; r <= 63; r++) {
     const h = wAisleHalf(r);
     for (const col of [AISLE_MID - h - 1, AISLE_MID + h + 1]) {
       const flip = col > AISLE_MID;
@@ -3675,7 +3773,7 @@ function bakeBackdrop() {
   SPEC(p, 0, 4, MAPW, 10, C.drapeL, 0.16, 620);
 
   /* ---- entrance wall at the very bottom of the map ---- */
-  const by = oy + 57 * AH;
+  const by = oy + 66 * AH;
   R(p, 0, by, MAPW, AH, C.wall);
   R(p, 0, by, MAPW, 1, C.blkD);
 
@@ -4945,7 +5043,7 @@ function wBuildScene() {
       const dx = 18 + g() * 44;
       const dy = (g() - 0.5) * 62;
       const faces = g() > 0.3 ? inner > 0 : inner < 0;
-      seatGuest(cx0 - inner * dx, (47.5 + 0.5) * AH + dy, faces,
+      seatGuest(cx0 - inner * dx, (58.5 + 0.5) * AH + dy, faces,
                 (gseed * 13 + 2) % GUEST_KINDS, gseed++, true);
     }
   }
@@ -4988,7 +5086,7 @@ function wBuildScene() {
     const [x, y] = T(fl.col, fl.row);
     add(props, texEntryFlowers(fl.big), x, y + 4, y + 4);
   }
-  add(props, texGate(), (AISLE_MID + 0.5) * AW, 56.6 * AH, 56.6 * AH);
+  add(props, texGate(), (AISLE_MID + 0.5) * AW, 65.6 * AH, 65.6 * AH);
 
   /* ── the groom, waiting at the top of the aisle ── */
   {
@@ -5024,10 +5122,13 @@ function wBuildScene() {
        light directly beneath it, and a slow sway. ── */
   PX.chandeliers = [];
   for (const ch2 of W_CHANDELIERS) {
-    const [x, y] = T(ch2.col, ch2.row);
-    const hang = ch2.big ? 58 : 46;
+    // most hang a fixed height over their tile; the ones above the dais
+    // are given their ceiling height outright
+    const x = (ch2.col + 0.5) * AW;
+    const y = ch2.ay !== undefined ? ch2.ay : (ch2.row + 0.5) * AH - (ch2.big ? 58 : 46);
+    const floorY = ch2.ay !== undefined ? 6.5 * AH : (ch2.row + 0.5) * AH;
     const sp = new PIXI.Sprite(texChandelier(ch2.big ? 1 : 0));
-    sp.anchor.set(0.5, 1); sp.x = Math.round(x); sp.y = Math.round(y - hang);
+    sp.anchor.set(0.5, 1); sp.x = Math.round(x); sp.y = Math.round(y);
     // the rod it hangs from, running up past the top of the shot
     const rod = new PIXI.Sprite(TEX('rod', 3, 40, q => {
       R(q, 1, 0, 1, 40, C.goldD);
@@ -5046,12 +5147,12 @@ function wBuildScene() {
     PX.ceil.addChild(halo);
     // the shadow it casts on the floor, which is what sells the height
     const shade = new PIXI.Sprite(texGlow());
-    shade.anchor.set(0.5); shade.x = sp.x; shade.y = y + 4;
+    shade.anchor.set(0.5); shade.x = sp.x; shade.y = floorY + 4;
     shade.width = ch2.big ? 44 : 32; shade.height = ch2.big ? 20 : 15;
     shade.tint = 0x000000; shade.alpha = 0.3;
     PX.glowL.addChild(shade);
     const pool = new PIXI.Sprite(texGlow());
-    pool.anchor.set(0.5); pool.x = sp.x; pool.y = y;
+    pool.anchor.set(0.5); pool.x = sp.x; pool.y = floorY;
     pool.width = ch2.big ? 220 : 150; pool.height = ch2.big ? 136 : 92;
     pool.alpha = ch2.big ? 0.22 : 0.14; pool.tint = 0xffe0b0;
     PX.glowL.addChild(pool);
@@ -5625,6 +5726,7 @@ window.addEventListener('resize', onViewportChange);
 ════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
   initLock();
+  startLockBride();
   initGridDismiss();
   wInitControls();
   $('btn-ch-next').addEventListener('click', onChapterNext);
