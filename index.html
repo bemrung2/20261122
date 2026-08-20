@@ -1333,6 +1333,114 @@ html, body {
   #rc-ep b { font-size: clamp(14px, 2.4vh, 24px); }
 }
 
+/* ══════════════════════════════════════════════════════════
+   FINALE — the letter and the question, over the hall
+══════════════════════════════════════════════════════════ */
+#finale {
+  --rb: clamp(4px, 0.72vh, 9px);
+  position: absolute; inset: 0; z-index: 9;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: calc(var(--rb) * 2.4);
+  padding: calc(var(--sat) + 12px) 5vw calc(var(--sab) + 12px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .6s ease;
+}
+#finale.show { opacity: 1; }
+#finale.ask  { pointer-events: auto; }
+#fn-dim {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 46%, rgba(10,9,14,0.34) 0%, rgba(7,6,10,0.76) 66%, rgba(4,3,7,0.92) 100%);
+  backdrop-filter: saturate(0.6) brightness(0.76) blur(1px);
+  -webkit-backdrop-filter: saturate(0.6) brightness(0.76) blur(1px);
+}
+#fn-stage {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  gap: calc(var(--rb) * 2.4); max-width: 100%;
+  transform: translateY(calc(var(--rb) * 2)) scale(0.97); opacity: 0;
+  transition: transform .8s cubic-bezier(0.16,1,0.3,1), opacity .6s ease;
+}
+#finale.show #fn-stage { transform: none; opacity: 1; }
+#fn-ring {
+  width: min(176px, 34vw); height: auto; aspect-ratio: 44 / 48;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  display: none;
+  filter: drop-shadow(0 0 calc(var(--rb) * 3) rgba(129,216,208,0.55));
+  animation: fnRingIn .7s cubic-bezier(0.16,1,0.3,1) both;
+}
+#finale.ask #fn-ring { display: block; }
+@keyframes fnRingIn { from { transform: translateY(14px) scale(0.7); opacity: 0; } to { transform: none; opacity: 1; } }
+#fn-title {
+  display: none;
+  color: #a9ece6; font-size: clamp(19px, 3.4vh, 40px);
+  letter-spacing: 0.16em; font-weight: 400; text-align: center; line-height: 1.35;
+  text-shadow: 0 0 calc(var(--rb) * 3) rgba(129,216,208,0.5), 0 3px 0 rgba(0,0,0,0.5);
+}
+#finale.ask #fn-title { display: block; }
+#fn-box {
+  background: #241f2b; padding: calc(var(--rb) * 2);
+  clip-path: polygon(
+    calc(var(--rb) * 2) 0, calc(100% - var(--rb) * 2) 0,
+    100% calc(var(--rb) * 2), 100% calc(100% - var(--rb) * 2),
+    calc(100% - var(--rb) * 2) 100%, calc(var(--rb) * 2) 100%,
+    0 calc(100% - var(--rb) * 2), 0 calc(var(--rb) * 2));
+  filter: drop-shadow(0 calc(var(--rb) * 1.2) 0 rgba(0,0,0,0.45));
+}
+#finale.ask #fn-box { display: none; }
+#fn-inner {
+  position: relative;
+  min-width: min(76vw, 440px); max-width: min(84vw, 560px);
+  padding: calc(var(--rb) * 2.6) calc(var(--rb) * 3.4) calc(var(--rb) * 3.4);
+  background: #f7f3ea; color: #241f2b;
+  font-size: clamp(13px, 2.05vh, 22px);
+  line-height: 1.85; letter-spacing: -0.2px; font-weight: 500;
+  text-align: center; white-space: pre-wrap; word-break: keep-all;
+  clip-path: polygon(
+    var(--rb) 0, calc(100% - var(--rb)) 0,
+    100% var(--rb), 100% calc(100% - var(--rb)),
+    calc(100% - var(--rb)) 100%, var(--rb) 100%,
+    0 calc(100% - var(--rb)), 0 var(--rb));
+  box-shadow:
+    inset var(--rb) var(--rb) 0 0 #fffdf6,
+    inset calc(var(--rb) * -1) calc(var(--rb) * -1) 0 0 #d5cbba;
+}
+#fn-more {
+  position: absolute; right: calc(var(--rb) * 1.8); bottom: calc(var(--rb) * 0.8);
+  width: 0; height: 0;
+  border-left: calc(var(--rb) * 1.5) solid transparent;
+  border-right: calc(var(--rb) * 1.5) solid transparent;
+  border-top: calc(var(--rb) * 1.7) solid #241f2b;
+  opacity: 0;
+}
+#fn-more.on { opacity: 1; animation: thinkBlink 820ms steps(2, end) infinite; }
+/* the two answers, as pressable slabs cut the same way as everything else */
+/* the very last card lets the hall through — they are still standing in it */
+#finale.soft #fn-dim {
+  background: linear-gradient(180deg, rgba(6,5,9,0.62) 0%, rgba(6,5,9,0.14) 46%, rgba(6,5,9,0) 72%);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+#finale.soft { justify-content: flex-start; padding-top: calc(var(--sat) + 7vh); }
+#finale.soft #fn-inner { line-height: 2.1; }
+#fn-btns { display: none; gap: calc(var(--rb) * 2.4); }
+#finale.ask #fn-btns { display: flex; }
+.fn-btn {
+  position: relative; cursor: pointer; user-select: none;
+  padding: calc(var(--rb) * 1.8) calc(var(--rb) * 4.4);
+  font-size: clamp(14px, 2.2vh, 24px); font-weight: 500; letter-spacing: 0.1em;
+  background: #241f2b; color: #f7f3ea;
+  clip-path: polygon(
+    calc(var(--rb) * 1.4) 0, calc(100% - var(--rb) * 1.4) 0,
+    100% calc(var(--rb) * 1.4), 100% calc(100% - var(--rb) * 1.4),
+    calc(100% - var(--rb) * 1.4) 100%, calc(var(--rb) * 1.4) 100%,
+    0 calc(100% - var(--rb) * 1.4), 0 calc(var(--rb) * 1.4));
+  box-shadow: inset var(--rb) var(--rb) 0 0 rgba(255,255,255,0.14),
+              inset calc(var(--rb) * -1) calc(var(--rb) * -1) 0 0 rgba(0,0,0,0.4);
+}
+#fn-yes { background: #2f6f6a; color: #eafffb; }
+#fn-yes:active { transform: translateY(2px); }
+#fn-no { position: relative; }
+
 #world-stick {
   position: absolute; z-index: 5;
   left: calc(var(--sal) + 26px); bottom: calc(var(--sab) + 26px);
@@ -1590,6 +1698,18 @@ html, body {
         <div id="rc-ep"><span id="rc-ep-num"></span><i></i><b id="rc-ep-name"></b></div>
         <div id="rc-pips"></div>
         <div id="rc-box"><div id="rc-inner"><span id="rc-text"></span><i id="rc-more"></i></div></div>
+      </div>
+    </div>
+  </div>
+  <div id="finale">
+    <div id="fn-dim"></div>
+    <div id="fn-stage">
+      <canvas id="fn-ring" width="44" height="48"></canvas>
+      <div id="fn-title">Will You<br>Marry Me?</div>
+      <div id="fn-box"><div id="fn-inner"><span id="fn-text"></span><i id="fn-more"></i></div></div>
+      <div id="fn-btns">
+        <div class="fn-btn" id="fn-yes">그럼요</div>
+        <div class="fn-btn" id="fn-no">글쎄…</div>
       </div>
     </div>
   </div>
@@ -4244,7 +4364,7 @@ function pxSeatedFront(p, cx, b, o) {
    drawn on the far side of whichever way she is walking. */
 const GOWN = { l: '#fffdf9', m: '#f2ece2', d: '#ddd5c8', s: '#c3b9a8', v: '#e9e6f2' };
 
-function pxBride(p, cx, b, dir, step) {
+function pxBride(p, cx, b, dir, step, wave) {
   const sk = SKIN[0], hr = HAIR[0], G = GOWN;
   const sway = step === 1 ? -1 : step === 2 ? 1 : 0;
   const back = dir === 'up', side = dir === 'side' || dir === 'left' || dir === 'right';
@@ -4367,7 +4487,20 @@ function pxBride(p, cx, b, dir, step) {
   }
 
   /* ── arms, and the bouquet she carries ── */
-  if (!back) {
+  if (wave) {                                     // waving to the guests
+    R(p, cx + 4, b - 26, 2, 7, G.l);              // the bouquet arm stays down
+    R(p, cx + 5, b - 26, 1, 7, G.m);
+    BLOB(p, cx + 4, b - 19, 1.6, 1.5, sk[0]);
+    R(p, cx - 7, b - 30, 2, 6, G.l);              // the other lifts and opens
+    R(p, cx - 7, b - 30, 1, 6, G.m);
+    R(p, cx - 6, b - 26, 2, 3, G.l);
+    BLOB(p, cx - 7, b - 32, 1.8, 1.7, sk[0]);
+    D(p, cx - 8, b - 33, sk[0]); D(p, cx - 6, b - 33, sk[0]);
+    R(p, cx - 1, b - 18, 2, 5, C.gr2);            // the bouquet, held low
+    BLOB(p, cx, b - 20, 4.2, 3, C.gr1);
+    for (const [dx, dy, cc] of [[-3,-20,C.pk2],[-1,-21,C.wh1],[2,-20,C.pk1],[0,-19,C.pk3],[3,-21,C.wh1]])
+      BLOB(p, cx + dx, b + dy, 1.5, 1.3, cc);
+  } else if (!back) {
     const bqx = cx + (side ? 3 : 0);
     R(p, cx - 6, b - 26, 2, 7, G.l); R(p, cx + 4, b - 26, 2, 7, G.l);
     R(p, cx - 6, b - 26, 1, 7, G.m); R(p, cx + 5, b - 26, 1, 7, G.m);
@@ -4453,6 +4586,60 @@ function pxGroom(p, cx, b, t) {
   // neck and head
   R(p, cx - 1, b - 28, 3, 2, sk[1]);
   pxHead(p, cx, b - 37, sk, hr, { view: 'front', hairStyle: 4 });
+}
+
+/* the groom on the move: the same suit, with a walk cycle and an arm
+   he can raise to the guests */
+function pxGroomWalk(p, cx, b, step, wave) {
+  const sk = SKIN[1], hr = HAIR[0];
+  const S1 = '#1a1922', S2 = '#0e0d13', S3 = '#2d2b39';
+  ELL(p, cx, b - 1, 7, 2.4, '#0000003a');
+  const sw = step === 1 ? 1 : step === 2 ? -1 : 0;
+  // legs, swinging past each other
+  R(p, cx - 4, b - 14, 3, 12 + sw, S1); R(p, cx + 1, b - 14, 3, 12 - sw, S1);
+  R(p, cx - 4, b - 14, 1, 12 + sw, S2); R(p, cx + 3, b - 14, 1, 12 - sw, S2);
+  R(p, cx - 5, b - 2 + sw, 4, 2, '#08080b'); R(p, cx + 1, b - 2 - sw, 4, 2, '#08080b');
+  R(p, cx - 5, b - 26, 10, 12, S1);
+  R(p, cx - 5, b - 26, 10, 1, S3);
+  R(p, cx + 3, b - 26, 2, 12, S2);
+  R(p, cx - 5, b - 26, 1, 12, S2);
+  R(p, cx - 2, b - 26, 5, 10, C.ivoryL);
+  R(p, cx - 2, b - 26, 1, 10, C.wh1);
+  D(p, cx - 3, b - 25, S3); D(p, cx + 3, b - 25, S3);
+  R(p, cx - 2, b - 27, 5, 2, C.wh1);
+  D(p, cx, b - 27, C.ivoryS);
+  BLOB(p, cx + 3, b - 24, 1.4, 1.3, C.pk1); D(p, cx + 3, b - 23, C.gr1);
+  if (wave) {                                     // the near arm lifts and opens
+    R(p, cx - 7, b - 25, 2, 8, S1);
+    BLOB(p, cx - 6, b - 17, 1.6, 1.5, sk[0]);
+    R(p, cx + 5, b - 30, 2, 6, S1);
+    R(p, cx + 6, b - 30, 1, 6, S2);
+    R(p, cx + 4, b - 26, 2, 3, S1);
+    BLOB(p, cx + 6, b - 32, 1.8, 1.7, sk[0]);
+    D(p, cx + 7, b - 33, sk[0]); D(p, cx + 5, b - 33, sk[0]);
+  } else {
+    R(p, cx - 7, b - 25, 2, 8 - sw, S1); R(p, cx + 5, b - 25, 2, 8 + sw, S1);
+    R(p, cx - 7, b - 25, 1, 8 - sw, S2); R(p, cx + 6, b - 25, 1, 8 + sw, S2);
+    BLOB(p, cx - 6, b - 17 - sw, 1.6, 1.5, sk[0]);
+    BLOB(p, cx + 6, b - 17 + sw, 1.6, 1.5, sk[0]);
+  }
+  R(p, cx - 1, b - 28, 3, 2, sk[1]);
+  pxHead(p, cx, b - 37, sk, hr, { view: 'front', hairStyle: 4 });
+}
+/* him in profile, for the moment they turn to each other */
+function texGroomSide() {
+  return TEX('gs', 26, 44, p => {
+    pxPersonSide(p, 13, 42, {
+      skin: SKIN[1], hair: HAIR[0], hairStyle: 4, view: 'side', arms: 2,
+      wear: ['#1a1922', '#0e0d13', '#2d2b39'], trouser: ['#1a1922', '#0e0d13'],
+      jacket: 1, tie: C.ivoryL, pocket: 1,
+    });
+    BLOB(p, 16, 22, 1.4, 1.3, C.pk1); D(p, 16, 23, C.gr1);   // boutonnière
+  });
+}
+function texGroomWalk(step, wave) {
+  return TEX(`gw${step}${wave ? 'w' : ''}`, 30, 44,
+             p => pxGroomWalk(p, 15, 42, step, wave));
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -4905,9 +5092,10 @@ function texParent(who, arms, v) {
   });
 }
 
-function texBride(dir, step) {
+function texBride(dir, step, wave) {
   // tall enough for the whole train to lie behind her when she walks away
-  return TEX(`br${dir}${step}`, 44, 70, p => pxBride(p, 22, 40, dir, step));
+  return TEX(`br${dir}${step}${wave ? 'w' : ''}`, 44, 70,
+             p => pxBride(p, 22, 40, dir, step, wave));
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -5160,10 +5348,14 @@ function wBuildScene() {
                           x0: sp.x, phase: Math.abs(x - (AISLE_MID + 0.5) * AW) * 0.12 + y * 0.03 });
   }
 
-  /* ── the bride ── */
+  /* ── the bride, and the groom who leaves with her ── */
   const br = PX.bride = new PIXI.Sprite(texBride('down', 0));
   br.anchor.set(0.5, 40 / 70);
   PX.props.addChild(br);
+  const pt = PX.partner = new PIXI.Sprite(texGroomWalk(0, 0));
+  pt.anchor.set(0.5, 42 / 44);
+  pt.visible = false;
+  PX.props.addChild(pt);
 
   /* ── grade and vignette, over everything ── */
   const grade = PX.grade = new PIXI.Sprite(TEXS('grade', 4, 64, p => {
@@ -5295,18 +5487,57 @@ function wRender() {
 
   if (PX.groom) PX.groom.y = PX.groomY - (Math.sin(t / 900) > 0 ? 1 : 0);
 
-  /* the bride */
-  const br = PX.bride;
-  const dir = W.dir === 'up' ? 'up' : W.dir === 'down' ? 'down' : 'side';
-  const step = W.moving ? (W.step || 1) : 0;
-  if (dir !== PX.bdir || step !== PX.bstep) {
-    PX.bdir = dir; PX.bstep = step;
-    br.texture = texBride(dir, step);
+  /* the bride — and, on the way out, the groom beside her */
+  PX.camX = camX; PX.camY = camY;
+  const br = PX.bride, pt = PX.partner;
+  if (CUT.on) {
+    const kiss = CUT.phase >= 1;
+    const waveL = CUT.wave === 1, waveR = CUT.wave === 2;
+    const bx = ax - (kiss ? 10 : 11), gx = ax + (kiss ? 9 : 11);
+    if (kiss) {
+      // turned in to each other at the mouth of the aisle
+      br.texture = texBride('side', 0);
+      br.scale.x = 1;                        // she looks to her right, at him
+      pt.texture = texGroomSide();
+      pt.scale.x = -1;                       // and he looks back
+    } else {
+      br.texture = texBride('down', CUT.step, waveL);
+      br.scale.x = 1;
+      pt.texture = texGroomWalk(CUT.step, waveR);
+      pt.scale.x = 1;
+    }
+    const bob = CUT.step === 2 ? -1 : 0;
+    br.x = Math.round(bx); br.y = Math.round(ay) + bob; br.zIndex = ay + 1;
+    pt.visible = true;
+    pt.x = Math.round(gx); pt.y = Math.round(ay) + bob; pt.zIndex = ay + 1.1;
+    if (kiss && CUT.phase >= 2) {            // a small heart between them
+      if (!PX.heart) {
+        PX.heart = new PIXI.Sprite(TEX('heart', 9, 8, p => {
+          for (const [x, y, w, h] of [[1,1,3,2],[5,1,3,2],[0,2,9,3],[1,5,7,1],[2,6,5,1],[3,7,3,1]])
+            R(p, x, y, w, h, '#e8607f');
+          R(p, 1, 1, 2, 1, '#ff9fb4'); D(p, 2, 3, '#ffc7d4');
+        }));
+        PX.heart.anchor.set(0.5, 1);
+        PX.ceil.addChild(PX.heart);
+      }
+      PX.heart.visible = true;
+      PX.heart.x = Math.round(ax);
+      PX.heart.y = Math.round(ay) - 40 - Math.round(Math.sin(t / 500) * 2);
+      PX.heart.alpha = 0.75 + 0.25 * Math.sin(t / 430);
+    }
+  } else {
+    const dir = W.dir === 'up' ? 'up' : W.dir === 'down' ? 'down' : 'side';
+    const step = W.moving ? (W.step || 1) : 0;
+    if (dir !== PX.bdir || step !== PX.bstep) {
+      PX.bdir = dir; PX.bstep = step;
+      br.texture = texBride(dir, step);
+    }
+    br.scale.x = W.dir === 'left' ? -1 : 1;
+    br.x = Math.round(ax);
+    br.y = Math.round(ay) + (W.moving && step === 2 ? -1 : 0);
+    br.zIndex = ay + 1;
+    if (pt) pt.visible = false;
   }
-  br.scale.x = W.dir === 'left' ? -1 : 1;
-  br.x = Math.round(ax);
-  br.y = Math.round(ay) + (W.moving && step === 2 ? -1 : 0);
-  br.zIndex = ay + 1;
 
   app.renderer.render(app.stage);
 }
@@ -5369,6 +5600,220 @@ function thinkPlace() {
   const top = Math.max(h + 8, Math.round(sy));
   el.style.left = Math.round(Math.min(Math.max(sx, 20), view.clientWidth - 20)) + 'px';
   el.style.top = top + 'px';
+}
+
+/* ══════════════════════════════════════════════════════════
+   THE FINALE
+   The last letter, the question and the walk back out, all
+   staged in the hall rather than on a page of their own.
+══════════════════════════════════════════════════════════ */
+const VOW = { on: false, line: 0, lines: [], text: '', at: 0, timer: 0, shownAt: 0, asking: false };
+
+/* the ring, in pixels — the one thing that stays Tiffany mint */
+function drawVowRing() {
+  const cv = $('fn-ring');
+  if (!cv) return;
+  const p = pxc(44, 48);
+  const M1 = '#81D8D0', M2 = '#4AADA5', M3 = '#2f7d77', HI = '#e6fbf8', TB = '#d3f6f1';
+  const cx = 22, sy = 5;
+
+  // the stone: a flat table, a crown sloping out to the girdle, and a
+  // pavilion coming to a point
+  R(p, cx - 4, sy, 9, 1, HI);
+  R(p, cx - 4, sy + 1, 9, 3, TB);
+  D(p, cx - 3, sy + 1, '#ffffff');
+  for (let k = 0; k < 6; k++) {
+    const w = Math.round(5 + k * 1.1);
+    R(p, cx - w, sy + 4 + k, w * 2, 1, k < 3 ? TB : M1);
+  }
+  R(p, cx - 11, sy + 10, 23, 1, HI);                 // girdle
+  for (let k = 0; k < 11; k++) {
+    const w = 11 - k;
+    R(p, cx - w, sy + 11 + k, w * 2, 1, k < 3 ? M1 : k < 7 ? M2 : M3);
+  }
+  // facets catching the light
+  for (let k = 0; k < 6; k++) D(p, cx - 5 - k, sy + 4 + k, HI);
+  for (let k = 0; k < 6; k++) D(p, cx + 4 + k, sy + 4 + k, M2);
+  for (let k = 0; k < 9; k++) D(p, cx - 9 + k, sy + 11 + k, '#a6e8e1');
+  for (let k = 0; k < 9; k++) D(p, cx + 8 - k, sy + 11 + k, M3);
+  D(p, cx, sy + 21, HI);
+
+  // the setting, and the prongs holding it
+  R(p, cx - 6, sy + 22, 13, 2, M2);
+  R(p, cx - 6, sy + 22, 13, 1, M1);
+  R(p, cx - 9, sy + 9, 1, 4, M1); R(p, cx + 8, sy + 9, 1, 4, M1);
+
+  // the band, seen at a slight angle
+  const by = 39, rx = 15, ry = 6;
+  for (let a = 180; a <= 360; a += 1) {              // the far side, in shadow
+    const r = a * Math.PI / 180;
+    R(p, cx + Math.cos(r) * rx - 1, by + Math.sin(r) * ry - 1, 3, 3, M3);
+  }
+  for (let a = 0; a <= 180; a += 1) {                // the near side, lit
+    const r = a * Math.PI / 180;
+    R(p, cx + Math.cos(r) * rx - 1, by + Math.sin(r) * ry - 1, 3, 3, M2);
+  }
+  for (let a = 20; a <= 160; a += 2) {
+    const r = a * Math.PI / 180;
+    D(p, Math.round(cx + Math.cos(r) * rx), Math.round(by + Math.sin(r) * ry), M1);
+  }
+  for (let a = 200; a <= 250; a += 3) {
+    const r = a * Math.PI / 180;
+    D(p, Math.round(cx + Math.cos(r) * (rx - 1)), Math.round(by + Math.sin(r) * (ry - 1)), HI);
+  }
+  D(p, cx - 1, 4, '#ffffff'); D(p, cx + 12, sy + 14, '#ffffff');
+
+  const g = cv.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.clearRect(0, 0, 44, 48);
+  g.drawImage(p.c, 0, 0);
+}
+
+/* the closing letter, a line at a time */
+function openVow() {
+  VOW.on = true; VOW.asking = false; VOW.line = 0;
+  VOW.lines = LETTER2.split('\n').filter(l => l.trim() !== '');
+  const el = $('finale');
+  el.classList.remove('ask', 'soft');
+  el.classList.add('show');
+  vowType(VOW.lines[0]);
+}
+function vowType(text) {
+  clearInterval(VOW.timer);
+  VOW.text = text || ''; VOW.at = 0; VOW.shownAt = performance.now();
+  $('fn-text').textContent = '';
+  $('fn-more').classList.remove('on');
+  VOW.timer = setInterval(() => {
+    VOW.at++;
+    $('fn-text').textContent = VOW.text.slice(0, VOW.at);
+    if (VOW.at >= VOW.text.length) vowFinishLine();
+  }, 42);
+}
+function vowFinishLine() {
+  clearInterval(VOW.timer); VOW.timer = 0;
+  VOW.at = VOW.text.length;
+  $('fn-text').textContent = VOW.text;
+  $('fn-more').classList.add('on');
+}
+function vowAdvance() {
+  if (VOW.asking) return;
+  if (VOW.at < VOW.text.length) { vowFinishLine(); return; }
+  if (VOW.line < VOW.lines.length - 1) { VOW.line++; vowType(VOW.lines[VOW.line]); return; }
+  askTheQuestion();
+}
+
+/* and then the question itself */
+function askTheQuestion() {
+  clearInterval(VOW.timer); VOW.timer = 0;
+  VOW.asking = true;
+  drawVowRing();
+  $('finale').classList.add('ask');
+}
+
+/* "글쎄…" is not an answer she is allowed to give */
+function dodgeVowNo(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  const b = $('fn-no');
+  const r = b.getBoundingClientRect();
+  const maxX = window.innerWidth - r.width - 12, maxY = window.innerHeight - r.height - 12;
+  const nx = 12 + Math.random() * Math.max(1, maxX - 12);
+  const ny = 12 + Math.random() * Math.max(1, maxY - 12);
+  b.style.position = 'fixed';
+  b.style.left = nx + 'px';
+  b.style.top = ny + 'px';
+  b.style.margin = '0';
+}
+
+/* ── the walk back out ─────────────────────────────────────
+   They leave together: down the aisle, stopping to wave to
+   each side twice, and at the mouth of it they turn to each
+   other while the flowers come down. */
+const CUT = { on: false, phase: 0, t: 0, step: 0, walkT: 0,
+              waiting: 0, wave: 0, waveIdx: 0, petals: [], carded: false };
+const CUT_WAVES = [22, 32, 42, 52];     // rows they pause at, alternating sides
+
+async function startRecessional() {
+  VOW.on = false; VOW.asking = false;
+  $('finale').classList.remove('show', 'ask');
+  $('world-stick').classList.remove('show');
+  await sleep(600);
+  CUT.on = true; CUT.phase = 0; CUT.t = 0; CUT.waveIdx = 0;
+  CUT.waiting = 0; CUT.wave = 0; CUT.step = 0; CUT.carded = false;
+  W.locked = true; W.stop = null;
+  W.x = AISLE_MID * WT + WT / 2;
+  W.y = 10 * WT;
+  W.dir = 'down';
+}
+
+function cutStep(dt) {
+  CUT.t += dt;
+  if (CUT.phase === 0) {
+    if (CUT.waiting > 0) {                      // stopped, waving
+      CUT.waiting -= dt;
+      CUT.step = 0;
+      if (CUT.waiting <= 0) { CUT.wave = 0; CUT.waveIdx++; }
+      return;
+    }
+    W.y += 104 / 1000 * dt;                     // walking back toward the doors
+    CUT.walkT += dt;
+    if (CUT.walkT > 175) { CUT.walkT = 0; CUT.step = CUT.step === 1 ? 2 : 1; }
+    const next = CUT_WAVES[CUT.waveIdx];
+    if (next !== undefined && W.y / WT >= next) {
+      CUT.waiting = 1500;
+      CUT.wave = CUT.waveIdx % 2 ? 2 : 1;       // 1 = to the left, 2 = to the right
+    }
+    if (W.y / WT >= 60.5) { W.y = 60.5 * WT; CUT.phase = 1; CUT.t = 0; CUT.step = 0; }
+  } else if (CUT.phase === 1) {                 // turning to each other
+    if (CUT.t > 1000) { CUT.phase = 2; CUT.t = 0; }
+  } else if (CUT.phase === 2) {                 // the kiss, and the flowers
+    if (CUT.t > 2400 && !CUT.carded) { CUT.carded = true; showClosingCard(); }
+  }
+  cutPetals(dt);
+}
+
+/* petals, from somewhere above the frame */
+function cutPetals(dt) {
+  if (!PX || CUT.phase < 1) return;
+  const vw = PX.bw / PX.Z, vh = PX.bh / PX.Z;
+  const camX = PX.camX, camY = PX.camY;
+  const want = CUT.phase >= 1 ? 90 : 0;
+  while (CUT.petals.length < want) {
+    const kind = (Math.random() * 4) | 0;
+    const sp = new PIXI.Sprite(TEX('petal' + kind, 3, 3, p => {
+      const col = [C.pk1, C.pk2, C.wh1, C.lv1][kind];
+      BLOB(p, 1, 1, 1.5, 1.3, col);
+      D(p, 1, 0, C.wh1);
+    }));
+    sp.anchor.set(0.5);
+    sp.x = camX + Math.random() * vw;
+    sp.y = camY - 20 - Math.random() * vh * 1.2;
+    sp.vy = 26 + Math.random() * 30;
+    sp.vx = (Math.random() - 0.5) * 14;
+    sp.ph = Math.random() * 6.28;
+    PX.ceil.addChild(sp);
+    CUT.petals.push(sp);
+  }
+  for (const sp of CUT.petals) {
+    sp.y += sp.vy * dt / 1000;
+    sp.x += (sp.vx + Math.sin(CUT.t / 420 + sp.ph) * 12) * dt / 1000;
+    if (sp.y > camY + vh + 10) {                // recycle it back over the top
+      sp.y = camY - 12 - Math.random() * 40;
+      sp.x = camX + Math.random() * vw;
+    }
+  }
+}
+
+async function showClosingCard() {
+  const el = $('finale');
+  $('fn-text').textContent = '';
+  el.classList.remove('ask');
+  el.classList.add('soft');
+  VOW.on = false;
+  await sleep(200);
+  el.classList.add('show');
+  const lines = ['2026. 11. 22', '', '우리, 결혼합니다.'];
+  $('fn-text').textContent = lines.join('\n');
+  $('fn-more').classList.remove('on');
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -5499,6 +5944,7 @@ function wNextStop() {
 }
 
 function wStep(dt) {
+  if (CUT.on) { cutStep(dt); return; }
   const sp = 92 / 1000 * dt;   // world px this frame
   let dx = W.vx, dy = W.vy;
   const mag = Math.hypot(dx, dy);
@@ -5553,8 +5999,7 @@ function wAdvanceThought() {
   W.stop = null;
   W.visited.add(pl.ep);
   if (pl.groom) {                    // the last one is not a memory but a beginning
-    closeWorld();
-    openFuturePage();
+    openVow();
   } else {
     openRecall(pl.ep);
   }
@@ -5615,7 +6060,7 @@ function wInitControls() {
   };
   window.addEventListener('keydown', e => {
     if (!W.on) return;
-    if (e.key === 'Enter' || e.key === ' ') { RC.on ? rcAdvance() : wAdvanceThought(); return; }
+    if (e.key === 'Enter' || e.key === ' ') { VOW.on ? vowAdvance() : RC.on ? rcAdvance() : wAdvanceThought(); return; }
     keys[e.key] = true; apply();
   });
   window.addEventListener('keyup', e => { keys[e.key] = false; apply(); });
@@ -5635,7 +6080,10 @@ function wInitControls() {
     const began = downs.get(e.pointerId);
     downs.delete(e.pointerId);
     if (!W.on || began === undefined) return;
-    if (RC.on) {
+    if (VOW.on) {
+      if (VOW.asking || began < VOW.shownAt) return;
+      e.preventDefault(); vowAdvance();
+    } else if (RC.on) {
       if (began < RCT.shownAt) return;
       e.preventDefault(); rcAdvance();
     } else if (W.stop) {
@@ -5730,6 +6178,8 @@ window.addEventListener('DOMContentLoaded', () => {
   initGridDismiss();
   wInitControls();
   $('btn-ch-next').addEventListener('click', onChapterNext);
+  $('fn-yes').addEventListener('click', startRecessional);
+  $('fn-no').addEventListener('click', dodgeVowNo);
   $('btn-yes').addEventListener('click', onYes);
   $('btn-no').addEventListener('click', dodgeNo);
 
