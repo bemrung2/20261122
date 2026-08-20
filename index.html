@@ -5275,18 +5275,18 @@ function wRender() {
     pt.visible = true;
     pt.texture = texGroomWalk(CUT.gstep, 0);
     pt.scale.x = 1;
-    pt.x = Math.round(ax);
+    pt.x = Math.round(CUT.gx);
     pt.y = Math.round(CUT.gy);
     pt.zIndex = CUT.gy + 1;
     br.texture = texBride('up', 0);
     br.scale.x = 1;
     br.x = Math.round(ax); br.y = Math.round(ay); br.zIndex = ay + 1;
-  } else if (VOW.on) {
-    // stood in front of her, saying his piece
+  } else if (VOW.on || CUT.join) {
+    // stood in front of her saying his piece, then stepping round to her side
     pt.visible = true;
-    pt.texture = texGroomWalk(0, 0);
+    pt.texture = texGroomWalk(CUT.join ? CUT.gstep : 0, 0);
     pt.scale.x = 1;
-    pt.x = Math.round(ax); pt.y = Math.round(CUT.gy || ay - 22);
+    pt.x = Math.round(CUT.gx || ax); pt.y = Math.round(CUT.gy || ay - 22);
     pt.zIndex = (CUT.gy || ay - 22) + 1;
     br.texture = texBride('up', 0);
     br.scale.x = 1;
@@ -5527,12 +5527,13 @@ function askTheQuestion() {
    other while the flowers come down. */
 const CUT = { on: false, phase: 0, t: 0, step: 0, walkT: 0,
               petals: [], carded: false,
-              descend: false, gy: 0, gstep: 0, gwalkT: 0 };
+              descend: false, join: false, gx: 0, gy: 0, gstep: 0, gwalkT: 0 };
 
 /* He walks down off the dais to meet her before he says anything. The one
    standing up there is the one who comes down — no second groom appears. */
 function startDescent(after) {
   CUT.descend = true;
+  CUT.gx = (AISLE_MID + 0.5) * AW;
   CUT.gy = 6.5 * AH;
   CUT.gstep = 1; CUT.gwalkT = 0;
   CUT.afterDescent = after;
@@ -5558,6 +5559,8 @@ async function startRecessional() {
   CUT.on = true; CUT.phase = 0; CUT.t = 0;
   CUT.step = 0; CUT.carded = false;
   CUT.descend = false;
+  CUT.join = true;                  // he has to walk over to her first
+  CUT.gwalkT = 0; CUT.gstep = 1;
   W.locked = true; W.stop = null;
   W.x = AISLE_MID * WT + WT / 2;
   W.dir = 'down';
@@ -5566,6 +5569,24 @@ async function startRecessional() {
 
 function cutStep(dt) {
   CUT.t += dt;
+  if (CUT.join) {
+    // He is standing in front of her; he steps round to her side before
+    // either of them moves off, rather than simply appearing there.
+    const tx = w2ax(W.x) + 11, ty = w2ay(W.y);
+    const dx = tx - CUT.gx, dy = ty - CUT.gy;
+    const d = Math.hypot(dx, dy);
+    const sp = 22 / 1000 * dt;
+    if (d <= sp) {
+      CUT.gx = tx; CUT.gy = ty;
+      CUT.join = false; CUT.gstep = 0;
+    } else {
+      CUT.gx += dx / d * sp;
+      CUT.gy += dy / d * sp;
+      CUT.gwalkT += dt;
+      if (CUT.gwalkT > 300) { CUT.gwalkT = 0; CUT.gstep = CUT.gstep === 1 ? 2 : 1; }
+    }
+    return;
+  }
   if (CUT.phase === 0) {
     // no stopping and no waving: they simply walk it, unhurried
     W.y += 58 / 1000 * dt;
