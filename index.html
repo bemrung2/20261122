@@ -78,176 +78,126 @@ html, body {
    LOCK SCREEN — cosmic space
 ═══════════════════════════════════════ */
 /* ═══════════════════════════════════════
-   LOCK — the same hall, before she starts walking
-   Nothing here borrows from anywhere else: the panel, the keys
-   and the dots are cut the same way the textboxes in the world
-   are, so the first screen already looks like the last one.
+   LOCK
+   Quiet and warm — the hush before the doors open. Ink and
+   ivory with one blush accent, nothing borrowed from anywhere
+   else and nothing shouting.
 ═══════════════════════════════════════ */
 #pg-lock {
-  --lb: clamp(3px, 0.56vh, 7px);            /* one "pixel" of the chrome */
-  background: #0d0f14;
-  padding: var(--sat) 5vw var(--sab);
+  background: #14121a;
+  padding: var(--sat) 6vw var(--sab);
   overflow: hidden;
 }
 #pg-lock::before {
   content: '';
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(ellipse 76% 52% at 50% 30%, rgba(255,214,168,0.13) 0%, transparent 66%),
-    radial-gradient(ellipse 96% 60% at 50% 108%, rgba(60,68,84,0.55) 0%, transparent 70%),
-    linear-gradient(180deg, rgba(9,8,12,0) 0%, rgba(6,6,9,0.7) 100%);
-}
-/* the hall's carpet, as a quiet pixel texture behind everything */
-#pg-lock::after {
-  content: '';
-  position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0.5;
-  background-image:
-    linear-gradient(90deg, rgba(90,101,120,0.13) 1px, transparent 1px),
-    linear-gradient(rgba(90,101,120,0.10) 1px, transparent 1px);
-  background-size: 8px 8px, 8px 8px;
+    radial-gradient(ellipse 70% 46% at 50% 26%, rgba(255,214,178,0.14) 0%, transparent 68%),
+    radial-gradient(ellipse 90% 50% at 50% 104%, rgba(60,48,64,0.5) 0%, transparent 72%),
+    linear-gradient(180deg, rgba(12,10,16,0) 40%, rgba(9,8,12,0.85) 100%);
 }
 
 .lock-card {
   position: relative; z-index: 1;
   background: transparent;
-  padding: 28px 20px; width: min(370px, 92vw);
+  padding: 30px 18px; width: min(360px, 92vw);
   flex: 1;
-  display: flex; flex-direction: column; justify-content: flex-start;
-  animation: cardUp 0.85s cubic-bezier(0.16,1,0.3,1) both;
+  display: flex; flex-direction: column; justify-content: center;
+  animation: cardUp 0.9s cubic-bezier(0.16,1,0.3,1) both;
   touch-action: manipulation;
 }
-.lock-top {
-  display: flex; flex-direction: column; align-items: center; gap: 24px;
-}
-.lock-bottom {
-  margin-top: auto;
-  display: flex; flex-direction: column; align-items: stretch; gap: 10px;
-}
+.lock-top    { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: clamp(18px, 3.4vh, 34px); }
+.lock-bottom { margin-top: auto; display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
 @keyframes cardUp {
-  from { opacity: 0; transform: translateY(28px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: none; }
 }
 
-/* Nebula orb */
-/* The lock screen opens on her, waiting at the head of the aisle with her
-   bouquet — the same sprite the hall uses, blown up and left to breathe. */
-#lock-bride {
-  display: block; margin: 0 auto;
-  width: min(210px, 56vw); height: auto; aspect-ratio: 80 / 66;
-  image-rendering: pixelated; image-rendering: crisp-edges;
-  /* the scrap of hall fades out at its edges instead of sitting in a box */
-  -webkit-mask-image: radial-gradient(ellipse 62% 60% at 50% 52%, #000 42%, transparent 100%);
-          mask-image: radial-gradient(ellipse 62% 60% at 50% 52%, #000 42%, transparent 100%);
+/* their initials, between two hairlines */
+.lock-crest { display: flex; align-items: center; gap: 14px; width: 100%; max-width: 260px; }
+.lock-crest i { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(226,206,178,0.34), transparent); }
+.lock-crest span {
+  font-size: clamp(13px, 1.9vh, 17px); letter-spacing: 0.42em; text-indent: 0.42em;
+  color: rgba(238,222,198,0.72); font-weight: 400;
 }
-.lock-mono {
-  display: flex; align-items: center; justify-content: center;
-  width: auto; padding: calc(var(--lb) * 1.4) calc(var(--lb) * 3.4);
-  background: #241f2b; color: #e8d6ac;
-  margin: 0 auto;
-  font-size: clamp(12px, 1.8vh, 17px); font-weight: 500; letter-spacing: 0.36em;
-  text-indent: 0.36em;
-  clip-path: polygon(
-    var(--lb) 0, calc(100% - var(--lb)) 0, 100% var(--lb),
-    100% calc(100% - var(--lb)), calc(100% - var(--lb)) 100%, var(--lb) 100%,
-    0 calc(100% - var(--lb)), 0 var(--lb));
-  box-shadow: inset 0 0 0 var(--lb) #6a5a3a;
-  touch-action: manipulation; cursor: pointer;
-}
+
 .lock-q { text-align: center; }
-
-/* PIN dots — squares that fill up, not stars */
-.pin-dots { display: flex; justify-content: center; gap: calc(var(--lb) * 2); position: relative; align-items: center; }
-#pin-lines { display: none; }
-.pd {
-  width: calc(var(--lb) * 3); height: calc(var(--lb) * 3);
-  background: rgba(246,236,220,0.12);
-  box-shadow: inset 0 0 0 var(--lb) rgba(246,236,220,0.22);
-  transition: background .12s steps(2, end), transform .12s steps(2, end);
-}
-.pd.on  { background: #f6ecdc; box-shadow: inset 0 0 0 var(--lb) #c3a473; transform: translateY(calc(var(--lb) * -0.7)); }
-.pd.err { background: #d4626c; box-shadow: inset 0 0 0 var(--lb) #7d2f36; }
-
 .lq-hint {
-  display: block; font-size: clamp(10px, 1.5vh, 14px); font-weight: 400;
-  color: rgba(214,199,178,0.5); letter-spacing: 0.26em; margin-bottom: calc(var(--lb) * 2.2);
-  text-transform: uppercase;
+  display: block; font-size: clamp(10px, 1.4vh, 13px); font-weight: 400;
+  color: rgba(214,190,170,0.46); letter-spacing: 0.3em; text-indent: 0.3em;
+  margin-bottom: clamp(9px, 1.6vh, 16px);
 }
 .lq-main {
-  font-size: clamp(14px, 2.1vh, 21px); font-weight: 500; color: #241f2b;
-  line-height: 1.6; letter-spacing: -0.2px;
+  font-size: clamp(16px, 2.4vh, 23px); font-weight: 400; line-height: 1.55;
+  color: rgba(255,246,234,0.94); letter-spacing: -0.2px;
 }
-/* the question sits in the same textbox her thoughts will */
-.lock-q {
-  text-align: center;
-  background: #241f2b; padding: var(--lb);
-  clip-path: polygon(
-    calc(var(--lb) * 2) 0, calc(100% - var(--lb) * 2) 0,
-    100% calc(var(--lb) * 2), 100% calc(100% - var(--lb) * 2),
-    calc(100% - var(--lb) * 2) 100%, calc(var(--lb) * 2) 100%,
-    0 calc(100% - var(--lb) * 2), 0 calc(var(--lb) * 2));
-}
-.lock-q .lq-inner {
-  background: #f7f3ea;
-  padding: calc(var(--lb) * 2.4) calc(var(--lb) * 3.4);
-  clip-path: polygon(
-    var(--lb) 0, calc(100% - var(--lb)) 0, 100% var(--lb),
-    100% calc(100% - var(--lb)), calc(100% - var(--lb)) 100%, var(--lb) 100%,
-    0 calc(100% - var(--lb)), 0 var(--lb));
-  box-shadow: inset var(--lb) var(--lb) 0 0 #fffdf6,
-              inset calc(var(--lb) * -1) calc(var(--lb) * -1) 0 0 #d5cbba;
-}
-.lock-q .lq-hint { color: #8a7f72; }
 
-/* the keypad: slabs cut like everything else in the hall */
-.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--lb) * 2); }
-.key {
-  height: clamp(46px, 7.2vh, 68px);
-  background: #241f2b; color: #f4ead9;
-  border: none; font-family: inherit;
-  font-size: clamp(17px, 2.7vh, 26px); font-weight: 500;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  touch-action: manipulation;
-  clip-path: polygon(
-    calc(var(--lb) * 1.6) 0, calc(100% - var(--lb) * 1.6) 0,
-    100% calc(var(--lb) * 1.6), 100% calc(100% - var(--lb) * 1.6),
-    calc(100% - var(--lb) * 1.6) 100%, calc(var(--lb) * 1.6) 100%,
-    0 calc(100% - var(--lb) * 1.6), 0 calc(var(--lb) * 1.6));
-  box-shadow: inset var(--lb) var(--lb) 0 0 rgba(255,255,255,0.11),
-              inset calc(var(--lb) * -1) calc(var(--lb) * -1) 0 0 rgba(0,0,0,0.45);
-  transition: transform .07s steps(1, end), background .07s steps(1, end);
+/* the answer, as eight quiet marks that fill in */
+.pin-dots { display: flex; justify-content: center; gap: clamp(10px, 1.8vh, 16px); align-items: center; }
+#pin-lines { display: none; }
+.pd {
+  width: clamp(7px, 1.1vh, 10px); height: clamp(7px, 1.1vh, 10px);
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px rgba(226,206,178,0.30);
+  transition: background .18s ease, box-shadow .18s ease, transform .18s ease;
 }
-.key:active { background: #3a3346; transform: translateY(calc(var(--lb) * 0.7)); }
-.key-del    { color: #d9a9a2; }
-.key-ok     { background: #2f6f6a; color: #eafffb; font-size: clamp(13px, 2vh, 19px); }
-.key-ok:active { background: #3d8a83; }
-.key-blank  { background: transparent !important; pointer-events: none; box-shadow: none !important; }
+.pd.on  { background: rgba(244,228,206,0.96); box-shadow: inset 0 0 0 1.5px rgba(244,228,206,0.96), 0 0 12px rgba(232,196,168,0.45); }
+.pd.err { background: #cf7078; box-shadow: inset 0 0 0 1.5px #cf7078; }
+
+/* the keypad: soft slabs, ivory numerals, a blush confirm */
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(8px, 1.3vh, 12px); }
+.key {
+  height: clamp(48px, 7.6vh, 70px);
+  border-radius: 14px;
+  background: rgba(255,246,234,0.055);
+  border: 1px solid rgba(232,214,190,0.10);
+  color: rgba(255,246,234,0.9);
+  font-family: inherit; font-size: clamp(18px, 2.8vh, 26px); font-weight: 300;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .12s ease, transform .1s ease;
+  touch-action: manipulation;
+}
+.key:active { background: rgba(255,246,234,0.14); transform: scale(0.94); }
+.key-del    { color: rgba(226,178,172,0.8); }
+.key-ok {
+  background: rgba(196,124,132,0.30);
+  border-color: rgba(226,160,166,0.34);
+  color: rgba(255,240,236,0.96);
+  font-size: clamp(13px, 2vh, 18px); font-weight: 400; letter-spacing: 0.08em;
+}
+.key-ok:active { background: rgba(206,136,144,0.46); }
+.key-blank  { background: transparent !important; border: none !important; pointer-events: none; }
 .lock-err {
-  text-align: center; font-size: clamp(10px, 1.5vh, 14px); color: #e08a90;
-  height: 18px; letter-spacing: 0.1em;
+  text-align: center; font-size: clamp(10px, 1.5vh, 13px); color: rgba(226,140,146,0.92);
+  height: 18px; letter-spacing: 0.06em;
   opacity: 0; transition: opacity 0.2s;
 }
 .lock-err.show { opacity: 1; }
 
-/* the hidden toggles, in the same idiom */
+/* the hidden toggles */
 .mode-toggle {
-  display: flex; flex-direction: column; align-items: center; gap: calc(var(--lb) * 1.6);
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
   max-height: 0; overflow: hidden;
   opacity: 0; transition: opacity 0.3s ease, max-height 0.3s ease;
 }
-.mode-toggle.show { max-height: 90px; opacity: 1; }
-.mode-row { display: flex; align-items: center; justify-content: center; gap: calc(var(--lb) * 2.4); }
-.mode-label { font-size: clamp(10px, 1.4vh, 13px); color: rgba(214,199,178,0.55); letter-spacing: 0.1em; }
+.mode-toggle.show { max-height: 96px; opacity: 1; }
+.mode-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.mode-label { font-size: 11.5px; color: rgba(214,190,170,0.5); letter-spacing: 0.12em; }
 .mode-switch {
-  width: calc(var(--lb) * 11); height: calc(var(--lb) * 6);
-  background: #241f2b; position: relative; cursor: pointer;
-  box-shadow: inset var(--lb) var(--lb) 0 0 rgba(0,0,0,0.5);
+  width: 40px; height: 22px; border-radius: 11px; position: relative; cursor: pointer;
+  background: rgba(255,246,234,0.08);
+  border: 1px solid rgba(232,214,190,0.14);
+  transition: background .18s ease;
 }
 .mode-switch::after {
-  content: ''; position: absolute; top: var(--lb); left: var(--lb);
-  width: calc(var(--lb) * 4); height: calc(var(--lb) * 4);
-  background: #8a7f72; transition: transform .12s steps(2, end), background .12s steps(2, end);
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: rgba(226,206,178,0.55);
+  transition: transform .18s cubic-bezier(0.16,1,0.3,1), background .18s ease;
 }
-.mode-switch.on::after { transform: translateX(calc(var(--lb) * 5)); background: #6fd4c8; }
+.mode-switch.on { background: rgba(196,124,132,0.34); }
+.mode-switch.on::after { transform: translateX(18px); background: rgba(255,238,232,0.95); }
 
 /* ═══════════════════════════════════════
    LETTER — fixed paper, text scrolls inside
@@ -1075,12 +1025,14 @@ html, body {
   text-transform: uppercase;
 }
 #rc-ep b { font-weight: 500; letter-spacing: 0.06em; font-size: clamp(12px, 1.9vh, 19px); color: #f6ecdc; }
-#rc-ep i { display: block; width: calc(var(--rb) * 0.8); height: calc(var(--rb) * 0.8); background: #c3a473; }
+#rc-ep i { display: block; width: calc(var(--rb) * 0.8); height: calc(var(--rb) * 0.8); background: #d8c9b4; }
 
 /* the frame: brass and cream, corners notched like everything else here */
 #rc-frame {
   position: relative;
-  background: #c3a473;
+  /* a matted print: an ink surround with an ivory mount inside it, which
+     is what the hall's own framed photographs look like */
+  background: #26232c;
   padding: calc(var(--rb) * 1.1);
   clip-path: polygon(
     calc(var(--rb) * 2) 0, calc(100% - var(--rb) * 2) 0,
@@ -1088,11 +1040,12 @@ html, body {
     calc(100% - var(--rb) * 2) 100%, calc(var(--rb) * 2) 100%,
     0 calc(100% - var(--rb) * 2), 0 calc(var(--rb) * 2));
   filter: drop-shadow(0 calc(var(--rb) * 1.4) 0 rgba(0,0,0,0.5));
+  box-shadow: inset 0 0 0 var(--rb) #3b3743;
 }
 #rc-mat {
   position: relative; overflow: hidden;
-  background: #14131a;
-  padding: calc(var(--rb) * 0.9);
+  background: #ece2d2;
+  padding: calc(var(--rb) * 1.8);
   clip-path: polygon(
     var(--rb) 0, calc(100% - var(--rb)) 0,
     100% var(--rb), 100% calc(100% - var(--rb)),
@@ -1100,7 +1053,8 @@ html, body {
     0 calc(100% - var(--rb)), 0 var(--rb));
 }
 #rc-media {
-  position: relative; overflow: hidden; background: #0b0a0f;
+  position: relative; overflow: hidden; background: #1a1820;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.45);
   width: min(80vw, 440px); height: min(44vh, 330px);
 }
 #rc-side { display: flex; flex-direction: column; align-items: center; gap: calc(var(--rb) * 2); }
@@ -1370,7 +1324,6 @@ html, body {
 
   /* ── LOCK: she stands on the left, the keypad on the right ── */
   #pg-lock { padding: 10px calc(var(--sar) + 3vw) 10px calc(var(--sal) + 3vw); }
-  #lock-bride { width: clamp(120px, 17vw, 220px); }
   .lock-card {
     flex: none;
     flex-direction: row; align-items: center; justify-content: center;
@@ -1532,12 +1485,11 @@ html, body {
           <div class="mode-switch" id="classic-switch"></div>
         </div>
       </div>
-      <canvas id="lock-bride" width="80" height="66"></canvas>
-      <div class="lock-mono" id="lock-mono">민소</div>
-      <div class="lock-q"><div class="lq-inner">
+      <div class="lock-crest"><i></i><span>M &amp; S</span><i></i></div>
+      <div class="lock-q">
         <span class="lq-hint">한 사람만을 위한 자리</span>
         <span class="lq-main">우리가 사귀기 시작한 날은?</span>
-      </div></div>
+      </div>
       <div class="pin-dots" id="pin-dots"></div>
     </div>
     <div class="lock-bottom">
@@ -1973,17 +1925,25 @@ function initLock() {
     }
   });
 
-  // Secret 3-second hold on 민소 circle → reveal mode toggle
-  let monoHoldTimer = null;
-  const mono = $('lock-mono');
-  mono.addEventListener('touchstart', () => {
-    monoHoldTimer = setTimeout(() => {
-      monoHoldTimer = null;
+  /* A long press anywhere on this screen reveals the two switches. There
+     is nothing on the page hinting at it, which is the point. */
+  let holdTimer = null;
+  const startHold = e => {
+    if (e.target.closest('.key') || e.target.closest('.mode-toggle')) return;
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
       $('mode-toggle').classList.toggle('show');
-    }, 2000);
-  }, { passive: true });
-  mono.addEventListener('touchend',   () => { if (monoHoldTimer) { clearTimeout(monoHoldTimer); monoHoldTimer = null; } }, { passive: true });
-  mono.addEventListener('touchcancel',() => { if (monoHoldTimer) { clearTimeout(monoHoldTimer); monoHoldTimer = null; } }, { passive: true });
+    }, 1600);
+  };
+  const endHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
+  const lockPage = $('pg-lock');
+  lockPage.addEventListener('pointerdown', startHold);
+  lockPage.addEventListener('pointerup', endHold);
+  lockPage.addEventListener('pointercancel', endHold);
+  lockPage.addEventListener('pointermove', e => {
+    if (holdTimer && (Math.abs(e.movementX) > 6 || Math.abs(e.movementY) > 6)) endHold();
+  });
 
   $('mode-switch').addEventListener('click', () => {
     isManualMode = !isManualMode;
@@ -2001,83 +1961,6 @@ function initLock() {
   });
 }
 
-/* ══════════════════════════════════════════════════════════
-   LOCK SCREEN — she is already standing there
-   The same pixel bride the hall draws, on a scrap of runner,
-   breathing and shifting her weight while she waits.
-══════════════════════════════════════════════════════════ */
-let _lockRaf = 0, _lockP = null;
-
-function lockBrideFrame(t) {
-  // a nine-second loop: mostly standing and breathing, with a few small
-  // steps in the middle of it so she never looks frozen
-  const cyc = t % 9200;
-  const walking = cyc > 6200 && cyc < 8600;
-  const step = walking ? (Math.floor((cyc - 6200) / 280) % 2 ? 1 : 2) : 0;
-  const breath = Math.sin(t / 1500) > 0.25 ? 1 : 0;
-  const sway = walking ? 0 : Math.round(Math.sin(t / 2700));
-  return { step, breath, sway };
-}
-
-function drawLockBride(t) {
-  const cv = $('lock-bride');
-  if (!cv) return;
-  if (!_lockP) _lockP = pxc(80, 66);
-  const p = _lockP;
-  p.g.clearRect(0, 0, 80, 66);
-
-  // a scrap of the hall: runner down the middle, flowers either side
-  R(p, 0, 0, 80, 66, C.carpet);
-  SPEC(p, 0, 0, 80, 66, C.carpetD, 0.1, 5);
-  R(p, 23, 0, 34, 66, C.runner);
-  SPEC(p, 23, 0, 34, 66, C.runnerL, 0.07, 9);
-  R(p, 23, 0, 2, 66, C.runnerD); R(p, 55, 0, 2, 66, C.runnerD);
-  R(p, 25, 0, 1, 66, C.runnerL); R(p, 54, 0, 1, 66, C.runnerL);
-  for (const [x0, flip] of [[8, 0], [57, 1]]) {
-    const g = mulberry(x0 * 31 + 7);
-    R(p, x0, 0, 15, 66, C.gr4);
-    for (let k = 0; k < 300; k++) {
-      const dx = (g() * 15) | 0, y = (g() * 66) | 0;
-      D(p, x0 + (flip ? 14 - dx : dx), y, g() > 0.5 ? C.gr3 : C.gr2);
-    }
-    for (let k = 0; k < 90; k++) {
-      const dx = (g() * 15) | 0, y = (g() * 66) | 0;
-      D(p, x0 + (flip ? 14 - dx : dx), y, g() > 0.5 ? C.gyp : C.pk1);
-    }
-    for (let k = 0; k < 74; k++) {
-      const dx = 1 + ((g() * 13) | 0), y = 1 + ((g() * 64) | 0);
-      const u = g();
-      const col = u > 0.84 ? C.wh1 : u > 0.6 ? C.pk1 : u > 0.38 ? C.pk2
-                : u > 0.2 ? C.pk3 : u > 0.08 ? C.lv1 : C.lv2;
-      BLOB(p, x0 + (flip ? 14 - dx : dx), y, 1.5, 1.3, col);
-    }
-  }
-  // the light she is standing in
-  p.g.save();
-  const gr = p.g.createRadialGradient(40, 44, 2, 40, 44, 32);
-  gr.addColorStop(0, 'rgba(255,226,178,0.22)');
-  gr.addColorStop(1, 'rgba(255,226,178,0)');
-  p.g.fillStyle = gr; p.g.fillRect(6, 14, 68, 52);
-  p.g.restore();
-
-  const f = lockBrideFrame(t);
-  pxBride(p, 40 + f.sway, 60 - f.breath, 'down', f.step);
-
-  const g2 = cv.getContext('2d');
-  g2.imageSmoothingEnabled = false;
-  g2.clearRect(0, 0, 80, 66);
-  g2.drawImage(p.c, 0, 0);
-}
-
-function startLockBride() {
-  if (_lockRaf) return;
-  const loop = ts => { drawLockBride(ts); _lockRaf = requestAnimationFrame(loop); };
-  _lockRaf = requestAnimationFrame(loop);
-}
-function stopLockBride() {
-  if (_lockRaf) { cancelAnimationFrame(_lockRaf); _lockRaf = 0; }
-}
-
 function syncDots(err = false) {
   for (let i = 0; i < PIN_LEN; i++) {
     const d = $(`pd${i}`);
@@ -2093,7 +1976,6 @@ async function checkPin() {
     lockEl.style.transform  = 'scale(1.4)';
     lockEl.style.opacity    = '0';
     await sleep(800);
-    stopLockBride();
     const resetLock = () => {
       lockEl.style.transition = '';
       lockEl.style.transform  = '';
@@ -5081,19 +4963,30 @@ function wBuildScene() {
     // empty and nobody sits quite square to the next, so the row reads as
     // people rather than as a fence. Both sides draw from the same seeds,
     // so the gaps fall in the same places either side of the runner.
-    let i = 0;
+    let i = 0, lastY = -99;
     for (let r = lt.row0 + 0.4; r <= lt.row1; r += 1.25, i++) {
       const g = mulberry(i * 7919 + 13);
       if (g() > 0.68) continue;
       const dx = (g() - 0.5) * 3.4;
       const dy = (g() - 0.5) * 5;
-      seatGuest(cx0 + inner * dx, (r + 0.5) * AH + dy, inner > 0,
-                (gseed * 7) % GUEST_KINDS, gseed++);
+      const y = (r + 0.5) * AH + dy;
+      if (y - lastY < 9) continue;                 // never shoulder to shoulder
+      lastY = y;
+      seatGuest(cx0 + inner * dx, y, inner > 0, (gseed * 7) % GUEST_KINDS, gseed++);
     }
 
     // Behind them, people on their feet watching — in ones and twos, spread
     // back toward the round tables, some turned to each other rather than
     // to the aisle. Not a line.
+    // Behind them, people on their feet. Nobody stands on top of anybody —
+    // a spot is only taken if it is clear of every spot already taken —
+    // and every one of them is turned to the runner.
+    const taken = [];
+    const room = (x, y) => {
+      for (const [px, py] of taken) if (Math.abs(px - x) < 15 && Math.abs(py - y) < 11) return false;
+      taken.push([x, y]);
+      return true;
+    };
     let c = 0;
     for (let r = lt.row0 + 1.4; r <= lt.row1 - 1; r += 4.4, c++) {
       const g = mulberry(c * 104729 + 31);
@@ -5102,21 +4995,21 @@ function wBuildScene() {
       for (let k = 0; k < n; k++) {
         const dx = 16 + g() * 20;
         const dy = (g() - 0.5) * 30;
-        const faces = g() > 0.26 ? inner > 0 : inner < 0;
-        seatGuest(cx0 - inner * dx, (r + 0.5) * AH + dy, faces,
-                  (gseed * 11 + 5) % GUEST_KINDS, gseed++, true);
+        const x = cx0 - inner * dx, y = (r + 0.5) * AH + dy;
+        if (!room(x, y)) continue;
+        seatGuest(x, y, inner > 0, (gseed * 11 + 5) % GUEST_KINDS, gseed++, true);
       }
     }
 
     // The corner by the entrance, where the last round table used to be:
     // a knot of people on their feet, craning to see her come in.
-    for (let k = 0; k < 9; k++) {
+    for (let k = 0; k < 12; k++) {
       const g = mulberry(k * 3571 + 97);
       const dx = 18 + g() * 44;
       const dy = (g() - 0.5) * 62;
-      const faces = g() > 0.3 ? inner > 0 : inner < 0;
-      seatGuest(cx0 - inner * dx, (62.5 + 0.5) * AH + dy, faces,
-                (gseed * 13 + 2) % GUEST_KINDS, gseed++, true);
+      const x = cx0 - inner * dx, y = (62.5 + 0.5) * AH + dy;
+      if (!room(x, y)) continue;
+      seatGuest(x, y, inner > 0, (gseed * 13 + 2) % GUEST_KINDS, gseed++, true);
     }
   }
 
@@ -5322,9 +5215,9 @@ function wRender() {
   for (const gu of PX.guests) {
     if (!gu.sp.renderable) continue;
     let arms = 0;
-    if (CUT.on && CUT.wave) {
-      // when the couple wave, the hall answers: everyone applauds
-      arms = ((t + gu.phase) % 300) < 160 ? 1 : 0;
+    if (CUT.on) {
+      // as the two of them come back down the aisle, the hall applauds
+      arms = ((t + gu.phase) % 320) < 170 ? 1 : 0;
     } else if (gu.beh === 'clasp') arms = 2;
     else if (gu.beh === 'clap') {
       const c = (t + gu.phase) % gu.period;
@@ -5400,7 +5293,6 @@ function wRender() {
     br.x = Math.round(ax); br.y = Math.round(ay); br.zIndex = ay + 1;
   } else if (CUT.on) {
     const kiss = CUT.phase >= 1;
-    const waveL = CUT.wave === 1, waveR = CUT.wave === 2;
     const bx = ax - (kiss ? 10 : 11), gx = ax + (kiss ? 9 : 11);
     if (kiss) {
       // turned in to each other at the mouth of the aisle
@@ -5409,9 +5301,9 @@ function wRender() {
       pt.texture = texGroomSide();
       pt.scale.x = -1;                       // and he looks back
     } else {
-      br.texture = texBride('down', CUT.step, waveL ? 1 + CUT.waveFlap : 0);
+      br.texture = texBride('down', CUT.step, 0);
       br.scale.x = 1;
-      pt.texture = texGroomWalk(CUT.step, waveR ? 1 + CUT.waveFlap : 0);
+      pt.texture = texGroomWalk(CUT.step, 0);
       pt.scale.x = 1;
     }
     const bob = CUT.step === 2 ? -1 : 0;
@@ -5634,7 +5526,7 @@ function askTheQuestion() {
    each side twice, and at the mouth of it they turn to each
    other while the flowers come down. */
 const CUT = { on: false, phase: 0, t: 0, step: 0, walkT: 0,
-              waiting: 0, wave: 0, waveIdx: 0, petals: [], carded: false,
+              petals: [], carded: false,
               descend: false, gy: 0, gstep: 0, gwalkT: 0 };
 
 /* He walks down off the dais to meet her before he says anything. The one
@@ -5648,24 +5540,23 @@ function startDescent(after) {
 }
 function descentStep(dt) {
   const target = w2ay(W.y) - 22;          // he stops just in front of her
-  CUT.gy = Math.min(target, CUT.gy + 46 / 1000 * dt);
+  CUT.gy = Math.min(target, CUT.gy + 20 / 1000 * dt);
   CUT.gwalkT += dt;
-  if (CUT.gwalkT > 180) { CUT.gwalkT = 0; CUT.gstep = CUT.gstep === 1 ? 2 : 1; }
+  if (CUT.gwalkT > 320) { CUT.gwalkT = 0; CUT.gstep = CUT.gstep === 1 ? 2 : 1; }
   if (CUT.gy >= target - 0.4) {
     CUT.gy = target; CUT.descend = false; CUT.gstep = 0;
     const fn = CUT.afterDescent; CUT.afterDescent = null;
     if (fn) fn();
   }
 }
-const CUT_WAVES = [24, 35, 46, 57];     // rows they pause at, alternating sides
 
 async function startRecessional() {
   VOW.on = false; VOW.asking = false;
   $('finale').classList.remove('show', 'ask');
   $('world-stick').classList.remove('show');
   await sleep(600);
-  CUT.on = true; CUT.phase = 0; CUT.t = 0; CUT.waveIdx = 0;
-  CUT.waiting = 0; CUT.wave = 0; CUT.step = 0; CUT.carded = false;
+  CUT.on = true; CUT.phase = 0; CUT.t = 0;
+  CUT.step = 0; CUT.carded = false;
   CUT.descend = false;
   W.locked = true; W.stop = null;
   W.x = AISLE_MID * WT + WT / 2;
@@ -5676,22 +5567,10 @@ async function startRecessional() {
 function cutStep(dt) {
   CUT.t += dt;
   if (CUT.phase === 0) {
-    if (CUT.waiting > 0) {                      // stopped, waving
-      CUT.waiting -= dt;
-      CUT.step = 0;
-      // the hand swings, so it reads as a wave and not a raised arm
-      CUT.waveFlap = Math.floor((3000 - CUT.waiting) / 230) % 2;
-      if (CUT.waiting <= 0) { CUT.wave = 0; CUT.waveIdx++; }
-      return;
-    }
-    W.y += 104 / 1000 * dt;                     // walking back toward the doors
+    // no stopping and no waving: they simply walk it, unhurried
+    W.y += 46 / 1000 * dt;
     CUT.walkT += dt;
-    if (CUT.walkT > 175) { CUT.walkT = 0; CUT.step = CUT.step === 1 ? 2 : 1; }
-    const next = CUT_WAVES[CUT.waveIdx];
-    if (next !== undefined && W.y / WT >= next) {
-      CUT.waiting = 3000;
-      CUT.wave = CUT.waveIdx % 2 ? 2 : 1;       // 1 = to the left, 2 = to the right
-    }
+    if (CUT.walkT > 300) { CUT.walkT = 0; CUT.step = CUT.step === 1 ? 2 : 1; }
     if (W.y / WT >= 64.5) { W.y = 64.5 * WT; CUT.phase = 1; CUT.t = 0; CUT.step = 0; }
   } else if (CUT.phase === 1) {                 // turning to each other
     if (CUT.t > 1000) { CUT.phase = 2; CUT.t = 0; }
@@ -5699,36 +5578,6 @@ function cutStep(dt) {
     if (CUT.t > 2400 && !CUT.carded) { CUT.carded = true; showClosingCard(); }
   }
   cutPetals(dt);
-  cutHearts(dt);
-}
-
-/* hearts rising from whichever side they are greeting */
-function cutHearts(dt) {
-  if (!PX) return;
-  if (!PX.hearts) PX.hearts = [];
-  if (CUT.on && CUT.wave && PX.hearts.length < 10 && Math.random() < 0.22) {
-    const side = CUT.wave === 1 || CUT.wave === 2 ? -1 : 1;
-    const dir = (CUT.waveIdx % 2) ? 1 : -1;      // matches the arm that is up
-    const sp = new PIXI.Sprite(TEX('minheart', 7, 6, p => {
-      for (const [x, y, w, h] of [[1,0,2,2],[4,0,2,2],[0,1,7,2],[1,3,5,1],[2,4,3,1],[3,5,1,1]])
-        R(p, x, y, w, h, '#e8607f');
-      D(p, 1, 1, '#ffb0c2');
-    }));
-    sp.anchor.set(0.5);
-    sp.x = w2ax(W.x) + dir * (18 + Math.random() * 26);
-    sp.y = w2ay(W.y) - 8 - Math.random() * 10;
-    sp.life = 0;
-    PX.ceil.addChild(sp);
-    PX.hearts.push(sp);
-  }
-  for (let i = PX.hearts.length - 1; i >= 0; i--) {
-    const sp = PX.hearts[i];
-    sp.life += dt;
-    sp.y -= 22 * dt / 1000;
-    sp.x += Math.sin(sp.life / 260) * 8 * dt / 1000;
-    sp.alpha = Math.max(0, 1 - sp.life / 1500);
-    if (sp.life > 1500) { sp.destroy(); PX.hearts.splice(i, 1); }
-  }
 }
 
 /* petals, from somewhere above the frame */
@@ -6137,7 +5986,6 @@ window.addEventListener('resize', onViewportChange);
 ════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
   initLock();
-  startLockBride();
   initGridDismiss();
   wInitControls();
   $('btn-ch-next').addEventListener('click', onChapterNext);
