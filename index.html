@@ -1414,6 +1414,35 @@ html, body {
   opacity: 0;
 }
 #fn-more.on { opacity: 1; animation: thinkBlink 820ms steps(2, end) infinite; }
+/* while he is the one talking, the box grows a tail and a name plate */
+#fn-who {
+  display: none;
+  align-self: flex-start; margin-left: calc(var(--rb) * 2);
+  background: #241f2b; color: #f6ecdc;
+  padding: calc(var(--rb) * 0.8) calc(var(--rb) * 2);
+  font-size: clamp(11px, 1.6vh, 17px); letter-spacing: 0.1em;
+  clip-path: polygon(var(--rb) 0, calc(100% - var(--rb)) 0, 100% var(--rb),
+    100% calc(100% - var(--rb)), calc(100% - var(--rb)) 100%, var(--rb) 100%,
+    0 calc(100% - var(--rb)), 0 var(--rb));
+}
+#finale.says #fn-who { display: block; }
+#fn-tail { display: none; width: 0; height: 0;
+  border-left: calc(var(--rb) * 2.4) solid transparent;
+  border-right: calc(var(--rb) * 2.4) solid transparent;
+  border-top: calc(var(--rb) * 3) solid #241f2b;
+  margin-top: calc(var(--rb) * -0.5);
+}
+#finale.says #fn-tail { display: block; }
+#finale.says {
+  justify-content: flex-start;
+  padding-top: var(--says-top, calc(var(--sat) + 6vh));
+}
+/* while he is talking the hall stays readable — he is the one you look at */
+#finale.says #fn-dim {
+  background: radial-gradient(ellipse at 50% 52%, rgba(8,7,11,0.18) 0%, rgba(6,5,9,0.62) 62%, rgba(4,3,7,0.84) 100%);
+  backdrop-filter: saturate(0.7) brightness(0.9);
+  -webkit-backdrop-filter: saturate(0.7) brightness(0.9);
+}
 /* the two answers, as pressable slabs cut the same way as everything else */
 /* the very last card lets the hall through — they are still standing in it */
 #finale.soft #fn-dim {
@@ -1437,9 +1466,14 @@ html, body {
   box-shadow: inset var(--rb) var(--rb) 0 0 rgba(255,255,255,0.14),
               inset calc(var(--rb) * -1) calc(var(--rb) * -1) 0 0 rgba(0,0,0,0.4);
 }
-#fn-yes { background: #2f6f6a; color: #eafffb; }
+#fn-yes {
+  background: #2f6f6a; color: #eafffb;
+  font-size: clamp(17px, 2.9vh, 30px); letter-spacing: 0.12em;
+  padding: calc(var(--rb) * 2) calc(var(--rb) * 6);
+  animation: fnYes 1.6s ease-in-out infinite;
+}
+@keyframes fnYes { 0%,100% { transform: none; } 50% { transform: translateY(-3px); } }
 #fn-yes:active { transform: translateY(2px); }
-#fn-no { position: relative; }
 
 #world-stick {
   position: absolute; z-index: 5;
@@ -1706,11 +1740,10 @@ html, body {
     <div id="fn-stage">
       <canvas id="fn-ring" width="44" height="48"></canvas>
       <div id="fn-title">Will You<br>Marry Me?</div>
+      <div id="fn-who">신랑</div>
       <div id="fn-box"><div id="fn-inner"><span id="fn-text"></span><i id="fn-more"></i></div></div>
-      <div id="fn-btns">
-        <div class="fn-btn" id="fn-yes">그럼요</div>
-        <div class="fn-btn" id="fn-no">글쎄…</div>
-      </div>
+      <div id="fn-tail"></div>
+      <div id="fn-btns"><div class="fn-btn" id="fn-yes">Yes!</div></div>
     </div>
   </div>
   <div id="world-stick">
@@ -3477,13 +3510,13 @@ const WT = 28;   // tile size in world pixels — sized so the round
 /* The hall, laid out from the venue's own photos.
    # wall  . carpet  r runner  F floral border  s stage  d dais  L long table
    P podium at the doors  G gateway */
-const W_COLS = 29, W_ROWS = 67;
+const W_COLS = 29, W_ROWS = 71;
 const AISLE_L = 13, AISLE_R = 15;
 const AISLE_MID = 14;
 
 /* The runner opens out into a wide mouth at the entrance, so she starts
    the walk on something broad and narrows into the aisle proper. */
-const FLARE = [{ r0: 58, r1: 59, h: 2 }, { r0: 60, r1: 61, h: 3 }, { r0: 62, r1: 63, h: 4 }];
+const FLARE = [{ r0: 62, r1: 63, h: 2 }, { r0: 64, r1: 65, h: 3 }, { r0: 66, r1: 67, h: 4 }];
 function wAisleHalf(r) {
   for (const f of FLARE) if (r >= f.r0 && r <= f.r1) return f.h;
   return 1;
@@ -3500,14 +3533,14 @@ const WORLD_MAP = (() => {
 
   box(2, 7, 2, W_COLS - 3, 's');          // stage floor
   box(2, 7, 10, 18, 'd');                 // dais, deep enough to stand on
-  for (let r = 8; r <= 63; r++) {         // the runner, flaring at the mouth
+  for (let r = 8; r <= 67; r++) {         // the runner, flaring at the mouth
     const h = wAisleHalf(r);
     box(r, r, AISLE_MID - h, AISLE_MID + h, 'r');
     box(r, r, AISLE_MID - h - 1, AISLE_MID - h - 1, 'F');
     box(r, r, AISLE_MID + h + 1, AISLE_MID + h + 1, 'F');
   }
-  box(64, 64, AISLE_MID - 5, AISLE_MID + 5, 'P');
-  box(65, 65, AISLE_MID - 6, AISLE_MID + 6, 'G');
+  box(68, 68, AISLE_MID - 5, AISLE_MID + 5, 'P');
+  box(69, 69, AISLE_MID - 6, AISLE_MID + 6, 'G');
   return m.map(row => row.join(''));
 })();
 
@@ -3520,11 +3553,12 @@ const PAIR = (c, make) => [make(c), make(MIR(c))];
 /* Four points down the aisle where she stops and remembers. Reaching one
    plays that episode; the last few steps onto the dais bring the groom. */
 const W_PLACES = [
-  { ep: 0, row: 53, name: '회사 동기' },
-  { ep: 1, row: 40, name: '연인' },
-  { ep: 2, row: 27, name: '일상' },
-  { ep: 3, row: 15, name: '여행' },
-  { ep: 4, row: 9,  name: '앞으로의 우리', groom: true },   // she stops at the foot of the steps
+  { ep: 0, row: 57, name: '회사 동기' },
+  { ep: 1, row: 44, name: '연인' },
+  { ep: 2, row: 31, name: '일상' },
+  { ep: 3, row: 19, name: '여행' },
+  // she stops short of the 혼주석, and he comes down the steps to her
+  { ep: 4, row: 13, name: '앞으로의 우리', groom: true },
 ];
 
 /* What she is thinking as she reaches each one */
@@ -3539,28 +3573,30 @@ const W_THOUGHTS = [
 /* The rows of guests either side of the runner: a seated front row facing
    the aisle, and people standing behind it. There is no table between
    them and the flowers — the aisle is left clear. */
-const W_ROWS_SEATED = PAIR(AISLE_L - 2.3, c => ({ col: c, row0: 11, row1: 61 }));
+const W_ROWS_SEATED = PAIR(AISLE_L - 2.3, c => ({ col: c, row0: 15, row1: 65 }));
 
 /* Round guest tables, pulled in toward the runner now the long tables are
    gone. The pair nearest the entrance is left out, and that corner of the
    hall is given over to guests standing to watch her come in. */
 const W_TABLES = (() => {
   const out = [];
-  for (const r of [13, 20, 27, 34, 41, 48, 55]) out.push(...PAIR(6.4, c => ({ col: c, row: r })));
+  for (const r of [17, 24, 31, 38, 45, 52, 59]) out.push(...PAIR(6.4, c => ({ col: c, row: r })));
   return out;
 })();
 
 /* 혼주석 — a pair of chairs each side, right in front of the dais */
+/* 혼주석 — two chairs each side in the clear stretch of runner between
+   the steps and where she stops, turned in to watch the dais */
 const W_PARENTS = [
-  ...PAIR(AISLE_L - 2.7, c => ({ col: c, row: 8.9, who: 'father' })),
-  ...PAIR(AISLE_L - 1.5, c => ({ col: c, row: 8.9, who: 'mother' })),
+  ...PAIR(AISLE_L - 2.9, c => ({ col: c, row: 9.4,  who: 'father' })),
+  ...PAIR(AISLE_L - 1.6, c => ({ col: c, row: 9.4,  who: 'mother' })),
 ];
 
 /* Tall brass stands along the flower line, following the flare */
 const W_CANDELABRA = (() => {
   const out = [];
   let k = 0;
-  for (let r = 10.5; r <= 62; r += 3.2, k++) {
+  for (let r = 14.5; r <= 66; r += 3.2, k++) {
     const h = wAisleHalf(Math.round(r)) + 0.15;
     out.push(...PAIR(AISLE_MID - h, c => ({ col: c, row: r, tall: k % 3 === 1, flower: k % 3 === 2 })));
   }
@@ -3569,16 +3605,16 @@ const W_CANDELABRA = (() => {
 
 /* Big pillar arrangements standing out from the mouth of the aisle */
 const W_ENTRY_FLOWERS = [
-  ...PAIR(AISLE_L - 6.2, c => ({ col: c, row: 63.2, big: 1 })),
-  ...PAIR(AISLE_L - 8.4, c => ({ col: c, row: 62.2, big: 0 })),
+  ...PAIR(AISLE_L - 6.2, c => ({ col: c, row: 67.2, big: 1 })),
+  ...PAIR(AISLE_L - 8.4, c => ({ col: c, row: 66.2, big: 0 })),
 ];
 
 /* Chandeliers hung down the aisle and in banks either side */
 const W_CHANDELIERS = (() => {
   const out = [];
-  for (let r = 13; r <= 62; r += 7) {
+  for (let r = 17; r <= 66; r += 7) {
     // the first one down the aisle would hang square in front of the groom
-    if (r > 13) out.push({ col: AISLE_MID, row: r, big: 1 });
+    if (r > 17) out.push({ col: AISLE_MID, row: r, big: 1 });
     out.push(...PAIR(AISLE_L - 6, c => ({ col: c, row: r + 3.5, big: 0 })));
   }
   // Over the ceremony itself: three hung high in the ceiling above the
@@ -3614,7 +3650,7 @@ function wTileAt(c, r) {
 
 const W = {
   on:false, raf:0, last:0,
-  x:AISLE_MID*WT+WT/2, y:62*WT+WT/2,   // in the mouth of the aisle, facing the dais
+  x:AISLE_MID*WT+WT/2, y:66*WT+WT/2,   // in the mouth of the aisle, facing the dais
   dir:'up', step:0, walkT:0, moving:false,
   vx:0, vy:0, scale:3,
   visited:new Set(), locked:false, t:0,
@@ -3812,7 +3848,7 @@ function bakeBackdrop() {
 
   /* ---- the runner: one continuous band that opens out at the mouth ---- */
   const RUN_OVER = 6;          // how far the runner spills past its tiles
-  for (let r = 8; r <= 63; r++) {
+  for (let r = 8; r <= 67; r++) {
     const h = wAisleHalf(r);
     const x0 = (AISLE_MID - h) * AW - RUN_OVER, x1 = (AISLE_MID + h + 1) * AW + RUN_OVER;
     const y = oy + r * AH;
@@ -3825,7 +3861,7 @@ function bakeBackdrop() {
   }
 
   /* ---- the flower beds either side, following the flare ---- */
-  for (let r = 8; r <= 63; r++) {
+  for (let r = 8; r <= 67; r++) {
     const h = wAisleHalf(r);
     for (const col of [AISLE_MID - h - 1, AISLE_MID + h + 1]) {
       const flip = col > AISLE_MID;
@@ -3893,7 +3929,7 @@ function bakeBackdrop() {
   SPEC(p, 0, 4, MAPW, 10, C.drapeL, 0.16, 620);
 
   /* ---- entrance wall at the very bottom of the map ---- */
-  const by = oy + 66 * AH;
+  const by = oy + 70 * AH;
   R(p, 0, by, MAPW, AH, C.wall);
   R(p, 0, by, MAPW, 1, C.blkD);
 
@@ -4259,25 +4295,31 @@ function pxSeatedQ(p, cx, b, o) {
   R(p, cx - 5, seat - 15, 11, 15, g1);
   R(p, cx - 5, seat - 15, 11, 1, g2);
   R(p, cx - 5, seat - 15, 1, 15, g2); R(p, cx + 5, seat - 15, 1, 15, g3);
-  R(p, cx - 5, seat - 1, 12, 3, g1);
-  R(p, cx - 5, seat - 1, 12, 1, g2);
-  R(p, cx - 5, seat + 2, 12, 1, g3);
-  R(p, cx - 4, seat + 3, 3, 6, g1); R(p, cx + 3, seat + 3, 3, 6, g1);
-  // lap and knees, swung toward the turn
+  // the seat itself, wide and pale enough to read from across the hall
+  R(p, cx - 6, seat - 1, 13, 3, C.ivory);
+  R(p, cx - 6, seat - 1, 13, 1, C.ivoryL);
+  R(p, cx - 6, seat + 2, 13, 1, g3);
+  R(p, cx - 5, seat + 3, 2, 6, g1); R(p, cx + 5, seat + 3, 2, 6, g1);
+  R(p, cx - 5, seat + 7, 12, 1, g3);            // the stretcher between the legs
+  // The lap: a flat block of thigh resting on the seat, then short shins
+  // dropping straight down. At this size that shape is what says "seated".
   const lap = o.lap || w1;
   if (o.skirt) {
-    R(p, cx - 4, seat - 4, 10, 5, lap);
-    R(p, cx - 4, seat - 4, 10, 1, o.lapL || w3);
-    for (let j = 0; j < 6; j++) R(p, cx - 3 + j * 0.4, seat + 1 + j, 9 - j * 0.5, 1, j > 3 ? (o.lapD || w2) : lap);
-    R(p, cx - 2, b - 2, 8, 1, '#00000030');
+    R(p, cx - 5, seat - 5, 12, 6, lap);
+    R(p, cx - 5, seat - 5, 12, 1, o.lapL || w3);
+    R(p, cx - 5, seat, 12, 1, o.lapD || w2);
+    for (let j = 0; j < 5; j++) R(p, cx - 1 + j * 0.4, seat + 2 + j, 7 - j * 0.4, 1, j > 2 ? (o.lapD || w2) : lap);
+    R(p, cx - 1, b - 2, 7, 1, '#00000030');
   } else {
     const [t1, t2] = o.trouser;
-    R(p, cx - 4, seat - 4, 10, 5, t1);
-    R(p, cx - 4, seat - 4, 10, 1, C.blkL);
-    R(p, cx - 3, seat + 1, 4, 8, t1); R(p, cx + 2, seat + 1, 4, 8, t1);
-    R(p, cx - 3, seat + 1, 1, 8, t2); R(p, cx + 2, seat + 1, 1, 8, t2);
-    R(p, cx - 3, b - 2, 5, 2, C.blkD); R(p, cx + 2, b - 2, 5, 2, C.blkD);
-    R(p, cx - 3, b - 2, 5, 1, C.blkL); R(p, cx + 2, b - 2, 5, 1, C.blkL);
+    R(p, cx - 5, seat - 5, 12, 6, t1);          // thigh, flat on the seat
+    R(p, cx - 5, seat - 5, 12, 1, C.blkL);
+    R(p, cx - 5, seat, 12, 1, t2);
+    R(p, cx - 1, seat + 2, 3, 6, t1);           // shins, short and vertical
+    R(p, cx + 3, seat + 2, 3, 6, t1);
+    R(p, cx - 1, seat + 2, 1, 6, t2); R(p, cx + 3, seat + 2, 1, 6, t2);
+    R(p, cx - 2, b - 2, 4, 2, C.blkD); R(p, cx + 2, b - 2, 4, 2, C.blkD);
+    R(p, cx - 2, b - 2, 4, 1, C.blkL); R(p, cx + 2, b - 2, 4, 1, C.blkL);
   }
   // torso, square to us but narrowed on the far shoulder
   R(p, cx - 4, seat - 13, 9, 10, w1);
@@ -4487,15 +4529,26 @@ function pxBride(p, cx, b, dir, step, wave) {
   }
 
   /* ── arms, and the bouquet she carries ── */
-  if (wave) {                                     // waving to the guests
+  if (wave) {
+    // The hand goes up clear of her head, where it is against the dark hall
+    // instead of against her own gown, and it is bare to the elbow so it
+    // reads as a hand and not a sleeve.
+    const out = wave === 1 ? 0 : 2;               // it swings out and back
     R(p, cx + 4, b - 26, 2, 7, G.l);              // the bouquet arm stays down
     R(p, cx + 5, b - 26, 1, 7, G.m);
     BLOB(p, cx + 4, b - 19, 1.6, 1.5, sk[0]);
-    R(p, cx - 7, b - 30, 2, 6, G.l);              // the other lifts and opens
-    R(p, cx - 7, b - 30, 1, 6, G.m);
-    R(p, cx - 6, b - 26, 2, 3, G.l);
-    BLOB(p, cx - 7, b - 32, 1.8, 1.7, sk[0]);
-    D(p, cx - 8, b - 33, sk[0]); D(p, cx - 6, b - 33, sk[0]);
+    R(p, cx - 6, b - 26, 3, 4, G.l);              // the short sleeve, lifted
+    R(p, cx - 6, b - 26, 1, 4, G.m);
+    const hx = cx - 8 - out;
+    R(p, hx, b - 34, 3, 9, sk[0]);                // bare forearm, straight up
+    R(p, hx, b - 34, 1, 9, sk[1]);
+    R(p, hx + 2, b - 34, 1, 9, sk[2]);
+    BLOB(p, hx + 1, b - 36, 2.6, 2.2, sk[0]);     // an open hand above her head
+    R(p, hx - 1, b - 39, 1, 3, sk[0]);            // fingers
+    R(p, hx + 1, b - 40, 1, 4, sk[0]);
+    R(p, hx + 3, b - 39, 1, 3, sk[0]);
+    D(p, hx - 1, b - 36, sk[1]); D(p, hx + 3, b - 36, sk[2]);
+    D(p, hx + 1, b - 37, sk[1]);
     R(p, cx - 1, b - 18, 2, 5, C.gr2);            // the bouquet, held low
     BLOB(p, cx, b - 20, 4.2, 3, C.gr1);
     for (const [dx, dy, cc] of [[-3,-20,C.pk2],[-1,-21,C.wh1],[2,-20,C.pk1],[0,-19,C.pk3],[3,-21,C.wh1]])
@@ -4609,14 +4662,23 @@ function pxGroomWalk(p, cx, b, step, wave) {
   R(p, cx - 2, b - 27, 5, 2, C.wh1);
   D(p, cx, b - 27, C.ivoryS);
   BLOB(p, cx + 3, b - 24, 1.4, 1.3, C.pk1); D(p, cx + 3, b - 23, C.gr1);
-  if (wave) {                                     // the near arm lifts and opens
+  if (wave) {
+    // same idea: his hand goes up above his head, cuff and all
+    const out = wave === 1 ? 0 : 2;
     R(p, cx - 7, b - 25, 2, 8, S1);
     BLOB(p, cx - 6, b - 17, 1.6, 1.5, sk[0]);
-    R(p, cx + 5, b - 30, 2, 6, S1);
-    R(p, cx + 6, b - 30, 1, 6, S2);
-    R(p, cx + 4, b - 26, 2, 3, S1);
-    BLOB(p, cx + 6, b - 32, 1.8, 1.7, sk[0]);
-    D(p, cx + 7, b - 33, sk[0]); D(p, cx + 5, b - 33, sk[0]);
+    R(p, cx + 5, b - 26, 3, 5, S1);               // the sleeve, lifted
+    R(p, cx + 7, b - 26, 1, 5, S2);
+    const hx = cx + 6 + out;
+    R(p, hx, b - 34, 1, 4, C.wh1);                // the cuff
+    R(p, hx, b - 37, 3, 7, sk[0]);                // bare forearm
+    R(p, hx, b - 37, 1, 7, sk[1]);
+    R(p, hx + 2, b - 37, 1, 7, sk[2]);
+    BLOB(p, hx + 1, b - 39, 2.6, 2.2, sk[0]);     // the open hand
+    R(p, hx - 1, b - 42, 1, 3, sk[0]);
+    R(p, hx + 1, b - 43, 1, 4, sk[0]);
+    R(p, hx + 3, b - 42, 1, 3, sk[0]);
+    D(p, hx + 1, b - 40, sk[1]);
   } else {
     R(p, cx - 7, b - 25, 2, 8 - sw, S1); R(p, cx + 5, b - 25, 2, 8 + sw, S1);
     R(p, cx - 7, b - 25, 1, 8 - sw, S2); R(p, cx + 6, b - 25, 1, 8 + sw, S2);
@@ -4626,20 +4688,39 @@ function pxGroomWalk(p, cx, b, step, wave) {
   R(p, cx - 1, b - 28, 3, 2, sk[1]);
   pxHead(p, cx, b - 37, sk, hr, { view: 'front', hairStyle: 4 });
 }
-/* him in profile, for the moment they turn to each other */
+/* him in profile, built to the same height as the walking sprite so he
+   never changes size between one shot and the next */
+function pxGroomSide(p, cx, b) {
+  const sk = SKIN[1], hr = HAIR[0];
+  const S1 = '#1a1922', S2 = '#0e0d13', S3 = '#2d2b39';
+  ELL(p, cx, b - 1, 6, 2.2, '#0000003a');
+  R(p, cx - 2, b - 14, 4, 12, S1);                   // the near leg
+  R(p, cx - 2, b - 14, 1, 12, S2);
+  R(p, cx - 1, b - 14, 3, 5, S2);                    // the far one behind it
+  R(p, cx - 2, b - 2, 6, 2, '#08080b');
+  R(p, cx - 2, b - 2, 6, 1, S3);
+  R(p, cx - 3, b - 26, 7, 12, S1);                   // the coat
+  R(p, cx - 3, b - 26, 7, 1, S3);
+  R(p, cx - 3, b - 26, 2, 12, S2);
+  R(p, cx - 3, b - 16, 2, 4, S2);                    // the tail behind him
+  R(p, cx + 2, b - 26, 2, 9, C.ivoryL);              // waistcoat and shirt
+  R(p, cx + 2, b - 26, 1, 9, C.wh1);
+  D(p, cx + 4, b - 25, S3);
+  R(p, cx + 2, b - 27, 3, 2, C.wh1);                 // the bow tie
+  D(p, cx + 3, b - 27, C.ivoryS);
+  BLOB(p, cx + 3, b - 24, 1.3, 1.2, C.pk1); D(p, cx + 3, b - 23, C.gr1);
+  R(p, cx + 1, b - 25, 2, 5, S1);                    // arm, hand at his side
+  R(p, cx + 2, b - 21, 3, 3, S3);
+  BLOB(p, cx + 4, b - 19, 1.6, 1.5, sk[0]);
+  R(p, cx, b - 28, 2, 2, sk[1]);
+  pxHeadSide(p, cx, b - 37, sk, hr, { hairStyle: 4 });
+}
 function texGroomSide() {
-  return TEX('gs', 26, 44, p => {
-    pxPersonSide(p, 13, 42, {
-      skin: SKIN[1], hair: HAIR[0], hairStyle: 4, view: 'side', arms: 2,
-      wear: ['#1a1922', '#0e0d13', '#2d2b39'], trouser: ['#1a1922', '#0e0d13'],
-      jacket: 1, tie: C.ivoryL, pocket: 1,
-    });
-    BLOB(p, 16, 22, 1.4, 1.3, C.pk1); D(p, 16, 23, C.gr1);   // boutonnière
-  });
+  return TEX('gs', 36, 52, p => pxGroomSide(p, 16, 50));
 }
 function texGroomWalk(step, wave) {
-  return TEX(`gw${step}${wave ? 'w' : ''}`, 30, 44,
-             p => pxGroomWalk(p, 15, 42, step, wave));
+  return TEX(`gw${step}w${wave || 0}`, 36, 52,
+             p => pxGroomWalk(p, 16, 50, step, wave));
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -5093,9 +5174,10 @@ function texParent(who, arms, v) {
 }
 
 function texBride(dir, step, wave) {
-  // tall enough for the whole train to lie behind her when she walks away
-  return TEX(`br${dir}${step}${wave ? 'w' : ''}`, 44, 70,
-             p => pxBride(p, 22, 40, dir, step, wave));
+  // tall enough for the whole train to lie behind her when she walks away,
+  // and wide enough for the hand she raises to the guests
+  return TEX(`br${dir}${step}w${wave || 0}`, 50, 78,
+             p => pxBride(p, 26, 46, dir, step, wave));
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -5231,7 +5313,7 @@ function wBuildScene() {
       const dx = 18 + g() * 44;
       const dy = (g() - 0.5) * 62;
       const faces = g() > 0.3 ? inner > 0 : inner < 0;
-      seatGuest(cx0 - inner * dx, (58.5 + 0.5) * AH + dy, faces,
+      seatGuest(cx0 - inner * dx, (62.5 + 0.5) * AH + dy, faces,
                 (gseed * 13 + 2) % GUEST_KINDS, gseed++, true);
     }
   }
@@ -5274,7 +5356,7 @@ function wBuildScene() {
     const [x, y] = T(fl.col, fl.row);
     add(props, texEntryFlowers(fl.big), x, y + 4, y + 4);
   }
-  add(props, texGate(), (AISLE_MID + 0.5) * AW, 65.6 * AH, 65.6 * AH);
+  add(props, texGate(), (AISLE_MID + 0.5) * AW, 69.6 * AH, 69.6 * AH);
 
   /* ── the groom, waiting at the top of the aisle ── */
   {
@@ -5350,10 +5432,10 @@ function wBuildScene() {
 
   /* ── the bride, and the groom who leaves with her ── */
   const br = PX.bride = new PIXI.Sprite(texBride('down', 0));
-  br.anchor.set(0.5, 40 / 70);
+  br.anchor.set(0.5, 46 / 78);
   PX.props.addChild(br);
   const pt = PX.partner = new PIXI.Sprite(texGroomWalk(0, 0));
-  pt.anchor.set(0.5, 42 / 44);
+  pt.anchor.set(0.5, 50 / 52);
   pt.visible = false;
   PX.props.addChild(pt);
 
@@ -5438,7 +5520,10 @@ function wRender() {
   for (const gu of PX.guests) {
     if (!gu.sp.renderable) continue;
     let arms = 0;
-    if (gu.beh === 'clasp') arms = 2;
+    if (CUT.on && CUT.wave) {
+      // when the couple wave, the hall answers: everyone applauds
+      arms = ((t + gu.phase) % 300) < 160 ? 1 : 0;
+    } else if (gu.beh === 'clasp') arms = 2;
     else if (gu.beh === 'clap') {
       const c = (t + gu.phase) % gu.period;
       arms = (c < 1150 && (c % 290) < 150) ? 1 : 0;
@@ -5490,7 +5575,28 @@ function wRender() {
   /* the bride — and, on the way out, the groom beside her */
   PX.camX = camX; PX.camY = camY;
   const br = PX.bride, pt = PX.partner;
-  if (CUT.on) {
+  if (CUT.descend) {
+    // walking down off the dais toward her, facing the camera
+    pt.visible = true;
+    pt.texture = texGroomWalk(CUT.gstep, 0);
+    pt.scale.x = 1;
+    pt.x = Math.round(ax);
+    pt.y = Math.round(CUT.gy);
+    pt.zIndex = CUT.gy + 1;
+    br.texture = texBride('up', 0);
+    br.scale.x = 1;
+    br.x = Math.round(ax); br.y = Math.round(ay); br.zIndex = ay + 1;
+  } else if (VOW.on) {
+    // stood in front of her, saying his piece
+    pt.visible = true;
+    pt.texture = texGroomWalk(0, 0);
+    pt.scale.x = 1;
+    pt.x = Math.round(ax); pt.y = Math.round(CUT.gy || ay - 22);
+    pt.zIndex = (CUT.gy || ay - 22) + 1;
+    br.texture = texBride('up', 0);
+    br.scale.x = 1;
+    br.x = Math.round(ax); br.y = Math.round(ay); br.zIndex = ay + 1;
+  } else if (CUT.on) {
     const kiss = CUT.phase >= 1;
     const waveL = CUT.wave === 1, waveR = CUT.wave === 2;
     const bx = ax - (kiss ? 10 : 11), gx = ax + (kiss ? 9 : 11);
@@ -5501,9 +5607,9 @@ function wRender() {
       pt.texture = texGroomSide();
       pt.scale.x = -1;                       // and he looks back
     } else {
-      br.texture = texBride('down', CUT.step, waveL);
+      br.texture = texBride('down', CUT.step, waveL ? 1 + CUT.waveFlap : 0);
       br.scale.x = 1;
-      pt.texture = texGroomWalk(CUT.step, waveR);
+      pt.texture = texGroomWalk(CUT.step, waveR ? 1 + CUT.waveFlap : 0);
       pt.scale.x = 1;
     }
     const bob = CUT.step === 2 ? -1 : 0;
@@ -5675,7 +5781,7 @@ function openVow() {
   VOW.lines = LETTER2.split('\n').filter(l => l.trim() !== '');
   const el = $('finale');
   el.classList.remove('ask', 'soft');
-  el.classList.add('show');
+  el.classList.add('show', 'says');       // it is him speaking, not a caption
   vowType(VOW.lines[0]);
 }
 function vowType(text) {
@@ -5689,6 +5795,16 @@ function vowType(text) {
     if (VOW.at >= VOW.text.length) vowFinishLine();
   }, 42);
 }
+/* keep the speech bubble just above his head as the camera moves */
+function vowPlace() {
+  if (!PX || !PX.app || !VOW.on || VOW.asking) return;
+  const el = $('finale'), stage = $('fn-stage'), view = PX.app.view;
+  const scale = PX.bh / (view.clientHeight || 1);
+  const headTop = (PX.cam.y + (CUT.gy - 40) * PX.Z) / scale;
+  const h = stage.offsetHeight || 0;
+  el.style.setProperty('--says-top', Math.max(8, Math.round(headTop - h - 6)) + 'px');
+}
+
 function vowFinishLine() {
   clearInterval(VOW.timer); VOW.timer = 0;
   VOW.at = VOW.text.length;
@@ -5707,21 +5823,8 @@ function askTheQuestion() {
   clearInterval(VOW.timer); VOW.timer = 0;
   VOW.asking = true;
   drawVowRing();
+  $('finale').classList.remove('says');
   $('finale').classList.add('ask');
-}
-
-/* "글쎄…" is not an answer she is allowed to give */
-function dodgeVowNo(e) {
-  if (e) { e.preventDefault(); e.stopPropagation(); }
-  const b = $('fn-no');
-  const r = b.getBoundingClientRect();
-  const maxX = window.innerWidth - r.width - 12, maxY = window.innerHeight - r.height - 12;
-  const nx = 12 + Math.random() * Math.max(1, maxX - 12);
-  const ny = 12 + Math.random() * Math.max(1, maxY - 12);
-  b.style.position = 'fixed';
-  b.style.left = nx + 'px';
-  b.style.top = ny + 'px';
-  b.style.margin = '0';
 }
 
 /* ── the walk back out ─────────────────────────────────────
@@ -5729,8 +5832,30 @@ function dodgeVowNo(e) {
    each side twice, and at the mouth of it they turn to each
    other while the flowers come down. */
 const CUT = { on: false, phase: 0, t: 0, step: 0, walkT: 0,
-              waiting: 0, wave: 0, waveIdx: 0, petals: [], carded: false };
-const CUT_WAVES = [22, 32, 42, 52];     // rows they pause at, alternating sides
+              waiting: 0, wave: 0, waveIdx: 0, petals: [], carded: false,
+              descend: false, gy: 0, gstep: 0, gwalkT: 0 };
+
+/* He walks down off the dais to meet her before he says anything. The one
+   standing up there is the one who comes down — no second groom appears. */
+function startDescent(after) {
+  CUT.descend = true;
+  CUT.gy = 6.5 * AH;
+  CUT.gstep = 1; CUT.gwalkT = 0;
+  CUT.afterDescent = after;
+  if (PX && PX.groom) PX.groom.visible = false;
+}
+function descentStep(dt) {
+  const target = w2ay(W.y) - 22;          // he stops just in front of her
+  CUT.gy = Math.min(target, CUT.gy + 46 / 1000 * dt);
+  CUT.gwalkT += dt;
+  if (CUT.gwalkT > 180) { CUT.gwalkT = 0; CUT.gstep = CUT.gstep === 1 ? 2 : 1; }
+  if (CUT.gy >= target - 0.4) {
+    CUT.gy = target; CUT.descend = false; CUT.gstep = 0;
+    const fn = CUT.afterDescent; CUT.afterDescent = null;
+    if (fn) fn();
+  }
+}
+const CUT_WAVES = [24, 35, 46, 57];     // rows they pause at, alternating sides
 
 async function startRecessional() {
   VOW.on = false; VOW.asking = false;
@@ -5739,10 +5864,11 @@ async function startRecessional() {
   await sleep(600);
   CUT.on = true; CUT.phase = 0; CUT.t = 0; CUT.waveIdx = 0;
   CUT.waiting = 0; CUT.wave = 0; CUT.step = 0; CUT.carded = false;
+  CUT.descend = false;
   W.locked = true; W.stop = null;
   W.x = AISLE_MID * WT + WT / 2;
-  W.y = 10 * WT;
   W.dir = 'down';
+  if (PX && PX.groom) PX.groom.visible = false;
 }
 
 function cutStep(dt) {
@@ -5751,6 +5877,8 @@ function cutStep(dt) {
     if (CUT.waiting > 0) {                      // stopped, waving
       CUT.waiting -= dt;
       CUT.step = 0;
+      // the hand swings, so it reads as a wave and not a raised arm
+      CUT.waveFlap = Math.floor((3000 - CUT.waiting) / 230) % 2;
       if (CUT.waiting <= 0) { CUT.wave = 0; CUT.waveIdx++; }
       return;
     }
@@ -5759,16 +5887,46 @@ function cutStep(dt) {
     if (CUT.walkT > 175) { CUT.walkT = 0; CUT.step = CUT.step === 1 ? 2 : 1; }
     const next = CUT_WAVES[CUT.waveIdx];
     if (next !== undefined && W.y / WT >= next) {
-      CUT.waiting = 1500;
+      CUT.waiting = 3000;
       CUT.wave = CUT.waveIdx % 2 ? 2 : 1;       // 1 = to the left, 2 = to the right
     }
-    if (W.y / WT >= 60.5) { W.y = 60.5 * WT; CUT.phase = 1; CUT.t = 0; CUT.step = 0; }
+    if (W.y / WT >= 64.5) { W.y = 64.5 * WT; CUT.phase = 1; CUT.t = 0; CUT.step = 0; }
   } else if (CUT.phase === 1) {                 // turning to each other
     if (CUT.t > 1000) { CUT.phase = 2; CUT.t = 0; }
   } else if (CUT.phase === 2) {                 // the kiss, and the flowers
     if (CUT.t > 2400 && !CUT.carded) { CUT.carded = true; showClosingCard(); }
   }
   cutPetals(dt);
+  cutHearts(dt);
+}
+
+/* hearts rising from whichever side they are greeting */
+function cutHearts(dt) {
+  if (!PX) return;
+  if (!PX.hearts) PX.hearts = [];
+  if (CUT.on && CUT.wave && PX.hearts.length < 10 && Math.random() < 0.22) {
+    const side = CUT.wave === 1 || CUT.wave === 2 ? -1 : 1;
+    const dir = (CUT.waveIdx % 2) ? 1 : -1;      // matches the arm that is up
+    const sp = new PIXI.Sprite(TEX('minheart', 7, 6, p => {
+      for (const [x, y, w, h] of [[1,0,2,2],[4,0,2,2],[0,1,7,2],[1,3,5,1],[2,4,3,1],[3,5,1,1]])
+        R(p, x, y, w, h, '#e8607f');
+      D(p, 1, 1, '#ffb0c2');
+    }));
+    sp.anchor.set(0.5);
+    sp.x = w2ax(W.x) + dir * (18 + Math.random() * 26);
+    sp.y = w2ay(W.y) - 8 - Math.random() * 10;
+    sp.life = 0;
+    PX.ceil.addChild(sp);
+    PX.hearts.push(sp);
+  }
+  for (let i = PX.hearts.length - 1; i >= 0; i--) {
+    const sp = PX.hearts[i];
+    sp.life += dt;
+    sp.y -= 22 * dt / 1000;
+    sp.x += Math.sin(sp.life / 260) * 8 * dt / 1000;
+    sp.alpha = Math.max(0, 1 - sp.life / 1500);
+    if (sp.life > 1500) { sp.destroy(); PX.hearts.splice(i, 1); }
+  }
 }
 
 /* petals, from somewhere above the frame */
@@ -5806,7 +5964,7 @@ function cutPetals(dt) {
 async function showClosingCard() {
   const el = $('finale');
   $('fn-text').textContent = '';
-  el.classList.remove('ask');
+  el.classList.remove('ask', 'says');
   el.classList.add('soft');
   VOW.on = false;
   await sleep(200);
@@ -5944,6 +6102,8 @@ function wNextStop() {
 }
 
 function wStep(dt) {
+  if (CUT.descend) { descentStep(dt); return; }
+  if (VOW.on) return;
   if (CUT.on) { cutStep(dt); return; }
   const sp = 92 / 1000 * dt;   // world px this frame
   let dx = W.vx, dy = W.vy;
@@ -5999,7 +6159,7 @@ function wAdvanceThought() {
   W.stop = null;
   W.visited.add(pl.ep);
   if (pl.groom) {                    // the last one is not a memory but a beginning
-    openVow();
+    startDescent(openVow);
   } else {
     openRecall(pl.ep);
   }
@@ -6012,6 +6172,7 @@ function wLoop(ts) {
   wStep(dt);
   wRender();
   if (W.stop) thinkPlace();
+  if (VOW.on) vowPlace();
   W.raf = requestAnimationFrame(wLoop);
 }
 
@@ -6179,7 +6340,6 @@ window.addEventListener('DOMContentLoaded', () => {
   wInitControls();
   $('btn-ch-next').addEventListener('click', onChapterNext);
   $('fn-yes').addEventListener('click', startRecessional);
-  $('fn-no').addEventListener('click', dodgeVowNo);
   $('btn-yes').addEventListener('click', onYes);
   $('btn-no').addEventListener('click', dodgeNo);
 
