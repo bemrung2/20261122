@@ -4022,7 +4022,7 @@ function pxSeatedQ(p, cx, b, o) {
   if (o.hanbok) {
     R(p, cx - 4, seat - 6, 10, 1, o.lapL || C.wh1);
     R(p, cx + 1, seat - 12, 1, 6, o.sash || C.pk3);
-    D(p, cx + 2, seat - 12, C.pk1);
+    D(p, cx + 2, seat - 12, o.lapL || C.pk1);
   }
   const ar = o.arms || 0;
   if (ar === 1) {                                    // applauding
@@ -4907,13 +4907,15 @@ function texParent(who, arms, v) {
   return TEX(`pa${who}${arms}${v}`, 22, 34, p => {
     const father = who === 'father';
     const chair = ['#1b1b20', '#2b2b33', '#0b0b0e'], chairPad = '#1b1b20';
-    // 한복: a short 저고리 over a full 치마, the skirt filling the lap
-    const hb = v ? ['#e9f2ec', '#cddcd4', '#ffffff', '#6d2f5e', '#4e1f44', '#8f4a7e']
-                 : ['#f4ece0', '#dcd0bd', '#fffaf2', '#8a2f46', '#651f32', '#b04d63'];
+    /* 한복: a short 저고리 over a full 치마. The mother on the left of the
+       runner wears sky blue, the one on the right wears pink.
+       [저고리, 저고리 그늘, 저고리 빛, 치마, 치마 그늘, 치마 빛] */
+    const hb = v ? ['#faf0f2', '#e2d0d6', '#fffaf9', '#d4708f', '#a94d6c', '#eb9db3']
+                 : ['#f2f6fa', '#d8e2ec', '#ffffff', '#5f92c4', '#42709e', '#86b4dd'];
     const o = father
       ? { skin: SKIN[2], hair: HAIR[2], hairStyle: 4, view: 'side', arms,
           wear: ['#232130', '#14131c', '#35323f'], trouser: ['#232130', '#14131c'],
-          jacket: 1, tie: v ? C.ivoryS : '#8a2f46', pocket: 1, chair, chairPad }
+          jacket: 1, tie: v ? '#c4738d' : '#7fa8cd', pocket: 1, chair, chairPad }
       : { skin: SKIN[1], hair: HAIR[0], hairStyle: 0, view: 'side', arms,
           wear: [hb[0], hb[1], hb[2]], trouser: [hb[3], hb[4]],
           skirt: 1, lap: hb[3], lapD: hb[4], lapL: hb[5],
@@ -5105,7 +5107,7 @@ function wBuildScene() {
   W_PARENTS.forEach((pr, i) => {
     const [x, y] = T(pr.col, pr.row);
     const right = pr.col < AISLE_MID;
-    const v = i < 2 ? 0 : 1;
+    const v = pr.col < AISLE_MID ? 0 : 1;   // 0 = the left of the runner
     const sp = add(props, texParent(pr.who, 0, v), x, y + 6, y + 6);
     sp.scale.x = right ? 1 : -1;
     PX.parents.push({ sp, who: pr.who, v, phase: i * 1700 + 400 });
@@ -5624,20 +5626,21 @@ function descentStep(dt) {
   }
 }
 
-async function startRecessional() {
-  VOW.on = false; VOW.asking = false;
-  $('finale').classList.remove('show', 'ask');
-  $('world-stick').classList.remove('show');
-  await sleep(600);
+function startRecessional() {
+  // The scene has to take over in the same frame the panel starts fading,
+  // or he blinks out of existence for as long as the fade lasts.
   CUT.on = true; CUT.phase = 0; CUT.t = 0;
   CUT.step = 0; CUT.carded = false;
   CUT.descend = false;
-  CUT.join = true;                  // he has to walk over to her first
+  CUT.join = true;                  // he walks over to her side first
   CUT.gwalkT = 0; CUT.gstep = 1;
   W.locked = true; W.stop = null;
   W.x = AISLE_MID * WT + WT / 2;
   W.dir = 'down';
   if (PX && PX.groom) PX.groom.visible = false;
+  VOW.on = false; VOW.asking = false;
+  $('finale').classList.remove('show', 'ask', 'says');
+  $('world-stick').classList.remove('show');
 }
 
 function cutStep(dt) {
