@@ -4779,6 +4779,71 @@ function texCoffer(big) {
 }
 
 /* a soft pool of light — the only smooth texture in the hall */
+/* ══════════════════════════════════════════════════════════
+   THE LIGHTING
+   The hall is a dark room. One map, multiplied over everything
+   that stands on the floor, holds the light down everywhere
+   except along the runner and over the dais — so the two of them
+   are what you look at, and the guests are still there to see.
+══════════════════════════════════════════════════════════ */
+function texLightMap() {
+  const TW2 = 128, TH2 = 224;
+  return TEXS('lightmap', TW2, TH2, p => {
+    const g = p.g;
+    const aisleC = (AISLE_MID + 0.5) / W_COLS * TW2;
+    const rowY = r => (r * AH + WALLA) / (WALLA + MAPH) * TH2;
+
+    // the room itself: dim, and dimmer still out at the walls
+    const base = g.createLinearGradient(0, 0, TW2, 0);
+    base.addColorStop(0,    '#5a5b64');
+    base.addColorStop(0.13, '#7c7e88');
+    base.addColorStop(0.28, '#8e9098');
+    base.addColorStop(0.72, '#8e9098');
+    base.addColorStop(0.87, '#7c7e88');
+    base.addColorStop(1,    '#5a5b64');
+    g.fillStyle = base; g.fillRect(0, 0, TW2, TH2);
+
+    // and darker again toward the doors, so the room has depth
+    const depth = g.createLinearGradient(0, rowY(8), 0, TH2);
+    depth.addColorStop(0, 'rgba(0,0,0,0)');
+    depth.addColorStop(1, 'rgba(0,0,0,0.26)');
+    g.fillStyle = depth; g.fillRect(0, rowY(8), TW2, TH2 - rowY(8));
+
+    // the runner, lit the whole way down
+    const band = g.createLinearGradient(0, 0, TW2, 0);
+    const st = x => Math.max(0, Math.min(1, x / TW2));
+    band.addColorStop(0, 'rgba(255,252,244,0)');
+    band.addColorStop(st(aisleC - 15), 'rgba(255,252,244,0)');
+    band.addColorStop(st(aisleC - 9),  'rgba(255,252,244,0.55)');
+    band.addColorStop(st(aisleC - 5),  'rgba(255,252,244,0.98)');
+    band.addColorStop(st(aisleC + 5),  'rgba(255,252,244,0.98)');
+    band.addColorStop(st(aisleC + 9),  'rgba(255,252,244,0.55)');
+    band.addColorStop(st(aisleC + 15), 'rgba(255,252,244,0)');
+    band.addColorStop(1, 'rgba(255,252,244,0)');
+    g.save();
+    g.beginPath(); g.rect(0, rowY(2), TW2, TH2 - rowY(2)); g.clip();
+    g.fillStyle = band; g.fillRect(0, 0, TW2, TH2);
+    g.restore();
+
+    // and the dais, which is the brightest thing in the room
+    const dy = rowY(5);
+    const spot = g.createRadialGradient(aisleC, dy, 2, aisleC, dy, TW2 * 0.30);
+    spot.addColorStop(0,    'rgba(255,250,238,1)');
+    spot.addColorStop(0.38, 'rgba(255,248,232,0.66)');
+    spot.addColorStop(1,    'rgba(255,246,228,0)');
+    g.fillStyle = spot; g.fillRect(0, 0, TW2, rowY(11));
+
+    // the 혼주 sit just off the runner — they should not be in the dark
+    for (const c of [AISLE_MID - 2.2, AISLE_MID + 2.2]) {
+      const px2 = (c + 0.5) / W_COLS * TW2, py2 = rowY(9.5);
+      const gl = g.createRadialGradient(px2, py2, 1, px2, py2, TW2 * 0.13);
+      gl.addColorStop(0, 'rgba(255,246,228,0.5)');
+      gl.addColorStop(1, 'rgba(255,246,228,0)');
+      g.fillStyle = gl; g.fillRect(0, 0, TW2, TH2);
+    }
+  });
+}
+
 function texGlow() {
   return TEXS('glow', 96, 96, p => {
     const gr = p.g.createRadialGradient(48, 48, 0, 48, 48, 48);
@@ -4890,6 +4955,14 @@ function wBuildScene() {
   const props = PX.props = new PIXI.Container();
   props.sortableChildren = true;
   cam.addChild(props);
+
+  /* the light map: everything on the floor is dimmed by it except the
+     runner and the dais, which is what makes the room read as dark */
+  const lm = PX.lightMap = new PIXI.Sprite(texLightMap());
+  lm.blendMode = PIXI.BLEND_MODES.MULTIPLY;
+  lm.x = 0; lm.y = -WALLA;
+  lm.width = MAPW; lm.height = WALLA + MAPH;
+  cam.addChild(lm);
 
   /* the chandeliers hang between us and the floor */
   const ceil = PX.ceil = new PIXI.Container();
@@ -5137,9 +5210,9 @@ function wBuildScene() {
   /* ── grade and vignette, over everything ── */
   const grade = PX.grade = new PIXI.Sprite(TEXS('grade', 4, 64, p => {
     const gr = p.g.createLinearGradient(0, 0, 0, 64);
-    gr.addColorStop(0, 'rgba(255,214,158,0.16)');
-    gr.addColorStop(0.4, 'rgba(255,230,192,0.06)');
-    gr.addColorStop(1, 'rgba(18,22,32,0.24)');
+    gr.addColorStop(0, 'rgba(255,214,158,0.10)');
+    gr.addColorStop(0.4, 'rgba(255,230,192,0.03)');
+    gr.addColorStop(1, 'rgba(12,14,22,0.3)');
     p.g.fillStyle = gr; p.g.fillRect(0, 0, 4, 64);
   }));
   app.stage.addChild(grade);
