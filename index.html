@@ -1447,6 +1447,13 @@ html, body {
 #finale.soft #fn-inner { line-height: 2.1; }
 #fn-btns { display: none; gap: calc(var(--rb) * 2.4); }
 #finale.ask #fn-btns { display: flex; }
+/* the moment she says yes, everything inside — ring, box, name plate,
+   buttons — drops out together so nothing has a chance to reappear
+   for the half-second the panel takes to fade, whatever state it was
+   last in */
+#finale.closing #fn-ring, #finale.closing #fn-title,
+#finale.closing #fn-box, #finale.closing #fn-btns,
+#finale.closing #fn-who, #finale.closing #fn-tail { display: none !important; }
 .fn-btn {
   position: relative; cursor: pointer; user-select: none;
   padding: calc(var(--rb) * 1.8) calc(var(--rb) * 4.4);
@@ -5958,7 +5965,7 @@ function askTheQuestion() {
    other while the flowers come down. */
 const CUT = { on: false, phase: 0, t: 0, step: 0, walkT: 0,
               petals: [], carded: false,
-              descend: false, join: false, gx: 0, gy: 0, gstep: 0, gwalkT: 0 };
+              descend: false, join: false, joinWait: 0, gx: 0, gy: 0, gstep: 0, gwalkT: 0 };
 
 /* He walks down off the dais to meet her before he says anything. The one
    standing up there is the one who comes down — no second groom appears. */
@@ -5989,21 +5996,27 @@ function startRecessional() {
   CUT.step = 0; CUT.carded = false;
   CUT.descend = false;
   CUT.join = true;                  // he walks over to her side first
-  CUT.gwalkT = 0; CUT.gstep = 1;
+  CUT.joinWait = 1000;              // ...but takes a beat to react before he moves
+  CUT.gwalkT = 0; CUT.gstep = 0;
   W.locked = true; W.stop = null;
   W.x = AISLE_MID * WT + WT / 2;
   W.dir = 'down';
   if (PX && PX.groom) PX.groom.visible = false;
   VOW.on = false; VOW.asking = false;
+  $('finale').classList.add('closing');
   $('finale').classList.remove('show', 'ask', 'says');
   $('world-stick').classList.remove('show');
+  runConfetti();
 }
 
 function cutStep(dt) {
   CUT.t += dt;
   if (CUT.join) {
     // He is standing in front of her; he steps round to her side before
-    // either of them moves off, rather than simply appearing there.
+    // either of them moves off, rather than simply appearing there — and
+    // he takes a beat to react before he starts, rather than setting off
+    // the instant she says yes.
+    if (CUT.joinWait > 0) { CUT.joinWait -= dt; return; }
     const tx = w2ax(W.x) + 11, ty = w2ay(W.y);
     const dx = tx - CUT.gx, dy = ty - CUT.gy;
     const d = Math.hypot(dx, dy);
@@ -6073,7 +6086,7 @@ function cutPetals(dt) {
 async function showClosingCard() {
   const el = $('finale');
   $('fn-text').textContent = '';
-  el.classList.remove('ask', 'says');
+  el.classList.remove('ask', 'says', 'closing');
   el.classList.add('soft');
   VOW.on = false;
   await sleep(200);
