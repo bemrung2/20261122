@@ -3505,9 +3505,10 @@ function runConfetti() {
   draw();
 }
 
-/* a single pop from one point — used where the celebration should read
-   as "something bursts right here" rather than confetti raining over
-   the whole screen (the world mode's Yes button) */
+/* a firework-style pop, launched upward from one point so it fills the
+   center/top of the screen rather than a low puddle by the button —
+   used where the celebration should read as "something bursts right
+   here" rather than confetti raining over the whole screen */
 function burstConfetti(cx, cy) {
   const canvas = $('confetti');
   canvas.style.transition = '';
@@ -3516,21 +3517,25 @@ function burstConfetti(cx, cy) {
   canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
   const ctx  = canvas.getContext('2d');
-  const cols = ['#81D8D0','#B2EDE9','#ffffff','#4AADA5','#E8FAFA','#0ABAB5','#ffe9c9'];
-  const pieces = Array.from({length: 70}, () => {
-    const ang = Math.random() * Math.PI * 2;
-    const spd = 3 + Math.random() * 5.5;
+  // warm gold, blush and ivory — the same family the rest of the hall
+  // (lock screen, entrance glow, petal shower) already uses
+  const cols = ['#c8a96e', '#e8d5a8', '#f9c2d4', '#eb96b4', '#fffdf9', '#f6e6cb', '#f2c0a2'];
+  const pieces = Array.from({length: 76}, () => {
+    // a wide upward fan (not a full circle), so the launch itself carries
+    // everything up toward the center/top before gravity brings it back
+    const ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.5;
+    const spd = 5.5 + Math.random() * 8;
     return {
       x: cx, y: cy,
       vx: Math.cos(ang) * spd,
-      vy: Math.sin(ang) * spd - 1.6,   // a little upward kick to the pop
+      vy: Math.sin(ang) * spd,
       w: 4 + Math.random() * 7, h: 6 + Math.random() * 11,
       rot: Math.random() * Math.PI * 2,
       dr: (Math.random() - 0.5) * 0.35,
       col: cols[Math.floor(Math.random() * cols.length)],
     };
   });
-  const life = 1150;   // ms of visible flight before it's fully faded — real
+  const life = 1400;   // ms of visible flight before it's fully faded — real
                         // time, not frame count, so it lands the same on
                         // any device regardless of its actual frame rate
   const t0 = performance.now();
@@ -3541,7 +3546,7 @@ function burstConfetti(cx, cy) {
     const steps = dt / 16.7;   // keep motion consistent even at low fps
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     pieces.forEach(p => {
-      p.vy += 0.17 * steps;        // gravity pulls it back down
+      p.vy += 0.13 * steps;        // gravity pulls it back down
       p.vx *= Math.pow(0.985, steps); // drag settles the spread
       p.x += p.vx * steps; p.y += p.vy * steps; p.rot += p.dr * steps;
       ctx.save(); ctx.globalAlpha = Math.max(0, 1 - elapsed / life);
@@ -6060,12 +6065,16 @@ function startRecessional() {
   W.dir = 'down';
   if (PX && PX.groom) PX.groom.visible = false;
   VOW.on = false; VOW.asking = false;
-  // grab the button's position before the classes below take it out of layout
+  // grab the button's x before the classes below take it out of layout —
+  // the burst keeps that horizontal position but always launches from
+  // the center-top of the screen rather than low where the button sits,
+  // so it actually reads as fireworks and not a puddle at the bottom
   const yesRect = $('fn-yes').getBoundingClientRect();
+  const yesX = yesRect.left + yesRect.width / 2;
   $('finale').classList.add('closing');
   $('finale').classList.remove('show', 'ask', 'says');
   $('world-stick').classList.remove('show');
-  burstConfetti(yesRect.left + yesRect.width / 2, yesRect.top + yesRect.height / 2);
+  burstConfetti(yesX, window.innerHeight * 0.36);
 }
 
 function cutStep(dt) {
@@ -6264,9 +6273,9 @@ async function closeRecall() {
   RC.els = [];
   $('rc-media').innerHTML = '';
 
-  // set her down a step past the point she just remembered
+  // set her back down exactly where she was standing when the memory opened
   const pl = W_PLACES[RC.ep];
-  if (pl) { W.x = AISLE_MID * WT + WT / 2; W.y = (pl.row - 0.7) * WT; W.dir = 'up'; }
+  if (pl) { W.x = AISLE_MID * WT + WT / 2; W.y = (pl.row + 0.5) * WT; W.dir = 'up'; }
   W.locked = false; W.last = 0;
   $('world-stick').classList.add('show');
 }
