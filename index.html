@@ -103,7 +103,7 @@ html, body {
   padding: clamp(14px, 3vh, 30px) 18px; width: min(360px, 92vw);
   flex: 1; min-height: 0; max-height: 100%;
   display: flex; flex-direction: column; justify-content: center;
-  gap: clamp(16px, 3.4vh, 36px);
+  gap: clamp(20px, 3.8vh, 40px);
   animation: cardUp 0.9s cubic-bezier(0.16,1,0.3,1) both;
   touch-action: manipulation;
 }
@@ -111,11 +111,11 @@ html, body {
    between them (via .lock-card's own gap) — never the old dueling
    auto-margins, which could pinch to nothing and let the two halves
    crowd each other on a short viewport */
-.lock-top    { display: flex; flex-direction: column; align-items: center; gap: clamp(12px, 2.4vh, 26px); }
+.lock-top    { display: flex; flex-direction: column; align-items: center; gap: clamp(15px, 2.8vh, 30px); }
 .lock-bottom {
-  display: flex; flex-direction: column; align-items: stretch; gap: 10px;
+  display: flex; flex-direction: column; align-items: stretch; gap: 14px;
   opacity: 0; pointer-events: none;
-  transition: opacity .8s ease;
+  transition: opacity 1.1s ease;
 }
 .lock-bottom.show { opacity: 1; pointer-events: auto; }
 @keyframes cardUp {
@@ -138,15 +138,15 @@ html, body {
    keypad fading in beneath it */
 .lock-q {
   display: flex; flex-direction: column; align-items: center;
-  gap: clamp(4px, 1vh, 9px);
+  gap: clamp(7px, 1.3vh, 13px);
   width: 100%; text-align: center;
 }
 .lq-line {
   padding: 0 4px;
   font-size: clamp(14px, 2vh, 20px); font-weight: 400; line-height: 1.42;
   color: rgba(255,246,234,0.94); letter-spacing: -0.2px;
-  opacity: 0; transform: translateY(8px);
-  transition: opacity .9s ease, transform 1s cubic-bezier(0.16,1,0.3,1);
+  opacity: 0; transform: translateY(10px);
+  transition: opacity 1.4s ease, transform 1.6s cubic-bezier(0.16,1,0.3,1);
 }
 .lq-line.on { opacity: 1; transform: none; }
 .lq-line.emph {
@@ -159,7 +159,7 @@ html, body {
 .pin-dots {
   display: flex; justify-content: center; gap: clamp(10px, 1.8vh, 16px); align-items: center;
   opacity: 0; pointer-events: none;
-  transition: opacity .8s ease;
+  transition: opacity 1.1s ease;
 }
 .pin-dots.show { opacity: 1; pointer-events: auto; }
 #pin-lines { display: none; }
@@ -232,8 +232,8 @@ html, body {
    never end up crowding each other */
 @media (max-height: 700px) and (orientation: portrait) {
   #lock-bride { width: min(150px, 42vw); }
-  .lock-card  { gap: clamp(10px, 2vh, 18px); padding: 10px 18px; }
-  .lock-top   { gap: clamp(8px, 1.6vh, 14px); }
+  .lock-card  { gap: clamp(13px, 2.3vh, 21px); padding: 10px 18px; }
+  .lock-top   { gap: clamp(10px, 1.9vh, 17px); }
   .key        { height: clamp(38px, 6.2vh, 50px); }
   .keypad     { gap: clamp(6px, 1vh, 10px); }
 }
@@ -281,10 +281,10 @@ html, body {
 #en-l::after { right: 0; }
 #en-r::after { left: 0; }
 .en-door i {
-  position: absolute; top: 50%; width: 9px; height: clamp(74px, 15vh, 138px);
-  margin-top: calc(clamp(74px, 15vh, 138px) / -2);
+  position: absolute; top: 50%; width: 13px; height: clamp(222px, 45vh, 414px);
+  margin-top: calc(clamp(222px, 45vh, 414px) / -2);
   background: linear-gradient(180deg, #7d6640, #cbb079 40%, #7d6640);
-  border-radius: 4px;
+  border-radius: 6px;
 }
 #en-l i { right: 16px; }
 #en-r i { left: 16px; }
@@ -294,14 +294,19 @@ html, body {
 #entrance.open #en-r { transform: rotateY(112deg); }
 #entrance.open .en-door { filter: brightness(0.5); }
 
-/* the light behind them */
+/* the light behind them — round rather than a tall vertical oval (which
+   read like a lens, not a room), and it blooms outward from a small
+   core as the doors swing rather than just fading in at full size */
 #en-light {
   position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse 42% 62% at 50% 52%, #fffdf6 0%, rgba(255,247,226,0.86) 34%, rgba(255,238,204,0.35) 62%, rgba(255,232,196,0) 84%);
-  opacity: 0; transition: opacity 1.5s ease;
+    radial-gradient(circle 38vmin at 50% 52%, #fffdf6 0%, rgba(255,247,226,0.86) 32%, rgba(255,238,204,0.35) 60%, rgba(255,232,196,0) 82%);
+  opacity: 0;
+  transform: scale(0.22);
+  transform-origin: 50% 50%;
+  transition: opacity 2s ease, transform 2.4s cubic-bezier(0.45, 0, 0.2, 1);
 }
-#entrance.open #en-light { opacity: 1; }
+#entrance.open #en-light { opacity: 1; transform: scale(1); }
 
 /* the announcement: one word at a time, dead center, nothing else on
    screen — the same crossfade-in-place language the lock screen's
@@ -2240,7 +2245,7 @@ function playLockLines() {
   dots.classList.remove('show');
   bottom.classList.remove('show');
   if (!lines.length) return;
-  const delays = [300, 1150, 2050];
+  const delays = [450, 1950, 3550];
   lines.forEach((line, i) => {
     _lockLineTimers.push(setTimeout(() => {
       line.classList.add('on');
