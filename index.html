@@ -1679,6 +1679,7 @@ html, body {
   <div id="en-glare"></div>
 </div>
 <canvas id="confetti"></canvas>
+<audio id="bgm" src="audio/bgm.mp3" loop preload="auto"></audio>
 
 <!-- ══════════════════ LOCK ══════════════════ -->
 <div class="pg active" id="pg-lock">
@@ -2326,6 +2327,7 @@ async function playEntrance() {
   W.on = true; W.locked = false; W.last = 0;
   if (!W.raf) W.raf = requestAnimationFrame(wLoop);
   CHAPTERS.forEach((_, i) => preloadChapterMedia(i));
+  bgmTry();
   await sleep(80);
   el.classList.add('fade');
   await sleep(1600);
@@ -6203,6 +6205,11 @@ function rcShow(i) {
   RC.i = i;
 
   const isVid = /\.(mov|mp4|webm)$/i.test(ph.src);
+  // the videos here are silent and loop on their own, so there is no
+  // natural "it ended" moment — the music pauses for as long as a video
+  // is the one showing, and picks back up the moment a photo is
+  const bg = $('bgm');
+  if (isVid) { if (bg && !bg.paused) bg.pause(); } else { bgmTry(); }
   let el;
   if (isVid) {
     el = document.createElement('video');
@@ -6379,6 +6386,15 @@ function wLoop(ts) {
   W.raf = requestAnimationFrame(wLoop);
 }
 
+/* the background music: one attempt per gesture until the browser lets
+   it through, then it just keeps looping — silently swallowing the
+   rejection each time autoplay is still blocked */
+function bgmTry() {
+  const a = $('bgm');
+  if (!a || !a.paused) return;
+  a.play().catch(() => {});
+}
+
 /* ── controls: on-screen stick + keyboard ── */
 function wInitControls() {
   const stick = $('world-stick'), knob = $('world-stick-knob');
@@ -6395,6 +6411,7 @@ function wInitControls() {
   const reset = () => { knob.style.transform = ''; W.vx = W.vy = 0; id = null; };
 
   stick.addEventListener('touchstart', e => {
+    bgmTry();
     const t = e.changedTouches[0]; id = t.identifier;
     const r = stick.getBoundingClientRect();
     cx = r.left + r.width / 2; cy = r.top + r.height / 2;
@@ -6444,6 +6461,7 @@ function wInitControls() {
     const began = downs.get(e.pointerId);
     downs.delete(e.pointerId);
     if (!W.on || began === undefined) return;
+    bgmTry();
     if (VOW.on) {
       if (VOW.asking || began < VOW.shownAt) return;
       e.preventDefault(); vowAdvance();
