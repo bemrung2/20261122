@@ -6205,11 +6205,8 @@ function rcShow(i) {
   RC.i = i;
 
   const isVid = /\.(mov|mp4|webm)$/i.test(ph.src);
-  // the videos here are silent and loop on their own, so there is no
-  // natural "it ended" moment — the music pauses for as long as a video
-  // is the one showing, and picks back up the moment a photo is
-  const bg = $('bgm');
-  if (isVid) { if (bg && !bg.paused) bg.pause(); } else { bgmTry(); }
+  // the videos are muted anyway, so the music just plays straight through
+  bgmTry();
   let el;
   if (isVid) {
     el = document.createElement('video');
