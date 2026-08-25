@@ -5981,6 +5981,7 @@ function openVow() {
   const el = $('finale');
   el.classList.remove('ask', 'soft');
   el.classList.add('show', 'says');       // it is him speaking, not a caption
+  fadeOutBgm(3000);                       // the music ebbs away under his voice
   vowType(VOW.lines[0]);
 }
 function vowType(text) {
@@ -6018,11 +6019,10 @@ function vowAdvance() {
   holdBeforeQuestion();
 }
 
-/* the music fades out over its last five seconds, then three seconds of
-   nothing at all, and only then does the question itself burst in — with
-   its own track taking over from the one that just went quiet */
+/* the music is already gone by now — it went out under his first words.
+   Three seconds of nothing at all, and then the question itself bursts
+   in with its own track */
 async function holdBeforeQuestion() {
-  await fadeOutBgm(5000);
   await sleep(3000);
   askTheQuestion();
   playProposalSong();
@@ -6411,7 +6411,40 @@ function wLoop(ts) {
        gesture window has closed by then, and on iOS you get a burst of
        audible music instead of a silent unlock.
    Called on every tap until one is actually granted. */
+/* Both tracks run through a Web Audio gain node rather than the
+   element's own .volume, because on iOS .volume is read-only — writing
+   it does nothing at all, so a volume ramp there is silently a no-op
+   and the music would simply cut out instead of fading. A GainNode is
+   honoured everywhere. */
+let AC = null;
+const GAIN = {};
+function audioGraph() {
+  if (AC) return AC;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  try {
+    AC = new Ctx();
+    for (const id of ['bgm', 'bgm2']) {
+      const el = $(id);
+      if (!el) continue;
+      const g = AC.createGain();
+      g.gain.value = 1;
+      AC.createMediaElementSource(el).connect(g);
+      g.connect(AC.destination);
+      GAIN[id] = g;
+    }
+  } catch (e) { AC = null; }        // fall back to element volume below
+  return AC;
+}
+function setGain(id, v) {
+  const g = GAIN[id];
+  if (g) { g.gain.cancelScheduledValues(AC.currentTime); g.gain.value = v; }
+  else { const a = $(id); if (a) a.volume = v; }
+}
+
 function bgmPrime() {
+  audioGraph();
+  if (AC && AC.state === 'suspended') AC.resume().catch(() => {});
   for (const id of ['bgm', 'bgm2']) {
     const a = $(id);
     if (!a || a.dataset.primed) continue;
@@ -6437,21 +6470,31 @@ function bgmPrime() {
 function bgmTry() {
   const a = $('bgm');
   if (!a || !a.paused) return;
+  if (AC && AC.state === 'suspended') AC.resume().catch(() => {});
   a.play().catch(() => {});
 }
 
-/* fades bgm's volume down to silence over ms, then pauses it — used
-   right before the proposal track takes over */
+/* rides bgm down to silence over ms and then stops it — he starts
+   speaking, and the room quietly empties of music under him */
 function fadeOutBgm(ms) {
   const a = $('bgm');
   if (!a || a.paused) return Promise.resolve();
+  const g = GAIN.bgm;
+  if (g && AC) {
+    const now = AC.currentTime;
+    g.gain.cancelScheduledValues(now);
+    g.gain.setValueAtTime(g.gain.value, now);
+    g.gain.linearRampToValueAtTime(0.0001, now + ms / 1000);
+    return sleep(ms).then(() => { a.pause(); setGain('bgm', 1); });
+  }
+  // no Web Audio: ramp the element's own volume instead
   return new Promise(resolve => {
     const startVol = a.volume, t0 = performance.now();
     function step(now) {
       const t = Math.max(0, Math.min(1, (now - t0) / ms));
       a.volume = Math.max(0, Math.min(1, startVol * (1 - t)));
       if (t < 1) requestAnimationFrame(step);
-      else { a.pause(); resolve(); }
+      else { a.pause(); a.volume = startVol; resolve(); }
     }
     requestAnimationFrame(step);
   });
@@ -6462,13 +6505,16 @@ function fadeOutBgm(ms) {
 function playProposalSong() {
   const p2 = $('bgm2');
   if (!p2) return;
+  if (AC && AC.state === 'suspended') AC.resume().catch(() => {});
+  setGain('bgm2', 1);
   p2.currentTime = 0;
   p2.play().catch(() => {});
 }
 $('bgm2')?.addEventListener('ended', () => {
   const a = $('bgm');
   if (!a) return;
-  a.currentTime = 0; a.volume = 1;
+  setGain('bgm', 1);
+  a.currentTime = 0;
   a.play().catch(() => {});
 });
 
