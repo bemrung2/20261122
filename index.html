@@ -6015,15 +6015,9 @@ function vowAdvance() {
   if (VOW.asking) return;
   if (VOW.at < VOW.text.length) { vowFinishLine(); return; }
   if (VOW.line < VOW.lines.length - 1) { VOW.line++; vowType(VOW.lines[VOW.line]); return; }
-  VOW.asking = true;              // hold the gate shut through the hush below
-  holdBeforeQuestion();
-}
-
-/* the music is already gone by now — it went out under his first words.
-   Three seconds of nothing at all, and then the question itself bursts
-   in with its own track */
-async function holdBeforeQuestion() {
-  await sleep(3000);
+  // the room has been quiet since the music went out under his first
+  // words — the moment he is finished, the question and its own track
+  // arrive together, with nothing in between
   askTheQuestion();
   playProposalSong();
 }
