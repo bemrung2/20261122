@@ -2316,6 +2316,7 @@ async function playEntrance() {
   await sleep(700);
 
   el.classList.add('doors-in');           // only now does the gate itself appear, closed
+  bgmTry();                               // the music starts with the door, not after it opens
   await sleep(650);
   el.classList.add('open');               // and swings open on its hinges
   await sleep(2100);
@@ -2328,7 +2329,6 @@ async function playEntrance() {
   W.on = true; W.locked = false; W.last = 0;
   if (!W.raf) W.raf = requestAnimationFrame(wLoop);
   CHAPTERS.forEach((_, i) => preloadChapterMedia(i));
-  bgmTry();
   await sleep(80);
   el.classList.add('fade');
   await sleep(1600);
