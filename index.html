@@ -2146,6 +2146,7 @@ function initLock() {
      is nothing on the page hinting at it, which is the point. */
   let holdTimer = null;
   const startHold = e => {
+    bgmPrime();                       // any touch here is a chance to unlock audio
     if (e.target.closest('.key') || e.target.closest('.mode-toggle')) return;
     clearTimeout(holdTimer);
     holdTimer = setTimeout(() => {
@@ -6399,23 +6400,34 @@ function wLoop(ts) {
 /* Autoplay is only ever granted inside a real user gesture, and every
    point we actually want to start a track — the doors appearing, the
    proposal after its silence — is seconds removed from the tap that
-   led there, so play() at those moments is refused.
-   The keypad tap is the one gesture we always get, so we spend it
-   unlocking both elements: play them muted for an instant, then stop
-   and rewind. After that the browser treats them as user-approved and
-   later play() calls go through on their own. */
+   led there, so play() at those moments is refused on its own.
+
+   So we spend the taps we do get on unlocking the elements ahead of
+   time. Two things matter and both were wrong before:
+     - it must NOT be muted. Muted playback is allowed unconditionally,
+       so Safari does not count it as the user approving sound.
+     - play() and the pause() that hides it must both run synchronously
+       inside the handler. Pausing in a .then() is a turn too late: the
+       gesture window has closed by then, and on iOS you get a burst of
+       audible music instead of a silent unlock.
+   Called on every tap until one is actually granted. */
 function bgmPrime() {
   for (const id of ['bgm', 'bgm2']) {
     const a = $(id);
     if (!a || a.dataset.primed) continue;
-    a.dataset.primed = '1';
-    const vol = a.volume;
-    a.muted = true;
-    a.play().then(() => {
-      a.pause(); a.currentTime = 0; a.muted = false; a.volume = vol;
-    }).catch(() => {
-      a.muted = false; delete a.dataset.primed;   // let a later tap try again
-    });
+    try {
+      const p = a.play();
+      a.pause();                      // same tick — inaudible
+      a.currentTime = 0;
+      a.dataset.primed = '1';
+      // Pausing straight after play() makes that promise reject with an
+      // AbortError — ours, and the sign it worked. A NotAllowedError is
+      // the browser refusing outright, so drop the flag and let the next
+      // tap have another go.
+      if (p && p.catch) p.catch(err => {
+        if (err && err.name === 'NotAllowedError') delete a.dataset.primed;
+      });
+    } catch (e) { /* try again on the next tap */ }
   }
 }
 
