@@ -1680,6 +1680,7 @@ html, body {
 </div>
 <canvas id="confetti"></canvas>
 <audio id="bgm" src="audio/bgm.mp3" loop preload="auto"></audio>
+<audio id="bgm2" src="audio/proposal.mp3" preload="auto"></audio>
 
 <!-- ══════════════════ LOCK ══════════════════ -->
 <div class="pg active" id="pg-lock">
@@ -6011,7 +6012,18 @@ function vowAdvance() {
   if (VOW.asking) return;
   if (VOW.at < VOW.text.length) { vowFinishLine(); return; }
   if (VOW.line < VOW.lines.length - 1) { VOW.line++; vowType(VOW.lines[VOW.line]); return; }
+  VOW.asking = true;              // hold the gate shut through the hush below
+  holdBeforeQuestion();
+}
+
+/* the music fades out over its last five seconds, then three seconds of
+   nothing at all, and only then does the question itself burst in — with
+   its own track taking over from the one that just went quiet */
+async function holdBeforeQuestion() {
+  await fadeOutBgm(5000);
+  await sleep(3000);
   askTheQuestion();
+  playProposalSong();
 }
 
 /* and then the question itself */
@@ -6391,6 +6403,38 @@ function bgmTry() {
   if (!a || !a.paused) return;
   a.play().catch(() => {});
 }
+
+/* fades bgm's volume down to silence over ms, then pauses it — used
+   right before the proposal track takes over */
+function fadeOutBgm(ms) {
+  const a = $('bgm');
+  if (!a || a.paused) return Promise.resolve();
+  return new Promise(resolve => {
+    const startVol = a.volume, t0 = performance.now();
+    function step(now) {
+      const t = Math.max(0, Math.min(1, (now - t0) / ms));
+      a.volume = Math.max(0, Math.min(1, startVol * (1 - t)));
+      if (t < 1) requestAnimationFrame(step);
+      else { a.pause(); resolve(); }
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+/* the one-off track for the proposal itself — when it finishes, bgm
+   picks back up from the top at full volume (wired once, below) */
+function playProposalSong() {
+  const p2 = $('bgm2');
+  if (!p2) return;
+  p2.currentTime = 0;
+  p2.play().catch(() => {});
+}
+$('bgm2')?.addEventListener('ended', () => {
+  const a = $('bgm');
+  if (!a) return;
+  a.currentTime = 0; a.volume = 1;
+  a.play().catch(() => {});
+});
 
 /* ── controls: on-screen stick + keyboard ── */
 function wInitControls() {
