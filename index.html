@@ -2130,6 +2130,7 @@ function initLock() {
   }
   document.querySelector('.keypad').addEventListener('click', e => {
     const key = e.target.closest('.key'); if (!key) return;
+    bgmPrime();                       // a real tap: the only chance to unlock audio
     const k = key.dataset.k;
     if (k === 'del') {
       if (pin.length) { pin = pin.slice(0,-1); syncDots(); }
@@ -6393,6 +6394,29 @@ function wLoop(ts) {
   if (W.stop) thinkPlace();
   if (VOW.on) vowPlace();
   W.raf = requestAnimationFrame(wLoop);
+}
+
+/* Autoplay is only ever granted inside a real user gesture, and every
+   point we actually want to start a track — the doors appearing, the
+   proposal after its silence — is seconds removed from the tap that
+   led there, so play() at those moments is refused.
+   The keypad tap is the one gesture we always get, so we spend it
+   unlocking both elements: play them muted for an instant, then stop
+   and rewind. After that the browser treats them as user-approved and
+   later play() calls go through on their own. */
+function bgmPrime() {
+  for (const id of ['bgm', 'bgm2']) {
+    const a = $(id);
+    if (!a || a.dataset.primed) continue;
+    a.dataset.primed = '1';
+    const vol = a.volume;
+    a.muted = true;
+    a.play().then(() => {
+      a.pause(); a.currentTime = 0; a.muted = false; a.volume = vol;
+    }).catch(() => {
+      a.muted = false; delete a.dataset.primed;   // let a later tap try again
+    });
+  }
 }
 
 /* the background music: one attempt per gesture until the browser lets
