@@ -2394,7 +2394,10 @@ function initLock() {
     clearTimeout(holdTimer);
     holdTimer = setTimeout(() => {
       holdTimer = null;
-      $('mode-toggle').classList.toggle('show');
+      // the hold no longer opens the menu by itself — it only asks for
+      // the password, and a correct one opens it instead of the hall
+      if ($('mode-toggle').classList.contains('show')) { closeModeMenu(); return; }
+      armModeMenu();
     }, 1600);
   };
   const endHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
@@ -2405,6 +2408,8 @@ function initLock() {
   lockPage.addEventListener('pointermove', e => {
     if (holdTimer && (Math.abs(e.movementX) > 6 || Math.abs(e.movementY) > 6)) endHold();
   });
+
+  MODE_HINT_DEFAULT = $('lock-format-hint').textContent;
 
   $('mode-switch').addEventListener('click', () => {
     isManualMode = !isManualMode;
@@ -2428,6 +2433,33 @@ function initLock() {
     openAfter();
   });
   $('af-close').addEventListener('click', closeAfter);
+}
+
+/* ── the settings menu, which the password guards too ──
+   Holding the screen no longer opens it; it only puts the keypad into
+   a state where a correct password opens the menu rather than the
+   hall. Nothing about it is announced beyond the changed hint line. */
+let modeArmed = false;
+let MODE_HINT_DEFAULT = '';
+
+function armModeMenu() {
+  modeArmed = true;
+  pin = ''; syncDots();
+  $('lock-format-hint').textContent = '암호를 입력하면 설정이 열립니다';
+}
+function disarmModeMenu() {
+  if (!modeArmed) return;
+  modeArmed = false;
+  $('lock-format-hint').textContent = MODE_HINT_DEFAULT;
+}
+function openModeMenu() {
+  disarmModeMenu();
+  pin = ''; syncDots();
+  $('mode-toggle').classList.add('show');
+}
+function closeModeMenu() {
+  disarmModeMenu();
+  $('mode-toggle').classList.remove('show');
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -2684,6 +2716,9 @@ async function playEntrance() {
 
 async function checkPin() {
   if (pin === ANSWER) {
+    // held the screen first? then this opens the settings, not the hall
+    if (modeArmed) { openModeMenu(); return; }
+    closeModeMenu();                 // don't leave it hanging over the hall
     const lockEl = $('pg-lock');
     lockEl.style.transition = 'transform 1.1s cubic-bezier(0.16,1,0.3,1), opacity 0.85s ease';
     lockEl.style.transform  = 'scale(1.4)';
