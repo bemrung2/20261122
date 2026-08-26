@@ -318,6 +318,36 @@ html, body {
 }
 #entrance.open #en-light { opacity: 1; transform: scale(1); }
 
+/* Before any of that: she is still in the waiting room, and these are
+   only her thoughts. Same serif as the announcement that follows, but
+   small, dim and close-set — a whisper, so that "신부" / "입장!"
+   landing afterwards reads as the room opening up around her. */
+#en-wait {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.ew {
+  position: absolute;                    /* they share one slot */
+  padding: 0 8vw;
+  font-family: 'Nanum Myeongjo', 'Noto Serif KR', serif;
+  font-size: clamp(15px, 2.3vh, 25px); font-weight: 400;
+  line-height: 1.75; letter-spacing: 0.04em;
+  color: rgba(246,236,222,0.9);
+  text-align: center; word-break: keep-all;
+  text-shadow: 0 0 30px rgba(255,214,160,0.22);
+  opacity: 0; transform: translateY(9px);
+  transition: opacity 1.1s ease, transform 1.2s cubic-bezier(0.16,1,0.3,1);
+}
+.ew.in { opacity: 1; transform: none; }
+/* the last two are one sentence, so they stack instead of replacing */
+#ew-pair {
+  position: absolute;
+  display: flex; flex-direction: column; align-items: center;
+  gap: clamp(5px, 1.1vh, 11px);
+}
+#ew-pair .ew { position: static; padding: 0 6vw; }
+
 /* the announcement: one word at a time, dead center, nothing else on
    screen — the same crossfade-in-place language the lock screen's
    three lines use, just larger and slower */
@@ -1696,6 +1726,19 @@ html, body {
   <div id="en-light"></div>
   <div class="en-door" id="en-l"><i></i></div>
   <div class="en-door" id="en-r"><i></i></div>
+  <div id="en-wait">
+    <span class="ew" id="ew-1">어쩌지.. 너무 떨려...</span>
+    <span class="ew" id="ew-2">걷다가 넘어지면 어쩌지?</span>
+    <span class="ew" id="ew-3">그보다...</span>
+    <span class="ew" id="ew-4">민우랑 진짜 결혼해도 될까?</span>
+    <div id="ew-pair">
+      <span class="ew" id="ew-5">민우랑 그동안 어떤 일상을 보냈는지,</span>
+      <span class="ew" id="ew-6">어떤 추억을 쌓았는지 돌이켜본 적이 없어.</span>
+    </div>
+    <span class="ew" id="ew-7">곧 문이 열리는데.. 시간이 없어...</span>
+    <span class="ew" id="ew-8">버진로드를 걸어가며 떠올려보자.</span>
+    <span class="ew" id="ew-9">아니다 싶으면 중간에라도 도망치는거야!</span>
+  </div>
   <div id="en-words"><span id="en-1">신부</span><span id="en-2">입장!</span></div>
   <div id="en-glare"></div>
 </div>
@@ -2328,13 +2371,46 @@ async function playEntrance() {
   el.className = 'on';
   $('en-1').classList.remove('in');
   $('en-2').classList.remove('in');
+  for (let i = 1; i <= 9; i++) $('ew-' + i).classList.remove('in');
+
+  /* The waiting room. Nothing on screen but what she is thinking, and
+     her own heartbeat under it, getting quicker as the doors get
+     closer. A line at a time, except the two that are one sentence —
+     those stack instead of replacing each other. */
+  const say = async (id, hold, after) => {
+    $(id).classList.add('in');
+    await sleep(hold);
+    $(id).classList.remove('in');
+    await sleep(after);
+  };
+  startHeartbeat(62);
+  await sleep(600);
+  await say('ew-1', 1500, 600);           // 어쩌지.. 너무 떨려...
+  await say('ew-2', 1500, 600);           // 걷다가 넘어지면 어쩌지?
+  await say('ew-3', 1000, 500);           // 그보다...
+  heartRate(70);
+  await say('ew-4', 1700, 650);           // 민우랑 진짜 결혼해도 될까?
+
+  $('ew-5').classList.add('in');          // one sentence over two lines
   await sleep(800);
+  $('ew-6').classList.add('in');
+  await sleep(1900);
+  $('ew-5').classList.remove('in');
+  $('ew-6').classList.remove('in');
+  await sleep(800);
+
+  heartRate(82);                          // the doors are coming
+  await say('ew-7', 1500, 600);           // 곧 문이 열리는데.. 시간이 없어...
+  await say('ew-8', 1500, 600);           // 버진로드를 걸어가며 떠올려보자.
+  heartRate(94);
+  await say('ew-9', 1800, 800);           // 아니다 싶으면 중간에라도 도망치는거야!
 
   $('en-1').classList.add('in');          // 신부 rises, alone, on black
   await sleep(2000);
   $('en-1').classList.remove('in');       // and fades away again
   await sleep(950);
 
+  heartRate(104);                         // right up to the announcement
   $('en-2').classList.add('in');          // 입장!
   await sleep(2300);
   $('en-2').classList.remove('in');
@@ -2343,6 +2419,7 @@ async function playEntrance() {
   el.classList.add('doors-in');           // only now does the gate itself appear, closed
   AUDIO.want = 'bgm';                     // from here until he speaks, the music is wanted
   bgmTry();                               // it starts with the door, not after it opens
+  stopHeartbeat(0.9);                     // and her heart gives way to it
   await sleep(650);
   el.classList.add('open');               // and swings open on its hinges
   await sleep(2100);
@@ -6491,6 +6568,61 @@ function bgmPrime() {
       });
     } catch (e) { /* try again on the next tap */ }
   }
+}
+
+/* ── her heart, while she waits ──────────────────────────────
+   There is no audio file for this: each beat is built on the spot out
+   of two short sine thumps, the low "lub" and the softer "dub" a fifth
+   of a second behind it, each sliding down in pitch as it decays the
+   way a real one does. Scheduled a little ahead of the clock so the
+   rhythm does not wobble with the frame rate. */
+const HEART = { on: false, timer: 0, next: 0, bpm: 62, gain: null };
+
+function heartThump(t, freq, peak, dur) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(freq * 1.7, t);
+  o.frequency.exponentialRampToValueAtTime(freq * 0.72, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + 0.014);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(HEART.gain);
+  o.start(t); o.stop(t + dur + 0.03);
+}
+
+function startHeartbeat(bpm) {
+  if (!audioGraph() || HEART.on) { if (HEART.on && bpm) HEART.bpm = bpm; return; }
+  if (AC.state === 'suspended') AC.resume().catch(() => {});
+  HEART.on = true;
+  HEART.bpm = bpm || 62;
+  HEART.gain = AC.createGain();
+  HEART.gain.gain.value = 0.85;
+  HEART.gain.connect(AC.destination);
+  HEART.next = AC.currentTime + 0.15;
+  HEART.timer = setInterval(() => {
+    if (!HEART.on) return;
+    while (HEART.next < AC.currentTime + 0.4) {   // keep 400ms of beats queued
+      heartThump(HEART.next,        54, 0.55, 0.20);
+      heartThump(HEART.next + 0.20, 43, 0.32, 0.17);
+      HEART.next += 60 / HEART.bpm;
+    }
+  }, 110);
+}
+
+/* it quickens as the doors get closer */
+function heartRate(bpm) { if (HEART.on) HEART.bpm = bpm; }
+
+function stopHeartbeat(fade = 0.7) {
+  if (!HEART.on) return;
+  HEART.on = false;
+  clearInterval(HEART.timer); HEART.timer = 0;
+  const g = HEART.gain; HEART.gain = null;
+  if (!g || !AC) return;
+  const now = AC.currentTime;
+  g.gain.cancelScheduledValues(now);
+  g.gain.setValueAtTime(g.gain.value, now);
+  g.gain.linearRampToValueAtTime(0.0001, now + fade);
+  setTimeout(() => { try { g.disconnect(); } catch (e) {} }, (fade + 0.4) * 1000);
 }
 
 /* the background music: one attempt per gesture until the browser lets
