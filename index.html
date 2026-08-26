@@ -6235,11 +6235,14 @@ function vowAdvance() {
   if (VOW.asking) return;
   if (VOW.at < VOW.text.length) { vowFinishLine(); return; }
   if (VOW.line < VOW.lines.length - 1) { VOW.line++; vowType(VOW.lines[VOW.line]); return; }
-  // the room has been quiet since the music went out under his first
-  // words — the moment he is finished, the question and its own track
-  // arrive together, with nothing in between
-  askTheQuestion();
-  playProposalSong();
+  // The room has been quiet since the music went out under his first
+  // words. His question hangs there a second on its own, and then the
+  // ring and its track arrive together.
+  VOW.asking = true;               // shut the gate now, not a second late
+  setTimeout(() => {
+    askTheQuestion();
+    playProposalSong();
+  }, 1000);
 }
 
 /* and then the question itself */
@@ -6651,7 +6654,9 @@ function wAdvanceThought() {
   W.stop = null;
   W.visited.add(pl.ep);
   if (pl.groom) {                    // the last one is not a memory but a beginning
-    startDescent(openVow);
+    // a beat of stillness once her last thought has gone, before he
+    // moves at all — she is locked here, so nothing happens meanwhile
+    setTimeout(() => startDescent(openVow), 1000);
   } else {
     openRecall(pl.ep);
   }
