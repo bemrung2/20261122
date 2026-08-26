@@ -1934,10 +1934,10 @@ const CHAPTERS = [
     deco: 'I',
     bg: 'linear-gradient(150deg, #0b1c44 0%, #0e2252 55%, #070e28 100%)',
     photos: [
-      { src: 'photos/ep1/1.jpeg',  cap: 'KB 합격은 단순히 회사에 합격한 순간뿐만이 아니라\n평생의 동반자가 결정되는 순간이었어' },
+      { src: 'photos/ep1/1.jpeg',  cap: 'KB 합격은 단순히 회사에 합격한 순간만이\n아니라 평생의 동반자가 결정되는 순간이었어' },
       { src: 'photos/ep1/2.jpeg',  cap: '이 여의도 전산센터에서 처음 만나\n같은 부서 동기로 인연이 시작됐지' },
       { src: 'videos/ep1/1.mov',   cap: '5년 전 풋풋한 모습으로\n신입행원 자기소개 영상도 찍었어' },
-      { src: 'videos/ep1/2.mov',   cap: '그땐 민우도 이렇게 앳된 모습이었고' },
+      { src: 'videos/ep1/2.mov',   cap: '그땐 민우도 이렇게 앳된 모습이었네' },
       { src: 'photos/ep1/3.jpeg',  cap: '동기들끼리 밥도 먹고, 술도 마시면서\n민우가 날 좋아하게 되었고' },
       { src: 'photos/ep1/4.jpeg',  cap: '내가 좋다고 한 영화들을\n민우가 혼자 보고 와서 재밌었다고 했고' },
       { src: 'photos/ep1/5.jpeg',  cap: '동기들 사이에서 영화도 보고\n방탈출도 하면서 함께 시간을 보냈어' },
@@ -1952,10 +1952,10 @@ const CHAPTERS = [
     photos: [
       { src: 'photos/ep2/1.jpeg', cap: '방화수류정에서 고백을 받고, 우린 연애를 시작했어' },
       { src: 'photos/ep2/2.jpeg', cap: '연애 초반엔 충정로 근처에서 자주 만나며\n직필이나 은실종 공부도 같이 하고' },
-      { src: 'photos/ep2/3.jpeg', cap: '크리스마스를 앞두고는\n내가 좋아하는 발레 공연도 봤었어' },
+      { src: 'photos/ep2/3.jpeg', cap: '크리스마스를 앞두고는\n내가 좋아하는 발레 공연도 봤어' },
       { src: 'photos/ep2/4.jpeg', cap: '처음 함께하는 크리스마스엔 광교에서\n호캉스를 즐기기도 했지' },
       { src: 'videos/ep2/1.mov',  cap: '이 때는 시티아이에서 주로 만났고' },
-      { src: 'photos/ep2/5.jpeg', cap: '충정로 더플레이스에서도\n민우한테 요리를 자주 해줬고' },
+      { src: 'photos/ep2/5.jpeg', cap: '충정로 더플레이스에서도\n민우한테 요리를 자주 해줬지' },
       { src: 'photos/ep2/6.jpeg', cap: '내가 좋아하는 홍광호 배우를\n민우도 좋아하게 만들기도 했지' },
       { src: 'photos/ep2/7.jpeg', cap: '사진을 잘 찍지 않는 우리지만\n추억이 담긴 사진들도 남았어' },
     ]
@@ -1989,7 +1989,7 @@ const CHAPTERS = [
       { src: 'photos/ep4/3.jpeg',  cap: '제천 리솜포레스트에서는 2박 3일동안\n실컷 먹고 자고 힐링했고' },
       { src: 'photos/ep4/4.jpeg',  cap: '부산에서는 톤쇼우랑 거대곰탕도 가고,\n요트도 타고 드론쇼도 기억에 남아' },
       { src: 'photos/ep4/5.jpeg',  cap: '무려 4박을 했던 제주도 그랜드하얏트에서는\n맛있는 음식도 먹고 수영도 실컷 했어' },
-      { src: 'photos/ep4/6.jpeg',  cap: '카시아 속초에서 자쿠지에서 반신욕도 하고,\n처음으로 대게도 먹고 민우가 케이크도 준비했었지' },
+      { src: 'photos/ep4/6.jpeg',  cap: '카시아 속초에서 자쿠지에서 반신욕도 하고,\n대게도 먹고 민우가 케이크도 준비했었지' },
       { src: 'photos/ep4/7.jpeg',  cap: '우리의 첫 해외여행지\n푸꾸옥에서는' },
       { src: 'photos/ep4/8.jpeg',  cap: '도착하자마자 반쎄오도 먹고' },
       { src: 'photos/ep4/9.jpeg',  cap: '민우가 몰래 준비한\n망고 레터링 케이크도 감동이었어' },
@@ -6462,7 +6462,7 @@ function audioGraph() {
   return AC;
 }
 /* the proposal track sits a touch above the rest */
-const BGM2_LEVEL = 1.15;
+const BGM2_LEVEL = 1.4;
 function setGain(id, v) {
   const g = GAIN[id];
   if (g) { g.gain.cancelScheduledValues(AC.currentTime); g.gain.value = v; }
