@@ -3807,9 +3807,11 @@ const W_TABLES = (() => {
 /* 혼주석 — a pair of chairs each side, right in front of the dais */
 /* 혼주석 — two chairs each side in the clear stretch of runner between
    the steps and where she stops, turned in to watch the dais */
+/* Set out far enough from the runner to clear the flower beds that edge
+   it — the inner pair used to sit right on top of them. */
 const W_PARENTS = [
-  ...PAIR(AISLE_L - 2.9, c => ({ col: c, row: 9.4,  who: 'father' })),
-  ...PAIR(AISLE_L - 1.6, c => ({ col: c, row: 9.4,  who: 'mother' })),
+  ...PAIR(AISLE_L - 4.4, c => ({ col: c, row: 9.4,  who: 'father' })),
+  ...PAIR(AISLE_L - 3.1, c => ({ col: c, row: 9.4,  who: 'mother' })),
 ];
 
 /* Tall brass stands along the flower line, following the flare */
