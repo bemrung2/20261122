@@ -1462,7 +1462,13 @@ html, body {
 }
 #finale.soft { justify-content: flex-start; padding-top: calc(var(--sat) + 7vh); }
 #finale.soft #fn-inner { line-height: 2.1; }
-#fn-btns { display: none; gap: calc(var(--rb) * 2.4); animation: fnTitleIn 1.2s cubic-bezier(0.16,1,0.3,1) 1.5s both; }
+/* sat right under the question; pushed down toward the foot of the
+   screen so the ring and the words have the middle to themselves */
+#fn-btns {
+  display: none; gap: calc(var(--rb) * 2.4);
+  margin-top: clamp(24px, 9vh, 96px);
+  animation: fnTitleIn 1.2s cubic-bezier(0.16,1,0.3,1) 1.5s both;
+}
 #finale.ask #fn-btns { display: flex; }
 /* the moment she says yes, everything inside — ring, box, name plate,
    buttons — drops out together so nothing has a chance to reappear
@@ -2027,7 +2033,9 @@ const LETTER2 = `앞으로도 우리 함께
 평범한 하루도,
 특별한 순간도,
 
-모든 시간을 함께 하고 싶어.`;
+모든 시간을 함께 하고 싶어.
+
+나랑 결혼해줄래?`;
 
 /* ════════════════════════════════════
    STATE
@@ -5997,7 +6005,7 @@ function openVow() {
   const el = $('finale');
   el.classList.remove('ask', 'soft');
   el.classList.add('show', 'says');       // it is him speaking, not a caption
-  fadeOutBgm(4000);                       // the music ebbs away under his voice
+  fadeOutBgm(5000);                       // the music ebbs away under his voice
   vowType(VOW.lines[0]);
 }
 function vowType(text) {
