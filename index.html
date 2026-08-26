@@ -1736,7 +1736,7 @@ html, body {
       <span class="ew" id="ew-6">어떤 추억을 쌓았는지 돌이켜본 적이 없어.</span>
     </div>
     <span class="ew" id="ew-7">곧 문이 열리는데.. 시간이 없어...</span>
-    <span class="ew" id="ew-8">버진로드를 걸어가며 떠올려보자.</span>
+    <span class="ew" id="ew-8">그래, 지금이라도 떠올려보자!!</span>
     <span class="ew" id="ew-9">아니다 싶으면 중간에라도 도망치는거야!</span>
   </div>
   <div id="en-words"><span id="en-1">신부</span><span id="en-2">입장!</span></div>
@@ -2427,17 +2427,20 @@ async function playEntrance() {
   el.classList.add('glare');              // for a moment it is all light
   await sleep(1000);
 
-  // the hall is already there behind it; the glare simply lifts
+  // The hall is already there behind it; the glare simply lifts — onto
+  // the foot of the aisle, where its own doors are still shut with her
+  // behind them. From here the scene takes over: they part, she walks
+  // up to the head of the runner, and only once she has stopped there
+  // does entryStep() hand her the stick and the hint.
+  startEntryWalk();
   showPage('pg-world');
-  W.on = true; W.locked = false; W.last = 0;
+  W.on = true; W.last = 0;
   if (!W.raf) W.raf = requestAnimationFrame(wLoop);
   CHAPTERS.forEach((_, i) => preloadChapterMedia(i));
   await sleep(80);
   el.classList.add('fade');
   await sleep(1600);
   el.className = '';
-  $('world-stick').classList.add('show');
-  showWalkHint();
 }
 
 async function checkPin() {
@@ -5731,6 +5734,30 @@ function wBuildScene() {
                           x0: sp.x, phase: Math.abs(x - (AISLE_MID + 0.5) * AW) * 0.12 + y * 0.03 });
   }
 
+  /* ── the doors at the foot of the aisle ──
+     The gate she comes through. They sit in the bottom wall, shut, and
+     part outward as she arrives — the overlay's doors handing over to
+     a pair that actually live in the hall. */
+  const DOORW = 104, DOORH = 52;
+  for (const side of ['l', 'r']) {
+    const sp = new PIXI.Sprite(TEX('halldoor' + side, DOORW, DOORH, p => {
+      R(p, 0, 0, DOORW, DOORH, C.blkD);
+      for (let x = 0; x < DOORW; x += 7) {          // planks
+        R(p, x, 1, 4, DOORH - 2, C.blk);
+        R(p, x + 4, 1, 1, DOORH - 2, C.blkL);
+      }
+      R(p, 0, 0, DOORW, 1, C.goldD);                // brass head and foot
+      R(p, 0, DOORH - 1, DOORW, 1, C.goldD);
+      const lead = side === 'l' ? DOORW - 2 : 0;    // the meeting edge
+      R(p, lead, 0, 2, DOORH, C.gold);
+      R(p, lead, (DOORH >> 1) - 5, 2, 10, C.goldL); // and its handle
+    }));
+    sp.anchor.set(side === 'l' ? 1 : 0, 1);
+    sp.visible = false;
+    PX.props.addChild(sp);
+    if (side === 'l') PX.doorL = sp; else PX.doorR = sp;
+  }
+
   /* ── the bride, and the groom who leaves with her ── */
   const br = PX.bride = new PIXI.Sprite(texBride('down', 0));
   br.anchor.set(0.5, 46 / 78);
@@ -5875,6 +5902,23 @@ function wRender() {
 
   /* the bride — and, on the way out, the groom beside her */
   PX.camX = camX; PX.camY = camY;
+  /* the doors at the foot of the aisle — shut behind her at first, and
+     left standing open once she is through */
+  if (PX.doorL) {
+    const up = ENTRY.on || ENTRY.open > 0;
+    PX.doorL.visible = PX.doorR.visible = up;
+    if (up) {
+      const mid = (AISLE_MID + 0.5) * AW;
+      const sill = 70 * AH + 6;                   // standing in the bottom wall
+      const slide = Math.round(PX.doorL.width * ENTRY.open);
+      PX.doorL.x = Math.round(mid) - slide;
+      PX.doorR.x = Math.round(mid) + slide;
+      PX.doorL.y = PX.doorR.y = sill;
+      PX.doorL.zIndex = PX.doorR.zIndex = sill + 2; // in front of her as she passes
+      PX.doorL.renderable = PX.doorR.renderable = true;
+    }
+  }
+
   const br = PX.bride, pt = PX.partner;
   if (CUT.descend) {
     // walking down off the dais toward her, facing the camera
@@ -5931,7 +5975,18 @@ function wRender() {
       PX.heart.y = Math.round(ay) - 40 - Math.round(Math.sin(t / 500) * 2);
       PX.heart.alpha = 0.75 + 0.25 * Math.sin(t / 430);
     }
+  } else if (ENTRY.on) {
+    // She is taller than the leaves, so there is no hiding her behind
+    // them — she simply is not in the room until they have opened.
+    br.visible = ENTRY.phase === 'walk' || ENTRY.phase === 'done';
+    br.texture = texBride('up', ENTRY.step);
+    br.scale.x = 1;
+    br.x = Math.round(ax);
+    br.y = Math.round(ay) + (ENTRY.step === 2 ? -1 : 0);
+    br.zIndex = ay + 1;
+    if (pt) pt.visible = false;
   } else {
+    br.visible = true;
     const dir = W.dir === 'up' ? 'up' : W.dir === 'down' ? 'down' : 'side';
     const step = W.moving ? (W.step || 1) : 0;
     if (dir !== PX.bdir || step !== PX.bstep) {
@@ -6130,6 +6185,56 @@ function askTheQuestion() {
   drawVowRing();
   $('finale').classList.remove('says');
   $('finale').classList.add('ask');
+}
+
+/* ── the walk in ───────────────────────────────────────────
+   She does not simply appear standing on the runner. The hall opens on
+   the doors at the foot of it, still shut, with her behind them; they
+   part, she walks up to where the aisle proper begins, and only when
+   she has stopped there does she get the stick and the hint. */
+const ENTRY = { on: false, phase: '', t: 0, open: 0, walkT: 0, step: 0 };
+const ENTRY_ROW = 70.0;          // in the doorway itself, behind the leaves
+const ENTRY_STOP = 66.5;         // where she has always stood
+const ENTRY_DOOR_MS = 1800;      // how long the leaves take to part
+const ENTRY_SPEED = 54;          // world px per second, unhurried
+
+function startEntryWalk() {
+  ENTRY.on = true; ENTRY.phase = 'hold'; ENTRY.t = 0;
+  ENTRY.open = 0; ENTRY.walkT = 0; ENTRY.step = 0;
+  W.locked = true; W.stop = null; W.moving = false;
+  W.x = AISLE_MID * WT + WT / 2;
+  W.y = ENTRY_ROW * WT;
+  W.dir = 'up';
+  // the doors themselves are put on screen by wRender, which is the only
+  // place that knows the scene has been built yet — this runs before it
+}
+
+function entryStep(dt) {
+  ENTRY.t += dt;
+  if (ENTRY.phase === 'hold') {
+    // shut, while the overlay lifts off them
+    if (ENTRY.t > 500) { ENTRY.phase = 'doors'; ENTRY.t = 0; }
+  } else if (ENTRY.phase === 'doors') {
+    ENTRY.open = Math.min(1, ENTRY.open + dt / ENTRY_DOOR_MS);
+    if (ENTRY.open >= 1) { ENTRY.phase = 'pause'; ENTRY.t = 0; }
+  } else if (ENTRY.phase === 'pause') {
+    if (ENTRY.t > 450) { ENTRY.phase = 'walk'; ENTRY.t = 0; ENTRY.step = 1; }
+  } else if (ENTRY.phase === 'walk') {
+    W.y -= ENTRY_SPEED / 1000 * dt;
+    ENTRY.walkT += dt;
+    if (ENTRY.walkT > 230) { ENTRY.walkT = 0; ENTRY.step = ENTRY.step === 1 ? 2 : 1; }
+    if (W.y <= ENTRY_STOP * WT) {
+      W.y = ENTRY_STOP * WT;
+      ENTRY.phase = 'done'; ENTRY.step = 0; ENTRY.t = 0;
+    }
+  } else if (ENTRY.phase === 'done') {
+    if (ENTRY.t > 350) {
+      ENTRY.on = false;
+      W.locked = false;
+      $('world-stick').classList.add('show');
+      showWalkHint();
+    }
+  }
 }
 
 /* ── the walk back out ─────────────────────────────────────
@@ -6417,6 +6522,7 @@ function wNextStop() {
 }
 
 function wStep(dt) {
+  if (ENTRY.on) { entryStep(dt); return; }
   if (CUT.descend) { descentStep(dt); return; }
   if (VOW.on) return;
   if (CUT.on) { cutStep(dt); return; }
