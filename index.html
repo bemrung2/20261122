@@ -213,29 +213,49 @@ html, body {
 }
 .lock-err.show { opacity: 1; }
 
-/* the hidden toggles */
+/* The hidden toggles. Still only reachable by holding the screen, but
+   once they are up they are meant to be read — they used to be barely
+   a shade off the background. */
+/* It floats over the screen rather than sitting in the column — grown
+   in place it pushed the bride and the keypad off the top. */
 .mode-toggle {
-  display: flex; flex-direction: column; align-items: center; gap: 9px;
-  max-height: 0; overflow: hidden;
-  opacity: 0; transition: opacity 0.3s ease, max-height 0.3s ease;
+  position: absolute; z-index: 6;
+  top: calc(var(--sat) + 12px); left: 50%;
+  width: min(290px, 80vw);
+  opacity: 0; pointer-events: none;
+  transform: translate(-50%, -8px);
+  transition: opacity .28s ease, transform .3s cubic-bezier(0.16,1,0.3,1);
 }
-.mode-toggle.show { max-height: 96px; opacity: 1; }
-.mode-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
-.mode-label { font-size: 11.5px; color: rgba(214,190,170,0.5); letter-spacing: 0.12em; }
+.mode-toggle.show { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+.mode-panel {
+  padding: clamp(10px, 1.8vh, 16px) clamp(13px, 3vw, 18px);
+  background: rgba(30,26,36,0.92);
+  border: 1px solid rgba(232,214,190,0.24);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  display: flex; flex-direction: column; gap: clamp(9px, 1.6vh, 14px);
+}
+.mode-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.mode-label {
+  font-size: clamp(12px, 1.7vh, 15px); font-weight: 500;
+  color: rgba(255,244,228,0.9); letter-spacing: 0.08em; white-space: nowrap;
+}
 .mode-switch {
-  width: 40px; height: 22px; border-radius: 11px; position: relative; cursor: pointer;
-  background: rgba(255,246,234,0.08);
-  border: 1px solid rgba(232,214,190,0.14);
+  width: 44px; height: 24px; border-radius: 12px; position: relative; cursor: pointer;
+  flex: none;
+  background: rgba(255,246,234,0.14);
+  border: 1px solid rgba(232,214,190,0.34);
   transition: background .18s ease;
 }
 .mode-switch::after {
   content: ''; position: absolute; top: 3px; left: 3px;
-  width: 14px; height: 14px; border-radius: 50%;
-  background: rgba(226,206,178,0.55);
+  width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(240,226,204,0.8);
   transition: transform .18s cubic-bezier(0.16,1,0.3,1), background .18s ease;
 }
-.mode-switch.on { background: rgba(196,124,132,0.34); }
-.mode-switch.on::after { transform: translateX(18px); background: rgba(255,238,232,0.95); }
+.mode-switch.on { background: rgba(206,134,142,0.55); border-color: rgba(236,176,182,0.5); }
+.mode-switch.on::after { transform: translateX(20px); background: rgba(255,244,240,0.98); }
 
 /* a short phone in portrait (browser chrome eating into the viewport,
    older small screens) gets a tighter pass so the dots and the keypad
@@ -1581,6 +1601,98 @@ html, body {
   box-shadow: 0 3px 0 rgba(0,0,0,0.25);
 }
 
+/* ══════════════════════════════════════════════════════════
+   AFTER
+   The day it actually happened, kept the way the recall frames
+   keep the others: warm dark ground, matted prints, and the
+   note set in the same serif the letters use.
+══════════════════════════════════════════════════════════ */
+#pg-after {
+  background: #14121a;
+  display: block;
+}
+#pg-after::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 76% 40% at 50% 0%, rgba(255,214,178,0.14) 0%, transparent 70%),
+    radial-gradient(ellipse 90% 46% at 50% 100%, rgba(196,124,132,0.16) 0%, transparent 74%);
+}
+#af-scroll {
+  position: absolute; inset: 0; z-index: 1;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+#af-inner {
+  max-width: min(560px, 92vw);
+  margin: 0 auto;
+  padding: calc(var(--sat) + clamp(46px, 9vh, 96px)) 0 calc(var(--sab) + clamp(40px, 8vh, 90px));
+  display: flex; flex-direction: column; align-items: center;
+  gap: clamp(26px, 5vh, 52px);
+}
+
+#af-head { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.af-kicker {
+  font-size: clamp(11px, 1.5vh, 13px); letter-spacing: 0.34em; text-indent: 0.34em;
+  color: rgba(226,196,166,0.72);
+}
+.af-date {
+  font-family: 'Nanum Myeongjo', 'Noto Serif KR', serif;
+  font-size: clamp(19px, 2.9vh, 28px); letter-spacing: 0.14em;
+  color: rgba(255,242,226,0.94);
+  text-shadow: 0 0 26px rgba(255,206,150,0.28);
+}
+
+.af-note {
+  display: flex; flex-direction: column; align-items: center;
+  gap: clamp(9px, 1.7vh, 15px);
+  padding: 0 4px; text-align: center;
+}
+.af-line {
+  font-family: 'Nanum Myeongjo', 'Noto Serif KR', serif;
+  font-size: clamp(14px, 2vh, 19px); line-height: 1.6;
+  color: rgba(255,242,228,0.9); word-break: keep-all;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity 1.2s ease, transform 1.3s cubic-bezier(0.16,1,0.3,1);
+}
+.af-line.in { opacity: 1; transform: none; }
+
+/* the prints, matted the way the memories are */
+#af-shots { display: flex; flex-direction: column; gap: clamp(20px, 4vh, 40px); width: 100%; }
+.af-shot {
+  background: #f4efe4;
+  padding: clamp(9px, 1.8vw, 15px);
+  border-radius: 3px;
+  box-shadow: 0 clamp(8px, 1.6vh, 18px) clamp(20px, 4vh, 42px) rgba(0,0,0,0.5),
+              inset 0 0 0 1px rgba(255,255,255,0.5);
+  opacity: 0; transform: translateY(18px) scale(0.985);
+  transition: opacity 1s ease, transform 1.1s cubic-bezier(0.16,1,0.3,1);
+}
+.af-shot.in { opacity: 1; transform: none; }
+.af-shot img {
+  display: block; width: 100%; height: auto; border-radius: 1px;
+  background: #ded6c8;
+}
+
+.af-foot {
+  display: flex; align-items: center; gap: 12px;
+  color: rgba(226,196,166,0.66);
+  font-size: clamp(11px, 1.5vh, 13px); letter-spacing: 0.28em; text-indent: 0.28em;
+}
+.af-foot i { display: block; width: clamp(22px, 6vw, 40px); height: 1px; background: rgba(226,196,166,0.4); }
+
+#af-close {
+  position: absolute; z-index: 3;
+  top: calc(var(--sat) + 12px); right: calc(var(--sar) + 14px);
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: rgba(255,240,224,0.8);
+  background: rgba(16,14,20,0.55);
+  border: 1px solid rgba(232,214,190,0.2);
+  cursor: pointer; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+#af-close:active { background: rgba(16,14,20,0.8); }
+
 /* ═══════════════════════════════════════
    CONFETTI
 ═══════════════════════════════════════ */
@@ -1785,13 +1897,19 @@ html, body {
   <div class="lock-card">
     <div class="lock-top">
       <div class="mode-toggle" id="mode-toggle">
-        <div class="mode-row">
-          <span class="mode-label" id="mode-label">자동 모드</span>
-          <div class="mode-switch" id="mode-switch"></div>
-        </div>
-        <div class="mode-row">
-          <span class="mode-label" id="classic-label">카드 모드</span>
-          <div class="mode-switch" id="classic-switch"></div>
+        <div class="mode-panel">
+          <div class="mode-row">
+            <span class="mode-label" id="mode-label">자동 모드</span>
+            <div class="mode-switch" id="mode-switch"></div>
+          </div>
+          <div class="mode-row">
+            <span class="mode-label" id="classic-label">카드 모드</span>
+            <div class="mode-switch" id="classic-switch"></div>
+          </div>
+          <div class="mode-row">
+            <span class="mode-label">애프터 모드</span>
+            <div class="mode-switch" id="after-switch"></div>
+          </div>
         </div>
       </div>
       <canvas id="lock-bride" width="80" height="66"></canvas>
@@ -1996,6 +2114,31 @@ html, body {
       <div class="accept-badge" id="accept-badge">2026 · 11 · 22</div>
     </div>
   </div>
+</div>
+
+<!-- ══════════════════ AFTER — the day itself, and thanks for it ══════════════════ -->
+<div class="pg" id="pg-after">
+  <div id="af-scroll">
+    <div id="af-inner">
+      <div id="af-head">
+        <span class="af-kicker">프로포즈</span>
+        <span class="af-date">그날의 기록</span>
+      </div>
+
+      <div class="af-note">
+        <p class="af-line">갑작스럽고 어설픈 프로포즈에도</p>
+        <p class="af-line">고마워해주는 소영이에게 고마워</p>
+        <p class="af-line">오늘 좋아해줘서 너무 고맙고</p>
+        <p class="af-line">오늘같은 일상이 우리 부부의 일상이 될 수 있게</p>
+        <p class="af-line">노력하고 사랑할게</p>
+      </div>
+
+      <div id="af-shots"></div>
+
+      <div class="af-foot"><i></i><span>민우가</span><i></i></div>
+    </div>
+  </div>
+  <div id="af-close" role="button" aria-label="닫기">✕</div>
 </div>
 
 <script>
@@ -2277,6 +2420,58 @@ function initLock() {
     $('classic-switch').classList.toggle('on', classicMode);
     $('classic-label').textContent = classicMode ? '카드 모드' : '월드 모드';
   });
+
+  // the only one of the three that goes somewhere rather than setting a
+  // flag for later — it opens the day itself
+  $('after-switch').addEventListener('click', () => {
+    $('after-switch').classList.add('on');
+    openAfter();
+  });
+  $('af-close').addEventListener('click', closeAfter);
+}
+
+/* ══════════════════════════════════════════════════════════
+   AFTER
+   The photographs from the day, and what he wanted to say
+   about it. Everything arrives in order rather than at once.
+══════════════════════════════════════════════════════════ */
+const AFTER_SHOTS = [
+  'photos/after/1.jpg', 'photos/after/2.jpg', 'photos/after/3.jpg',
+  'photos/after/4.jpg', 'photos/after/5.jpg',
+];
+let _afterTimers = [];
+
+async function openAfter() {
+  const shots = $('af-shots');
+  if (!shots.childElementCount) {                 // built once, kept after that
+    for (const src of AFTER_SHOTS) {
+      const fig = document.createElement('div');
+      fig.className = 'af-shot';
+      const im = document.createElement('img');
+      im.loading = 'lazy'; im.decoding = 'async'; im.src = src; im.alt = '';
+      fig.appendChild(im);
+      shots.appendChild(fig);
+    }
+  }
+  _afterTimers.forEach(clearTimeout); _afterTimers = [];
+  document.querySelectorAll('#pg-after .af-line, #pg-after .af-shot')
+    .forEach(el => el.classList.remove('in'));
+  $('af-scroll').scrollTop = 0;
+
+  await fadeTo('pg-after');
+
+  // the note first, a line at a time, then the prints under it
+  const lines = [...document.querySelectorAll('#pg-after .af-line')];
+  lines.forEach((l, i) => _afterTimers.push(setTimeout(() => l.classList.add('in'), 420 + i * 900)));
+  const after = 420 + lines.length * 900;
+  [...document.querySelectorAll('#pg-after .af-shot')]
+    .forEach((s, i) => _afterTimers.push(setTimeout(() => s.classList.add('in'), after + i * 260)));
+}
+
+async function closeAfter() {
+  _afterTimers.forEach(clearTimeout); _afterTimers = [];
+  $('after-switch').classList.remove('on');
+  await fadeTo('pg-lock');
 }
 
 /* ══════════════════════════════════════════════════════════
