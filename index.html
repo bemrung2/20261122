@@ -2383,12 +2383,12 @@ async function playEntrance() {
     $(id).classList.remove('in');
     await sleep(after);
   };
-  startHeartbeat(62);
+  startHeartbeat(54);
   await sleep(600);
   await say('ew-1', 1500, 600);           // 어쩌지.. 너무 떨려...
   await say('ew-2', 1500, 600);           // 걷다가 넘어지면 어쩌지?
   await say('ew-3', 1000, 500);           // 그보다...
-  heartRate(70);
+  heartRate(60);
   await say('ew-4', 1700, 650);           // 민우랑 진짜 결혼해도 될까?
 
   $('ew-5').classList.add('in');          // one sentence over two lines
@@ -2399,10 +2399,13 @@ async function playEntrance() {
   $('ew-6').classList.remove('in');
   await sleep(800);
 
-  heartRate(82);                          // the doors are coming
+  heartRate(70);                          // the doors are coming
   await say('ew-7', 1500, 600);           // 곧 문이 열리는데.. 시간이 없어...
-  await say('ew-8', 1500, 600);           // 버진로드를 걸어가며 떠올려보자.
-  heartRate(94);
+  // Her heart starts going quiet here and is gone by the announcement:
+  // the five seconds this takes are exactly the last two lines. Not
+  // awaited — the lines carry on over the top of it.
+  fadeHeartbeat(5000);
+  await say('ew-8', 1500, 600);           // 그래, 지금이라도 떠올려보자!!
   await say('ew-9', 1800, 800);           // 아니다 싶으면 중간에라도 도망치는거야!
 
   $('en-1').classList.add('in');          // 신부 rises, alone, on black
@@ -2410,7 +2413,6 @@ async function playEntrance() {
   $('en-1').classList.remove('in');       // and fades away again
   await sleep(950);
 
-  heartRate(104);                         // right up to the announcement
   $('en-2').classList.add('in');          // 입장!
   await sleep(2300);
   $('en-2').classList.remove('in');
@@ -2419,7 +2421,7 @@ async function playEntrance() {
   el.classList.add('doors-in');           // only now does the gate itself appear, closed
   AUDIO.want = 'bgm';                     // from here until he speaks, the music is wanted
   bgmTry();                               // it starts with the door, not after it opens
-  stopHeartbeat(0.9);                     // and her heart gives way to it
+  stopHeartbeat(0.4);                     // a no-op by now, but never leave it running
   await sleep(650);
   el.classList.add('open');               // and swings open on its hinges
   await sleep(2100);
@@ -5735,10 +5737,13 @@ function wBuildScene() {
   }
 
   /* ── the doors at the foot of the aisle ──
-     The gate she comes through. They sit in the bottom wall, shut, and
-     part outward as she arrives — the overlay's doors handing over to
-     a pair that actually live in the hall. */
-  const DOORW = 104, DOORH = 52;
+     The gate she comes through: two leaves filling the gap between the
+     flowers that flank the mouth of the runner, and no wider. They are
+     hinged at those flowers rather than sliding — swinging back is
+     faked by narrowing each leaf toward its own hinge, which in this
+     flat top-down view reads as the leaf turning away from you. */
+  const DOORW = ((AISLE_MID + 5) - (AISLE_MID - 4)) * AW / 2;   // half the mouth
+  const DOORH = 56;
   for (const side of ['l', 'r']) {
     const sp = new PIXI.Sprite(TEX('halldoor' + side, DOORW, DOORH, p => {
       R(p, 0, 0, DOORW, DOORH, C.blkD);
@@ -5748,11 +5753,13 @@ function wBuildScene() {
       }
       R(p, 0, 0, DOORW, 1, C.goldD);                // brass head and foot
       R(p, 0, DOORH - 1, DOORW, 1, C.goldD);
+      const hinge = side === 'l' ? 0 : DOORW - 2;   // the flower side
+      R(p, hinge, 0, 2, DOORH, C.goldD);
       const lead = side === 'l' ? DOORW - 2 : 0;    // the meeting edge
       R(p, lead, 0, 2, DOORH, C.gold);
-      R(p, lead, (DOORH >> 1) - 5, 2, 10, C.goldL); // and its handle
+      R(p, lead, (DOORH >> 1) - 6, 2, 12, C.goldL); // and its handle
     }));
-    sp.anchor.set(side === 'l' ? 1 : 0, 1);
+    sp.anchor.set(side === 'l' ? 0 : 1, 1);         // anchored on its hinge
     sp.visible = false;
     PX.props.addChild(sp);
     if (side === 'l') PX.doorL = sp; else PX.doorR = sp;
@@ -5908,11 +5915,11 @@ function wRender() {
     const up = ENTRY.on || ENTRY.open > 0;
     PX.doorL.visible = PX.doorR.visible = up;
     if (up) {
-      const mid = (AISLE_MID + 0.5) * AW;
       const sill = 70 * AH + 6;                   // standing in the bottom wall
-      const slide = Math.round(PX.doorL.width * ENTRY.open);
-      PX.doorL.x = Math.round(mid) - slide;
-      PX.doorR.x = Math.round(mid) + slide;
+      const swing = 1 - ENTRY.open * 0.9;         // narrowing toward each hinge
+      PX.doorL.x = (AISLE_MID - 4) * AW;          // hinged on the left flowers
+      PX.doorR.x = (AISLE_MID + 5) * AW;          // and on the right
+      PX.doorL.scale.x = PX.doorR.scale.x = swing;
       PX.doorL.y = PX.doorR.y = sill;
       PX.doorL.zIndex = PX.doorR.zIndex = sill + 2; // in front of her as she passes
       PX.doorL.renderable = PX.doorR.renderable = true;
@@ -6717,6 +6724,20 @@ function startHeartbeat(bpm) {
 
 /* it quickens as the doors get closer */
 function heartRate(bpm) { if (HEART.on) HEART.bpm = bpm; }
+
+/* Rides the whole thing down to nothing over ms and only then stops it.
+   stopHeartbeat() on its own cannot do this: it stops queueing beats
+   straight away, so all its fade has left to work on is the fraction of
+   a second already scheduled. Here the beats carry on to the end, just
+   quieter and quieter. */
+function fadeHeartbeat(ms) {
+  if (!HEART.on || !HEART.gain || !AC) return Promise.resolve();
+  const g = HEART.gain, now = AC.currentTime;
+  g.gain.cancelScheduledValues(now);
+  g.gain.setValueAtTime(g.gain.value, now);
+  g.gain.linearRampToValueAtTime(0.0001, now + ms / 1000);
+  return sleep(ms + 120).then(() => stopHeartbeat(0.15));
+}
 
 function stopHeartbeat(fade = 0.7) {
   if (!HEART.on) return;
