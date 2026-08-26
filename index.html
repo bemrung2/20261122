@@ -3832,10 +3832,14 @@ const W_ENTRY_FLOWERS = [
 /* Chandeliers hung down the aisle and in banks either side */
 const W_CHANDELIERS = (() => {
   const out = [];
-  for (let r = 17; r <= 66; r += 7) {
+  let bank = 0;
+  for (let r = 17; r <= 66; r += 7, bank++) {
     // the first one down the aisle would hang square in front of the groom
     if (r > 17) out.push({ col: AISLE_MID, row: r, big: 1 });
-    out.push(...PAIR(AISLE_L - 6, c => ({ col: c, row: r + 3.5, big: 0 })));
+    // over the tables, one between every second pair rather than one
+    // apiece — hung above every table they crowded the ceiling
+    if (bank % 2 === 0)
+      out.push(...PAIR(AISLE_L - 6, c => ({ col: c, row: r + 3.5, big: 0 })));
   }
   // Over the ceremony itself: three hung high in the ceiling above the
   // dais, staggered so they read as a real bank of lights rather than a
@@ -4094,17 +4098,24 @@ function bakeBackdrop() {
       const px2 = dx => x + (flip ? bw - 1 - dx : dx);
       R(p, x, y, bw, AH, C.carpet);
       const g = mulberry(r * 977 + 31);
-      for (let k = 0; k < 24; k++)
+      // foliage first, and enough of it that no carpet shows through
+      for (let k = 0; k < 40; k++)
         D(p, px2((g() * bw) | 0), y + ((g() * AH) | 0), g() > 0.5 ? C.gr3 : C.gr2);
-      for (let k = 0; k < 13; k++)
+      for (let k = 0; k < 14; k++)     // lighter leaves catching the light
+        D(p, px2((g() * bw) | 0), y + ((g() * AH) | 0), g() > 0.6 ? C.gr1 : C.gr2);
+      for (let k = 0; k < 20; k++)
         D(p, px2((g() * bw) | 0), y + ((g() * AH) | 0), g() > 0.55 ? C.gyp : C.pk1);
-      for (let k = 0; k < 15; k++) {
+      // then the blooms — mixed sizes, so the bed has depth to it rather
+      // than reading as one even sprinkle
+      for (let k = 0; k < 26; k++) {
         const bx = px2(1 + ((g() * (bw - 2)) | 0)), by2 = y + 1 + ((g() * (AH - 2)) | 0);
         const u = g();
         const col2 = u > 0.86 ? C.wh1 : u > 0.62 ? C.pk1 : u > 0.4 ? C.pk2
                    : u > 0.2 ? C.pk3 : u > 0.08 ? C.lv1 : C.lv2;
-        BLOB(p, bx, by2, 1.5, 1.3, col2);
+        const big = g() > 0.68;
+        BLOB(p, bx, by2, big ? 2.1 : 1.4, big ? 1.8 : 1.2, col2);
         D(p, bx, by2 - 1, col2 === C.wh1 ? C.ivoryL : C.pk1);
+        if (big) D(p, bx + 1, by2, C.wh2);          // a lit petal on the fuller ones
       }
     }
   }
@@ -5380,6 +5391,35 @@ function texLightMap() {
   });
 }
 
+/* The runner before its lights come up. White everywhere but the aisle,
+   so multiplying it over the lit hall pulls only the runner back down to
+   the gloom the guest tables sit in; fading this out is the moment the
+   virgin road is lit. */
+function texRunnerShade() {
+  const TW2 = 128, TH2 = 224;
+  return TEXS('runnershade', TW2, TH2, p => {
+    const g = p.g;
+    const aisleC = (AISLE_MID + 0.5) / W_COLS * TW2;
+    const rowY = r => (r * AH + WALLA) / (WALLA + MAPH) * TH2;
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, TW2, TH2);
+    const st = x => Math.max(0, Math.min(1, x / TW2));
+    const band = g.createLinearGradient(0, 0, TW2, 0);
+    band.addColorStop(0, 'rgba(88,90,102,0)');
+    band.addColorStop(st(aisleC - 15), 'rgba(88,90,102,0)');
+    band.addColorStop(st(aisleC - 9),  'rgba(88,90,102,0.55)');
+    band.addColorStop(st(aisleC - 5),  'rgba(88,90,102,0.96)');
+    band.addColorStop(st(aisleC + 5),  'rgba(88,90,102,0.96)');
+    band.addColorStop(st(aisleC + 9),  'rgba(88,90,102,0.55)');
+    band.addColorStop(st(aisleC + 15), 'rgba(88,90,102,0)');
+    band.addColorStop(1, 'rgba(88,90,102,0)');
+    g.save();
+    // only the walk itself — the dais keeps its own light
+    g.beginPath(); g.rect(0, rowY(11), TW2, TH2 - rowY(11)); g.clip();
+    g.fillStyle = band; g.fillRect(0, 0, TW2, TH2);
+    g.restore();
+  });
+}
+
 function texGlow() {
   return TEXS('glow', 96, 96, p => {
     const gr = p.g.createRadialGradient(48, 48, 0, 48, 48, 48);
@@ -5501,6 +5541,15 @@ function wBuildScene() {
   lm.x = 0; lm.y = -WALLA;
   lm.width = MAPW; lm.height = WALLA + MAPH;
   cam.addChild(lm);
+
+  /* over the top of it, the runner's own lights — off until she is
+     through the doors, when this fades away and the aisle comes up */
+  const rs = PX.runnerShade = new PIXI.Sprite(texRunnerShade());
+  rs.blendMode = PIXI.BLEND_MODES.MULTIPLY;
+  rs.x = 0; rs.y = -WALLA;
+  rs.width = MAPW; rs.height = WALLA + MAPH;
+  rs.alpha = 0;
+  cam.addChild(rs);
 
   /* the chandeliers hang between us and the floor */
   const ceil = PX.ceil = new PIXI.Container();
@@ -5742,8 +5791,11 @@ function wBuildScene() {
      hinged at those flowers rather than sliding — swinging back is
      faked by narrowing each leaf toward its own hinge, which in this
      flat top-down view reads as the leaf turning away from you. */
-  const DOORW = ((AISLE_MID + 5) - (AISLE_MID - 4)) * AW / 2;   // half the mouth
-  const DOORH = 56;
+  // Narrow enough to sit inside the gate's two flowered columns rather
+  // than across them: the arch is 54 art px either side of the middle
+  // and its blooms hang about 11 in from that, so the leaves meet the
+  // frame just inside the flowers and leave every one of them showing.
+  const DOORW = 43, DOORH = 48;
   for (const side of ['l', 'r']) {
     const sp = new PIXI.Sprite(TEX('halldoor' + side, DOORW, DOORH, p => {
       R(p, 0, 0, DOORW, DOORH, C.blkD);
@@ -5909,16 +5961,19 @@ function wRender() {
 
   /* the bride — and, on the way out, the groom beside her */
   PX.camX = camX; PX.camY = camY;
+  if (PX.runnerShade) PX.runnerShade.alpha = 1 - ENTRY.lit;
+
   /* the doors at the foot of the aisle — shut behind her at first, and
      left standing open once she is through */
   if (PX.doorL) {
     const up = ENTRY.on || ENTRY.open > 0;
     PX.doorL.visible = PX.doorR.visible = up;
     if (up) {
-      const sill = 70 * AH + 6;                   // standing in the bottom wall
+      const mid = (AISLE_MID + 0.5) * AW;         // the gate's own centre
+      const sill = 69.6 * AH;                     // and its base
       const swing = 1 - ENTRY.open * 0.9;         // narrowing toward each hinge
-      PX.doorL.x = (AISLE_MID - 4) * AW;          // hinged on the left flowers
-      PX.doorR.x = (AISLE_MID + 5) * AW;          // and on the right
+      PX.doorL.x = mid - 43;                      // hinged just inside the flowers
+      PX.doorR.x = mid + 43;
       PX.doorL.scale.x = PX.doorR.scale.x = swing;
       PX.doorL.y = PX.doorR.y = sill;
       PX.doorL.zIndex = PX.doorR.zIndex = sill + 2; // in front of her as she passes
@@ -6199,7 +6254,8 @@ function askTheQuestion() {
    the doors at the foot of it, still shut, with her behind them; they
    part, she walks up to where the aisle proper begins, and only when
    she has stopped there does she get the stick and the hint. */
-const ENTRY = { on: false, phase: '', t: 0, open: 0, walkT: 0, step: 0 };
+const ENTRY = { on: false, phase: '', t: 0, open: 0, walkT: 0, step: 0, lit: 1 };
+const ENTRY_LIGHT_MS = 1400;     // how long the runner takes to come up
 const ENTRY_ROW = 70.0;          // in the doorway itself, behind the leaves
 const ENTRY_STOP = 66.5;         // where she has always stood
 const ENTRY_DOOR_MS = 1800;      // how long the leaves take to part
@@ -6208,6 +6264,7 @@ const ENTRY_SPEED = 54;          // world px per second, unhurried
 function startEntryWalk() {
   ENTRY.on = true; ENTRY.phase = 'hold'; ENTRY.t = 0;
   ENTRY.open = 0; ENTRY.walkT = 0; ENTRY.step = 0;
+  ENTRY.lit = 0;                  // the aisle is as dark as the tables to begin with
   W.locked = true; W.stop = null; W.moving = false;
   W.x = AISLE_MID * WT + WT / 2;
   W.y = ENTRY_ROW * WT;
@@ -6225,8 +6282,11 @@ function entryStep(dt) {
     ENTRY.open = Math.min(1, ENTRY.open + dt / ENTRY_DOOR_MS);
     if (ENTRY.open >= 1) { ENTRY.phase = 'pause'; ENTRY.t = 0; }
   } else if (ENTRY.phase === 'pause') {
+    // the doors are open: the runner's lights come up before she steps on
+    ENTRY.lit = Math.min(1, ENTRY.lit + dt / ENTRY_LIGHT_MS);
     if (ENTRY.t > 450) { ENTRY.phase = 'walk'; ENTRY.t = 0; ENTRY.step = 1; }
   } else if (ENTRY.phase === 'walk') {
+    ENTRY.lit = Math.min(1, ENTRY.lit + dt / ENTRY_LIGHT_MS);
     W.y -= ENTRY_SPEED / 1000 * dt;
     ENTRY.walkT += dt;
     if (ENTRY.walkT > 230) { ENTRY.walkT = 0; ENTRY.step = ENTRY.step === 1 ? 2 : 1; }
@@ -6235,6 +6295,7 @@ function entryStep(dt) {
       ENTRY.phase = 'done'; ENTRY.step = 0; ENTRY.t = 0;
     }
   } else if (ENTRY.phase === 'done') {
+    ENTRY.lit = Math.min(1, ENTRY.lit + dt / ENTRY_LIGHT_MS);
     if (ENTRY.t > 350) {
       ENTRY.on = false;
       W.locked = false;
