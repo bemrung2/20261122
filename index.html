@@ -318,6 +318,39 @@ html, body {
 }
 #entrance.open #en-light { opacity: 1; transform: scale(1); }
 
+/* Before anything else, up against the left edge at the height the
+   volume keys sit on an iPhone, an arrow pointing out at them. There is
+   a heartbeat and two songs coming and none of it lands on a muted
+   phone. */
+#en-vol {
+  position: absolute; z-index: 5;
+  left: calc(var(--sal) + 10px);
+  top: clamp(92px, 19%, 215px);
+  display: flex; align-items: center; gap: 9px;
+  pointer-events: none;
+  opacity: 0; transform: translateX(6px);
+  transition: opacity .9s ease, transform 1s cubic-bezier(0.16,1,0.3,1);
+}
+#en-vol.in { opacity: 1; transform: none; }
+#en-vol i {                                /* the arrow, aimed at the key */
+  width: 0; height: 0; flex: none;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-right: 11px solid #ffe3b8;
+  filter: drop-shadow(0 0 7px rgba(255,206,140,0.55));
+  animation: volNudge 1.5s ease-in-out infinite;
+}
+@keyframes volNudge {
+  0%, 100% { transform: translateX(0);    opacity: 0.55; }
+  45%      { transform: translateX(-6px); opacity: 1; }
+}
+#en-vol span {
+  font-family: 'Nanum Myeongjo', 'Noto Serif KR', serif;
+  font-size: clamp(12.5px, 1.7vh, 17px); letter-spacing: 0.02em;
+  color: rgba(255,236,208,0.92); white-space: nowrap;
+  text-shadow: 0 0 22px rgba(255,206,140,0.4);
+}
+
 /* Before any of that: she is still in the waiting room, and these are
    only her thoughts. Same serif as the announcement that follows, but
    small, dim and close-set — a whisper, so that "신부" / "입장!"
@@ -1726,6 +1759,7 @@ html, body {
   <div id="en-light"></div>
   <div class="en-door" id="en-l"><i></i></div>
   <div class="en-door" id="en-r"><i></i></div>
+  <div id="en-vol"><i></i><span>휴대폰 볼륨을 키워주세요</span></div>
   <div id="en-wait">
     <span class="ew" id="ew-1">어쩌지.. 너무 떨려...</span>
     <span class="ew" id="ew-2">걷다가 넘어지면 어쩌지?</span>
@@ -2371,7 +2405,15 @@ async function playEntrance() {
   el.className = 'on';
   $('en-1').classList.remove('in');
   $('en-2').classList.remove('in');
+  $('en-vol').classList.remove('in');
   for (let i = 1; i <= 9; i++) $('ew-' + i).classList.remove('in');
+
+  // ask for the volume first — none of what follows works silent
+  await sleep(650);
+  $('en-vol').classList.add('in');
+  await sleep(3200);
+  $('en-vol').classList.remove('in');
+  await sleep(900);
 
   /* The waiting room. Nothing on screen but what she is thinking, and
      her own heartbeat under it, getting quicker as the doors get
@@ -6316,7 +6358,8 @@ function entryStep(dt) {
    other while the flowers come down. */
 const CUT = { on: false, phase: 0, t: 0, step: 0, walkT: 0,
               petals: [], carded: false,
-              descend: false, join: false, joinWait: 0, gx: 0, gy: 0, gstep: 0, gwalkT: 0 };
+              descend: false, join: false, joinWait: 0, settle: 0,
+              gx: 0, gy: 0, gstep: 0, gwalkT: 0 };
 
 /* He walks down off the dais to meet her before he says anything. The one
    standing up there is the one who comes down — no second groom appears. */
@@ -6348,6 +6391,7 @@ function startRecessional() {
   CUT.descend = false;
   CUT.join = true;                  // he walks over to her side first
   CUT.joinWait = 1000;              // ...but takes a beat to react before he moves
+  CUT.settle = 0;                   // and another once he is beside her
   CUT.gwalkT = 0; CUT.gstep = 0;
   W.locked = true; W.stop = null;
   W.x = AISLE_MID * WT + WT / 2;
@@ -6381,6 +6425,7 @@ function cutStep(dt) {
     if (d <= sp) {
       CUT.gx = tx; CUT.gy = ty;
       CUT.join = false; CUT.gstep = 0;
+      CUT.settle = 1000;            // stand there together before setting off
     } else {
       CUT.gx += dx / d * sp;
       CUT.gy += dy / d * sp;
@@ -6390,6 +6435,8 @@ function cutStep(dt) {
     return;
   }
   if (CUT.phase === 0) {
+    // a moment stood side by side before either of them moves
+    if (CUT.settle > 0) { CUT.settle -= dt; return; }
     // no stopping and no waving: they simply walk it, unhurried
     W.y += 58 / 1000 * dt;
     CUT.walkT += dt;
